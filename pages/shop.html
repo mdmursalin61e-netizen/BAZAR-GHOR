@@ -1,0 +1,510 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Shop Products | ELITE SPHERE GROUP</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 22px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        header h1 {
+            font-size: 23px;
+        }
+
+        header p {
+            color: #cbd5e1;
+            margin-top: 5px;
+            font-size: 13px;
+        }
+
+        .cart-link {
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 45px 15px 25px;
+        }
+
+        .hero h2 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .hero p {
+            color: #64748b;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 22px;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 3px 12px #0000000d;
+            display: flex;
+            flex-direction: column;
+            transition: transform .2s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 210px;
+            object-fit: contain;
+            background: #f8fafc;
+            padding: 12px;
+        }
+
+        .no-image {
+            height: 210px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #e2e8f0;
+            color: #64748b;
+        }
+
+        .product-details {
+            padding: 17px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .product-details h3 {
+            font-size: 18px;
+            margin-bottom: 9px;
+        }
+
+        .description {
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .price {
+            color: #087a45;
+            font-size: 21px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .stock {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 15px;
+        }
+
+        .add-button {
+            width: 100%;
+            padding: 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: auto;
+        }
+
+        .add-button:hover {
+            background: #1d4ed8;
+        }
+
+        .add-button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            padding: 35px 15px;
+            color: #64748b;
+            font-size: 16px;
+        }
+
+        .message {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #087a45;
+            color: white;
+            padding: 14px 20px;
+            border-radius: 8px;
+            display: none;
+            z-index: 10;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            margin-top: 45px;
+            background: #111827;
+            color: white;
+        }
+
+        @media(max-width: 500px) {
+            header h1 {
+                font-size: 19px;
+            }
+
+            .hero h2 {
+                font-size: 25px;
+            }
+
+            .product-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 12px;
+            }
+
+            .product-image,
+            .no-image {
+                height: 150px;
+            }
+
+            .product-details {
+                padding: 12px;
+            }
+
+            .product-details h3 {
+                font-size: 15px;
+            }
+
+            .price {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div>
+        <h1>ELITE SPHERE GROUP</h1>
+        <p>Bangladesh | Online Shopping</p>
+    </div>
+
+    <a href="cart.html" class="cart-link">
+        🛒 Cart (<span id="cartCount">0</span>)
+    </a>
+</header>
+
+<section class="hero">
+    <h2>Explore Our Products</h2>
+    <p>Discover quality products at great prices.</p>
+</section>
+
+<main class="container">
+
+    <div id="productGrid" class="product-grid">
+        <div class="status">Loading products...</div>
+    </div>
+
+</main>
+
+<div id="message" class="message" role="status" aria-live="polite"></div>
+
+<footer>
+    <p>© 2026 ELITE SPHERE GROUP. All Rights Reserved.</p>
+</footer>
+
+<script>
+    const CART_KEY = "eliteSphereCart";
+
+    const productGrid = document.getElementById("productGrid");
+    const cartCount = document.getElementById("cartCount");
+    const messageBox = document.getElementById("message");
+
+    let products = [];
+
+    function getCart() {
+        try {
+            const cart = JSON.parse(
+                localStorage.getItem(CART_KEY) || "[]"
+            );
+
+            return Array.isArray(cart) ? cart : [];
+        } catch {
+            return [];
+        }
+    }
+
+    function saveCart(cart) {
+        localStorage.setItem(CART_KEY, JSON.stringify(cart));
+        updateCartCount();
+    }
+
+    function updateCartCount() {
+        const cart = getCart();
+
+        const count = cart.reduce(
+            (total, item) => total + Math.max(0, Number(item.quantity) || 0),
+            0
+        );
+
+        cartCount.textContent = count;
+    }
+
+    function escapeHTML(value) {
+        return String(value ?? "").replace(/[&<>"']/g, char => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+        })[char]);
+    }
+
+    function safeImageUrl(value) {
+        if (typeof value !== "string" || !value.trim()) {
+            return "";
+        }
+
+        const url = value.trim();
+
+        if (/^\/uploads\/[a-f0-9]{40}\.(jpg|png|webp|gif)$/i.test(url)) {
+            return url;
+        }
+
+        try {
+            const parsed = new URL(url);
+
+            if (
+                parsed.protocol === "https:" ||
+                parsed.protocol === "http:"
+            ) {
+                return url;
+            }
+        } catch {
+            return "";
+        }
+
+        return "";
+    }
+
+    function showMessage(text) {
+        messageBox.textContent = text;
+        messageBox.style.display = "block";
+
+        setTimeout(() => {
+            messageBox.style.display = "none";
+        }, 2500);
+    }
+
+    async function loadProducts() {
+        productGrid.innerHTML =
+            '<div class="status">Loading products...</div>';
+
+        try {
+            const response = await fetch("/api/products");
+
+            let data;
+
+            try {
+                data = await response.json();
+            } catch {
+                throw new Error("Invalid server response.");
+            }
+
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.message || "Could not load products."
+                );
+            }
+
+            products = Array.isArray(data.products)
+                ? data.products
+                : [];
+
+            renderProducts();
+
+        } catch (error) {
+            productGrid.innerHTML = `
+                <div class="status">
+                    ${escapeHTML(error.message)}
+                    <br><br>
+                    <button onclick="loadProducts()">
+                        Try Again
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    function renderProducts() {
+        if (products.length === 0) {
+            productGrid.innerHTML = `
+                <div class="status">
+                    No products available right now.
+                </div>
+            `;
+            return;
+        }
+
+        productGrid.innerHTML = products.map(product => {
+            const image = safeImageUrl(product.image_url);
+            const stock = Number(product.stock_quantity) || 0;
+            const price = Number(product.price) || 0;
+
+            return `
+                <article class="product-card">
+
+                    ${
+                        image
+                            ? `
+                                <img
+                                    class="product-image"
+                                    src="${escapeHTML(image)}"
+                                    alt="${escapeHTML(product.name)}"
+                                    loading="lazy"
+                                >
+                            `
+                            : `
+                                <div class="no-image">
+                                    No Image Available
+                                </div>
+                            `
+                    }
+
+                    <div class="product-details">
+
+                        <h3>${escapeHTML(product.name)}</h3>
+
+                        <p class="description">
+                            ${escapeHTML(product.description || "Quality product from ELITE SPHERE GROUP.")}
+                        </p>
+
+                        <p class="price">
+                            ৳${price.toFixed(2)}
+                        </p>
+
+                        <p class="stock">
+                            ${
+                                stock > 0
+                                    ? "In Stock: " + stock
+                                    : "Out of Stock"
+                            }
+                        </p>
+
+                        <button
+                            class="add-button"
+                            data-product-id="${escapeHTML(product.id)}"
+                            ${stock <= 0 ? "disabled" : ""}
+                        >
+                            ${stock > 0 ? "Add to Cart" : "Out of Stock"}
+                        </button>
+
+                    </div>
+
+                </article>
+            `;
+        }).join("");
+    }
+
+    function addToCart(productId) {
+        const product = products.find(
+            item => String(item.id) === String(productId)
+        );
+
+        if (!product) {
+            showMessage("Product not found.");
+            return;
+        }
+
+        const stock = Number(product.stock_quantity) || 0;
+
+        if (stock <= 0) {
+            showMessage("This product is out of stock.");
+            return;
+        }
+
+        const cart = getCart();
+
+        const existing = cart.find(
+            item => String(item.id) === String(product.id)
+        );
+
+        if (existing) {
+            if (Number(existing.quantity) >= stock) {
+                showMessage("Maximum available stock reached.");
+                return;
+            }
+
+            existing.quantity = Number(existing.quantity) + 1;
+
+        } else {
+            cart.push({
+                id: product.id,
+                name: product.name,
+                price: Number(product.price),
+                stock_quantity: stock,
+                image_url: product.image_url || "",
+                quantity: 1
+            });
+        }
+
+        saveCart(cart);
+        showMessage(product.name + " added to cart!");
+    }
+
+    productGrid.addEventListener("click", event => {
+        const button = event.target.closest("[data-product-id]");
+
+        if (!button || button.disabled) return;
+
+        addToCart(button.dataset.productId);
+    });
+
+    updateCartCount();
+    loadProducts();
+
+</script>
+
+</body>
+</html>

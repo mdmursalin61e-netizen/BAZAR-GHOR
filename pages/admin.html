@@ -1,0 +1,197 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | ELITE SPHERE GROUP</title>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0b1120;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+
+        .login-box {
+            width: 90%;
+            max-width: 420px;
+            padding: 40px 30px;
+            background: #151f32;
+            border: 1px solid #263650;
+            border-radius: 16px;
+            box-shadow: 0 15px 45px rgba(0,0,0,.35);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 25px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #9caec5;
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin: 18px 0 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #34445e;
+            border-radius: 8px;
+            background: #0b1120;
+            color: white;
+            outline: none;
+        }
+
+        input:focus { border-color: #38bdf8; }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 25px;
+            border: none;
+            border-radius: 8px;
+            background: #0ea5e9;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+        }
+
+        .message {
+            display: none;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 18px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .error {
+            display: block;
+            background: #7f1d1d;
+            color: #fecaca;
+        }
+
+        .success {
+            display: block;
+            background: #14532d;
+            color: #bbf7d0;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 22px;
+            color: #38bdf8;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="login-box">
+        <h1>ELITE SPHERE GROUP</h1>
+        <p class="subtitle">Administrator Login</p>
+
+        <form id="loginForm">
+            <label for="email">Admin Email</label>
+            <input
+                type="email"
+                id="email"
+                placeholder="Enter admin email"
+                autocomplete="username"
+                required
+            >
+
+            <label for="password">Password</label>
+            <input
+                type="password"
+                id="password"
+                placeholder="Enter password"
+                autocomplete="current-password"
+                required
+            >
+
+            <button type="submit" id="loginButton">
+                Login to Dashboard
+            </button>
+        </form>
+
+        <div id="message" class="message" role="status"></div>
+
+        <a class="back-link" href="../index.html">
+            Back to Website
+        </a>
+    </main>
+
+    <script>
+        const loginForm = document.getElementById("loginForm");
+        const loginButton = document.getElementById("loginButton");
+        const messageBox = document.getElementById("message");
+
+        loginForm.addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            messageBox.className = "message";
+            messageBox.textContent = "";
+
+            loginButton.disabled = true;
+            loginButton.textContent = "Checking...";
+
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value;
+
+            try {
+                const response = await fetch("/api/admin/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "same-origin",
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || "Login failed.");
+                }
+
+                messageBox.className = "message success";
+                messageBox.textContent = "Login successful! Redirecting...";
+
+                window.location.replace("/pages/dashboard.html");
+
+            } catch (error) {
+                messageBox.className = "message error";
+                messageBox.textContent = error.message;
+
+                loginButton.disabled = false;
+                loginButton.textContent = "Login to Dashboard";
+            }
+        });
+    </script>
+
+</body>
+</html>

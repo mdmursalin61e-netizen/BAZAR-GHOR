@@ -1,0 +1,678 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Services Management | ELITE SPHERE GROUP</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #f3f5f9;
+      color: #202938;
+    }
+
+    header {
+      background: #111827;
+      color: white;
+      padding: 18px 5%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    header h2 {
+      font-size: 21px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    button, .nav-link {
+      border: none;
+      padding: 10px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .nav-link {
+      background: #374151;
+      color: white;
+    }
+
+    .logout {
+      background: #dc2626;
+      color: white;
+    }
+
+    main {
+      max-width: 1150px;
+      margin: 30px auto;
+      padding: 0 18px;
+    }
+
+    .page-heading {
+      margin-bottom: 22px;
+    }
+
+    .page-heading h1 {
+      font-size: 27px;
+      margin-bottom: 7px;
+    }
+
+    .page-heading p {
+      color: #6b7280;
+    }
+
+    .panel {
+      background: white;
+      padding: 23px;
+      border-radius: 10px;
+      margin-bottom: 22px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+
+    .panel h2 {
+      font-size: 19px;
+      margin-bottom: 18px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: #2563eb;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .primary-btn {
+      background: #2563eb;
+      color: white;
+      margin-top: 17px;
+    }
+
+    .secondary-btn {
+      background: #6b7280;
+      color: white;
+      margin-top: 17px;
+    }
+
+    .refresh-btn {
+      background: #111827;
+      color: white;
+    }
+
+    .message {
+      margin-top: 14px;
+      font-size: 14px;
+      font-weight: bold;
+      overflow-wrap: anywhere;
+    }
+
+    .success {
+      color: #15803d;
+    }
+
+    .error {
+      color: #dc2626;
+    }
+
+    .table-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 750px;
+    }
+
+    th, td {
+      padding: 13px 11px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #f9fafb;
+      color: #374151;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .active {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .inactive {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .edit-btn {
+      background: #2563eb;
+      color: white;
+      margin: 2px;
+    }
+
+    .toggle-btn {
+      background: #d97706;
+      color: white;
+      margin: 2px;
+    }
+
+    .delete-btn {
+      background: #dc2626;
+      color: white;
+      margin: 2px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 25px;
+      color: #6b7280;
+    }
+
+    @media (max-width: 650px) {
+      header {
+        align-items: flex-start;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field.full {
+        grid-column: auto;
+      }
+
+      .panel {
+        padding: 16px;
+      }
+
+      .page-heading h1 {
+        font-size: 23px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h2>ELITE SPHERE GROUP</h2>
+
+  <div class="header-actions">
+    <a class="nav-link" href="/pages/dashboard.html">Dashboard</a>
+    <a class="nav-link" href="/pages/products.html">Products</a>
+    <a class="nav-link" href="/pages/orders.html">Orders</a>
+    <a class="nav-link" href="/pages/customers.html">Customers</a>
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<main>
+
+  <div class="page-heading">
+    <h1>Services Management</h1>
+    <p>Add, edit, activate, deactivate and manage your services.</p>
+  </div>
+
+  <section class="panel">
+    <h2 id="formTitle">Add New Service</h2>
+
+    <form id="serviceForm">
+      <div class="form-grid">
+
+        <div class="field">
+          <label for="title">Service Title</label>
+          <input id="title" type="text" placeholder="Example: Website Development" required>
+        </div>
+
+        <div class="field">
+          <label for="slug">Service Slug</label>
+          <input id="slug" type="text" placeholder="website-development" required>
+        </div>
+
+        <div class="field full">
+          <label for="description">Description</label>
+          <textarea id="description" placeholder="Write service description..." required></textarea>
+        </div>
+
+        <div class="field">
+          <label for="isActive">Status</label>
+          <select id="isActive">
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
+
+      </div>
+
+      <button type="submit" class="primary-btn" id="submitBtn">
+        Add Service
+      </button>
+
+      <button type="button" class="secondary-btn" id="cancelBtn" onclick="cancelEdit()" style="display:none;">
+        Cancel Edit
+      </button>
+
+      <p id="formMessage" class="message"></p>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="table-top">
+      <h2>All Services</h2>
+      <button class="refresh-btn" onclick="loadServices()">Refresh Services</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Slug</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Created At</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="servicesTable">
+          <tr>
+            <td colspan="7" class="empty">Loading services...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p id="tableMessage" class="message"></p>
+  </section>
+
+</main>
+
+<script>
+  const API = "/api/admin/services";
+
+  let services = [];
+  let editingId = null;
+
+  const form = document.getElementById("serviceForm");
+  const titleInput = document.getElementById("title");
+  const slugInput = document.getElementById("slug");
+  const descriptionInput = document.getElementById("description");
+  const activeInput = document.getElementById("isActive");
+  const submitBtn = document.getElementById("submitBtn");
+  const cancelBtn = document.getElementById("cancelBtn");
+  const formMessage = document.getElementById("formMessage");
+  const tableMessage = document.getElementById("tableMessage");
+  const servicesTable = document.getElementById("servicesTable");
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, function(char) {
+      return {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[char];
+    });
+  }
+
+  function showFormMessage(message, type) {
+    formMessage.textContent = message;
+    formMessage.className = "message " + type;
+  }
+
+  function showTableMessage(message, type) {
+    tableMessage.textContent = message;
+    tableMessage.className = "message " + type;
+  }
+
+  async function apiRequest(url, options = {}) {
+    const response = await fetch(url, {
+      credentials: "same-origin",
+      ...options,
+      headers: {
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...(options.headers || {})
+      }
+    });
+
+    let data = {};
+
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      window.location.href = "/pages/admin.html";
+      throw new Error("Please login first.");
+    }
+
+    if (!response.ok || data.success === false) {
+      throw new Error(data.message || "Something went wrong.");
+    }
+
+    return data;
+  }
+
+  function makeSlug(value) {
+    return value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  titleInput.addEventListener("input", function() {
+    if (!editingId || !slugInput.dataset.manual) {
+      slugInput.value = makeSlug(titleInput.value);
+    }
+  });
+
+  slugInput.addEventListener("input", function() {
+    slugInput.dataset.manual = "true";
+  });
+
+  async function loadServices() {
+    servicesTable.innerHTML =
+      '<tr><td colspan="7" class="empty">Loading services...</td></tr>';
+
+    showTableMessage("", "");
+
+    try {
+      const data = await apiRequest(API);
+      services = Array.isArray(data.services) ? data.services : [];
+      renderServices();
+    } catch (error) {
+      servicesTable.innerHTML =
+        '<tr><td colspan="7" class="empty">Could not load services.</td></tr>';
+      showTableMessage(error.message, "error");
+    }
+  }
+
+  function renderServices() {
+    if (!services.length) {
+      servicesTable.innerHTML =
+        '<tr><td colspan="7" class="empty">No services found. Add your first service above.</td></tr>';
+      return;
+    }
+
+    servicesTable.innerHTML = services.map(service => {
+      const isActive = service.is_active === true;
+
+      const createdAt = service.created_at
+        ? new Date(service.created_at).toLocaleString()
+        : "-";
+
+      return `
+        <tr>
+          <td>${escapeHtml(service.id)}</td>
+          <td><strong>${escapeHtml(service.title)}</strong></td>
+          <td>${escapeHtml(service.slug)}</td>
+          <td>${escapeHtml(service.description)}</td>
+          <td>
+            <span class="status ${isActive ? "active" : "inactive"}">
+              ${isActive ? "Active" : "Inactive"}
+            </span>
+          </td>
+          <td>${escapeHtml(createdAt)}</td>
+          <td>
+            <button class="edit-btn" onclick="editService('${escapeHtml(service.id)}')">
+              Edit
+            </button>
+            <button class="toggle-btn" onclick="toggleService('${escapeHtml(service.id)}')">
+              ${isActive ? "Deactivate" : "Activate"}
+            </button>
+            <button class="delete-btn" onclick="deleteService('${escapeHtml(service.id)}')">
+              Delete
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  form.addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const title = titleInput.value.trim();
+    const slug = slugInput.value.trim();
+    const description = descriptionInput.value.trim();
+
+    if (!title || !slug || !description) {
+      showFormMessage("Please fill in all required fields.", "error");
+      return;
+    }
+
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+      showFormMessage("Slug must contain only lowercase letters, numbers and hyphens.", "error");
+      return;
+    }
+
+    const payload = {
+      title,
+      slug,
+      description,
+      is_active: activeInput.value === "true"
+    };
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = editingId ? "Updating..." : "Adding...";
+
+    try {
+      if (editingId) {
+        await apiRequest(`${API}/${encodeURIComponent(editingId)}`, {
+          method: "PUT",
+          body: JSON.stringify(payload)
+        });
+
+        showFormMessage("Service updated successfully.", "success");
+      } else {
+        await apiRequest(API, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        showFormMessage("Service added successfully.", "success");
+      }
+
+      resetForm();
+      await loadServices();
+
+    } catch (error) {
+      showFormMessage(error.message, "error");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = editingId ? "Update Service" : "Add Service";
+    }
+  });
+
+  function editService(id) {
+    const service = services.find(item => String(item.id) === String(id));
+
+    if (!service) return;
+
+    editingId = service.id;
+
+    titleInput.value = service.title || "";
+    slugInput.value = service.slug || "";
+    slugInput.dataset.manual = "true";
+    descriptionInput.value = service.description || "";
+    activeInput.value = service.is_active ? "true" : "false";
+
+    document.getElementById("formTitle").textContent = "Edit Service";
+    submitBtn.textContent = "Update Service";
+    cancelBtn.style.display = "inline-block";
+
+    showFormMessage("Editing selected service.", "success");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  }
+
+  async function toggleService(id) {
+    const service = services.find(item => String(item.id) === String(id));
+
+    if (!service) return;
+
+    const newStatus = !service.is_active;
+
+    try {
+      await apiRequest(`${API}/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          title: service.title,
+          slug: service.slug,
+          description: service.description,
+          is_active: newStatus
+        })
+      });
+
+      showTableMessage(
+        newStatus ? "Service activated successfully." : "Service deactivated successfully.",
+        "success"
+      );
+
+      await loadServices();
+
+    } catch (error) {
+      showTableMessage(error.message, "error");
+    }
+  }
+
+  async function deleteService(id) {
+    const service = services.find(item => String(item.id) === String(id));
+
+    if (!service) return;
+
+    const confirmed = confirm(
+      `Are you sure you want to permanently delete "${service.title}"? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await apiRequest(`${API}/${encodeURIComponent(id)}`, {
+        method: "DELETE"
+      });
+
+      showTableMessage("Service deleted successfully.", "success");
+
+      if (String(editingId) === String(id)) {
+        resetForm();
+      }
+
+      await loadServices();
+
+    } catch (error) {
+      showTableMessage(error.message, "error");
+    }
+  }
+
+  function resetForm() {
+    form.reset();
+    editingId = null;
+    slugInput.dataset.manual = "";
+
+    document.getElementById("formTitle").textContent = "Add New Service";
+    submitBtn.textContent = "Add Service";
+    cancelBtn.style.display = "none";
+  }
+
+  function cancelEdit() {
+    resetForm();
+    showFormMessage("Edit cancelled.", "success");
+  }
+
+  async function logout() {
+    try {
+      await fetch("/api/admin/logout", {
+        method: "POST",
+        credentials: "same-origin"
+      });
+    } catch (error) {
+      console.error("Logout request failed:", error);
+    }
+
+    window.location.href = "/pages/admin.html";
+  }
+
+  loadServices();
+</script>
+
+</body>
+</html>

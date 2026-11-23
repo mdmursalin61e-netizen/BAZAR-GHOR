@@ -1,0 +1,864 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orders Management | ELITE SPHERE GROUP</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: #f3f5fa;
+    color: #202b3c;
+}
+
+.header {
+    background: #101c35;
+    color: white;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.header h2 { font-size: 21px; }
+
+.header p {
+    color: #b9c5d9;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+.container {
+    padding: 30px;
+    max-width: 1600px;
+    margin: auto;
+}
+
+.top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+}
+
+.top h1 { font-size: 26px; }
+
+button {
+    border: none;
+    padding: 10px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.refresh, .details-btn {
+    background: #2457d6;
+    color: white;
+}
+
+.logout, .delete-btn {
+    background: #e34b4b;
+    color: white;
+}
+
+.save, .restore-btn {
+    background: #168653;
+    color: white;
+}
+
+.archive-btn {
+    background: #e5a126;
+    color: #202b3c;
+}
+
+.search {
+    width: 100%;
+    max-width: 380px;
+    padding: 12px;
+    border: 1px solid #d5dbe6;
+    border-radius: 7px;
+    outline: none;
+}
+
+.tabs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 18px 0;
+}
+
+.tab {
+    background: #e3e8f1;
+    color: #26364e;
+}
+
+.tab.active {
+    background: #2457d6;
+    color: white;
+}
+
+.table-box {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 3px 15px rgba(0,0,0,.05);
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    min-width: 1250px;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 13px 12px;
+    border-bottom: 1px solid #edf0f5;
+    text-align: left;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+th {
+    background: #f7f8fc;
+    color: #526078;
+    white-space: nowrap;
+}
+
+select {
+    padding: 8px;
+    border: 1px solid #d5dbe6;
+    border-radius: 6px;
+    background: white;
+    max-width: 145px;
+}
+
+.message {
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 7px;
+    display: none;
+}
+
+.empty {
+    text-align: center;
+    padding: 35px;
+    color: #778196;
+}
+
+.customer-info {
+    line-height: 1.7;
+    min-width: 150px;
+}
+
+.muted {
+    color: #778196;
+    font-size: 12px;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 110px;
+}
+
+.action-buttons button {
+    width: 100%;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 20, 40, .65);
+    z-index: 9999;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.modal-content {
+    background: white;
+    width: 100%;
+    max-width: 750px;
+    margin: 30px auto;
+    border-radius: 13px;
+    padding: 25px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.modal-header h2 { font-size: 21px; }
+
+.close-btn {
+    background: #ffe5e5;
+    color: #c62828;
+    font-size: 18px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 22px;
+}
+
+.detail-card {
+    background: #f5f7fb;
+    padding: 14px;
+    border-radius: 8px;
+    overflow-wrap: anywhere;
+}
+
+.detail-card p {
+    color: #78819a;
+    font-size: 12px;
+    margin-bottom: 7px;
+}
+
+.detail-card strong { font-size: 14px; }
+
+.address-card { grid-column: 1 / -1; }
+
+.items-table {
+    width: 100%;
+    min-width: 500px;
+    margin-top: 12px;
+}
+
+.items-wrapper { overflow-x: auto; }
+
+.total-line {
+    text-align: right;
+    margin-top: 18px;
+    font-size: 19px;
+    font-weight: bold;
+}
+
+@media(max-width: 600px) {
+    .container { padding: 15px; }
+    .header { padding: 18px; }
+    .top h1 { font-size: 22px; }
+    .modal-content { padding: 16px; }
+    .detail-grid { grid-template-columns: 1fr; }
+    .address-card { grid-column: auto; }
+}
+</style>
+</head>
+
+<body>
+
+<header class="header">
+    <div>
+        <h2>ELITE SPHERE GROUP</h2>
+        <p>Bangladesh | Admin Panel</p>
+    </div>
+    <button class="logout" onclick="logout()">Logout</button>
+</header>
+
+<main class="container">
+
+    <div class="top">
+        <div>
+            <h1>Orders Management</h1>
+            <p>View, save, archive, restore and manage customer orders.</p>
+        </div>
+
+        <button class="refresh" onclick="loadOrders()">
+            Refresh Orders
+        </button>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <input
+        type="search"
+        id="search"
+        class="search"
+        placeholder="Search order, customer name, phone..."
+        oninput="filterOrders()"
+    >
+
+    <div class="tabs">
+        <button id="activeTab" class="tab active" onclick="switchTab(false)">
+            Active Orders
+        </button>
+
+        <button id="archivedTab" class="tab" onclick="switchTab(true)">
+            Archived Orders
+        </button>
+    </div>
+
+    <section class="table-box">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Order Number</th>
+                    <th>Customer</th>
+                    <th>Phone</th>
+                    <th>Total</th>
+                    <th>Order Status</th>
+                    <th>Payment Status</th>
+                    <th>Payment Method</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody id="ordersTable">
+                <tr>
+                    <td colspan="10" class="empty">Loading orders...</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+</main>
+
+<div class="modal" id="detailsModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Order Details</h2>
+            <button class="close-btn" onclick="closeDetails()">✕</button>
+        </div>
+
+        <div id="detailsContent">Loading details...</div>
+    </div>
+</div>
+
+<script>
+let allOrders = [];
+let showingArchived = false;
+
+function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[char]);
+}
+
+function showMessage(message, success = false) {
+    const box = document.getElementById("message");
+
+    box.textContent = message;
+    box.style.display = "block";
+    box.style.background = success ? "#d9f7e7" : "#ffe0e0";
+    box.style.color = success ? "#126b3e" : "#a52222";
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function formatDate(value) {
+    if (!value) return "-";
+
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? "-"
+        : date.toLocaleString();
+}
+
+function makeOptions(current, choices) {
+    return choices.map(value => `
+        <option value="${escapeHTML(value)}"
+            ${value === current ? "selected" : ""}>
+            ${escapeHTML(value)}
+        </option>
+    `).join("");
+}
+
+function switchTab(archived) {
+    showingArchived = archived;
+
+    document.getElementById("activeTab").classList.toggle(
+        "active", !archived
+    );
+
+    document.getElementById("archivedTab").classList.toggle(
+        "active", archived
+    );
+
+    loadOrders();
+}
+
+async function loadOrders() {
+    const table = document.getElementById("ordersTable");
+
+    table.innerHTML = `
+        <tr><td colspan="10" class="empty">Loading orders...</td></tr>
+    `;
+
+    try {
+        const response = await fetch(
+            `/api/admin/orders?archived=${showingArchived}`,
+            {
+                credentials: "same-origin",
+                cache: "no-store"
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Could not load orders.");
+        }
+
+        allOrders = Array.isArray(data.orders) ? data.orders : [];
+
+        filterOrders();
+
+    } catch (error) {
+        table.innerHTML = `
+            <tr>
+                <td colspan="10" class="empty">
+                    ${escapeHTML(error.message)}
+                </td>
+            </tr>
+        `;
+    }
+}
+
+function renderOrders(orders) {
+    const table = document.getElementById("ordersTable");
+
+    if (!orders.length) {
+        table.innerHTML = `
+            <tr>
+                <td colspan="10" class="empty">
+                    ${showingArchived
+                        ? "No archived orders found."
+                        : "No active orders found."}
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    table.innerHTML = orders.map(order => {
+        const id = Number(order.id);
+
+        const activeActions = `
+            <button class="details-btn"
+                onclick="viewDetails(${id})">
+                View Details
+            </button>
+
+            <button class="save"
+                onclick="updateOrder(${id})">
+                Save
+            </button>
+
+            <button class="archive-btn"
+                onclick="archiveOrder(${id})">
+                Archive
+            </button>
+        `;
+
+        const archivedActions = `
+            <button class="details-btn"
+                onclick="viewDetails(${id})">
+                View Details
+            </button>
+
+            <button class="restore-btn"
+                onclick="restoreOrder(${id})">
+                Restore
+            </button>
+
+            <button class="delete-btn"
+                onclick="deleteOrder(${id})">
+                Delete Permanently
+            </button>
+        `;
+
+        return `
+            <tr>
+                <td>${escapeHTML(order.id)}</td>
+
+                <td>
+                    <strong>${escapeHTML(order.order_number || "-")}</strong>
+                </td>
+
+                <td>
+                    <div class="customer-info">
+                        ${escapeHTML(order.customer_name || "Unknown")}
+                        <div class="muted">
+                            ${escapeHTML(order.customer_email || "")}
+                        </div>
+                    </div>
+                </td>
+
+                <td>${escapeHTML(order.customer_phone || "-")}</td>
+
+                <td>৳${escapeHTML(order.total_amount ?? "0")}</td>
+
+                <td>
+                    ${
+                        showingArchived
+                        ? escapeHTML(order.status || "-")
+                        : `<select id="status-${id}">
+                            ${makeOptions(order.status, [
+                                "pending", "confirmed", "processing",
+                                "shipped", "delivered", "cancelled"
+                            ])}
+                           </select>`
+                    }
+                </td>
+
+                <td>
+                    ${
+                        showingArchived
+                        ? escapeHTML(order.payment_status || "-")
+                        : `<select id="payment-${id}">
+                            ${makeOptions(order.payment_status, [
+                                "unpaid", "pending", "paid",
+                                "failed", "refunded"
+                            ])}
+                           </select>`
+                    }
+                </td>
+
+                <td>${escapeHTML(
+                    (order.payment_method || "-").toUpperCase()
+                )}</td>
+
+                <td>${escapeHTML(formatDate(order.created_at))}</td>
+
+                <td>
+                    <div class="action-buttons">
+                        ${showingArchived ? archivedActions : activeActions}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join("");
+}
+
+async function viewDetails(id) {
+    const modal = document.getElementById("detailsModal");
+    const content = document.getElementById("detailsContent");
+
+    const order = allOrders.find(
+        item => Number(item.id) === Number(id)
+    );
+
+    if (!order) {
+        showMessage("Order not found.");
+        return;
+    }
+
+    modal.style.display = "block";
+    content.innerHTML = "Loading order details...";
+
+    try {
+        const response = await fetch(
+            `/api/admin/orders/${id}/items`,
+            {
+                credentials: "same-origin",
+                cache: "no-store"
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Could not load order items.");
+        }
+
+        const items = Array.isArray(data.items) ? data.items : [];
+
+        const itemRows = items.length
+            ? items.map(item => `
+                <tr>
+                    <td>${escapeHTML(item.product_name)}</td>
+                    <td>৳${escapeHTML(item.unit_price)}</td>
+                    <td>${escapeHTML(item.quantity)}</td>
+                    <td>৳${escapeHTML(item.subtotal)}</td>
+                </tr>
+            `).join("")
+            : `
+                <tr>
+                    <td colspan="4" class="empty">
+                        No product items found.
+                    </td>
+                </tr>
+            `;
+
+        content.innerHTML = `
+            <div class="detail-grid">
+                <div class="detail-card">
+                    <p>Order Number</p>
+                    <strong>${escapeHTML(order.order_number)}</strong>
+                </div>
+
+                <div class="detail-card">
+                    <p>Order ID</p>
+                    <strong>${escapeHTML(order.id)}</strong>
+                </div>
+
+                <div class="detail-card">
+                    <p>Customer Name</p>
+                    <strong>${escapeHTML(order.customer_name || "-")}</strong>
+                </div>
+
+                <div class="detail-card">
+                    <p>Phone Number</p>
+                    <strong>${escapeHTML(order.customer_phone || "-")}</strong>
+                </div>
+
+                <div class="detail-card">
+                    <p>Email</p>
+                    <strong>${escapeHTML(order.customer_email || "-")}</strong>
+                </div>
+
+                <div class="detail-card">
+                    <p>Payment Method</p>
+                    <strong>${escapeHTML(
+                        (order.payment_method || "-").toUpperCase()
+                    )}</strong>
+                </div>
+
+                <div class="detail-card">
+                    <p>Payment Status</p>
+                    <strong>${escapeHTML(order.payment_status || "-")}</strong>
+                </div>
+
+                <div class="detail-card">
+                    <p>Transaction ID</p>
+                    <strong>${escapeHTML(
+                        order.payment_reference || "Not provided"
+                    )}</strong>
+                </div>
+
+                <div class="detail-card address-card">
+                    <p>Delivery Address</p>
+                    <strong>${escapeHTML(order.delivery_address || "-")}</strong>
+                </div>
+
+                <div class="detail-card">
+                    <p>Order Status</p>
+                    <strong>${escapeHTML(order.status || "-")}</strong>
+                </div>
+
+                <div class="detail-card">
+                    <p>Order Date</p>
+                    <strong>${escapeHTML(formatDate(order.created_at))}</strong>
+                </div>
+            </div>
+
+            <h3>Ordered Products</h3>
+
+            <div class="items-wrapper">
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>${itemRows}</tbody>
+                </table>
+            </div>
+
+            <div class="total-line">
+                Total: ৳${escapeHTML(order.total_amount ?? "0")}
+            </div>
+        `;
+
+    } catch (error) {
+        content.innerHTML = `
+            <p class="empty">${escapeHTML(error.message)}</p>
+        `;
+    }
+}
+
+function closeDetails() {
+    document.getElementById("detailsModal").style.display = "none";
+}
+
+document.getElementById("detailsModal").addEventListener("click", event => {
+    if (event.target.id === "detailsModal") {
+        closeDetails();
+    }
+});
+
+async function updateOrder(id) {
+    const statusElement = document.getElementById(`status-${id}`);
+    const paymentElement = document.getElementById(`payment-${id}`);
+
+    if (!statusElement || !paymentElement) return;
+
+    try {
+        const response = await fetch(`/api/admin/orders/${id}/status`, {
+            method: "PUT",
+            credentials: "same-origin",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                status: statusElement.value,
+                payment_status: paymentElement.value
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Update failed.");
+        }
+
+        showMessage("Order updated successfully!", true);
+        await loadOrders();
+
+    } catch (error) {
+        showMessage(error.message);
+    }
+}
+
+async function archiveOrder(id) {
+    const order = allOrders.find(item => Number(item.id) === Number(id));
+
+    if (!order) return;
+
+    const confirmed = confirm(
+        `Archive order ${order.order_number}?\n\nIt will disappear from Active Orders. You can restore it later.`
+    );
+
+    if (!confirmed) return;
+
+    await performOrderAction(
+        `/api/admin/orders/${id}/archive`,
+        "PATCH",
+        "Order archived successfully."
+    );
+}
+
+async function restoreOrder(id) {
+    const order = allOrders.find(item => Number(item.id) === Number(id));
+
+    if (!order) return;
+
+    const confirmed = confirm(
+        `Restore order ${order.order_number} to Active Orders?`
+    );
+
+    if (!confirmed) return;
+
+    await performOrderAction(
+        `/api/admin/orders/${id}/restore`,
+        "PATCH",
+        "Order restored successfully."
+    );
+}
+
+async function deleteOrder(id) {
+    const order = allOrders.find(item => Number(item.id) === Number(id));
+
+    if (!order) return;
+
+    const confirmed = confirm(
+        `WARNING!\n\nPermanently delete order ${order.order_number}?\n\nThis cannot be undone. Its saved order items will also be deleted.`
+    );
+
+    if (!confirmed) return;
+
+    const secondConfirmation = confirm(
+        "Are you absolutely sure? This deletion is permanent."
+    );
+
+    if (!secondConfirmation) return;
+
+    await performOrderAction(
+        `/api/admin/orders/${id}`,
+        "DELETE",
+        "Archived order permanently deleted."
+    );
+}
+
+async function performOrderAction(url, method, successMessage) {
+    try {
+        const response = await fetch(url, {
+            method,
+            credentials: "same-origin"
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Action failed.");
+        }
+
+        showMessage(data.message || successMessage, true);
+        await loadOrders();
+
+    } catch (error) {
+        showMessage(error.message);
+    }
+}
+
+function filterOrders() {
+    const query = document.getElementById("search")
+        .value.trim().toLowerCase();
+
+    const filtered = allOrders.filter(order => {
+        return [
+            order.order_number,
+            order.customer_name,
+            order.customer_phone,
+            order.customer_email,
+            order.customer_id,
+            order.id
+        ].some(value =>
+            String(value ?? "").toLowerCase().includes(query)
+        );
+    });
+
+    renderOrders(filtered);
+}
+
+async function logout() {
+    try {
+        await fetch("/api/admin/logout", {
+            method: "POST",
+            credentials: "same-origin"
+        });
+    } finally {
+        window.location.href = "/pages/admin.html";
+    }
+}
+
+loadOrders();
+</script>
+
+</body>
+</html>

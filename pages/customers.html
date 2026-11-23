@@ -1,0 +1,327 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customers Management | ELITE SPHERE GROUP</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #f3f5fa;
+      color: #202b3c;
+    }
+
+    .header {
+      background: #101c35;
+      color: white;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header h2 {
+      font-size: 21px;
+    }
+
+    .header p {
+      color: #b9c5d9;
+      font-size: 13px;
+      margin-top: 5px;
+    }
+
+    .container {
+      max-width: 1500px;
+      margin: auto;
+      padding: 30px;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+
+    .top h1 {
+      font-size: 26px;
+      margin-bottom: 7px;
+    }
+
+    button {
+      border: none;
+      padding: 10px 16px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .refresh {
+      background: #2457d6;
+      color: white;
+    }
+
+    .logout {
+      background: #e34b4b;
+      color: white;
+    }
+
+    .search {
+      width: 100%;
+      max-width: 350px;
+      padding: 12px;
+      border: 1px solid #d5dbe6;
+      border-radius: 7px;
+      outline: none;
+    }
+
+    .table-box {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 3px 15px rgba(0,0,0,.05);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 900px;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #edf0f5;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
+      background: #f7f8fc;
+      color: #526078;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 35px;
+      color: #778196;
+    }
+
+    .message {
+      display: none;
+      padding: 13px;
+      margin-bottom: 15px;
+      border-radius: 7px;
+    }
+
+    @media(max-width: 600px) {
+      .container {
+        padding: 15px;
+      }
+
+      .header {
+        padding: 18px;
+      }
+
+      .top h1 {
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="header">
+    <div>
+      <h2>ELITE SPHERE GROUP</h2>
+      <p>Bangladesh | Admin Panel</p>
+    </div>
+
+    <button class="logout" onclick="logout()">Logout</button>
+  </header>
+
+  <main class="container">
+
+    <div class="top">
+      <div>
+        <h1>Customers Management</h1>
+        <p>View and manage registered customers.</p>
+      </div>
+
+      <button class="refresh" onclick="loadCustomers()">
+        Refresh Customers
+      </button>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <input
+      type="search"
+      id="search"
+      class="search"
+      placeholder="Search by customer name, email or phone..."
+      oninput="filterCustomers()"
+    >
+
+    <br><br>
+
+    <section class="table-box">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Customer Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Created At</th>
+          </tr>
+        </thead>
+
+        <tbody id="customersTable">
+          <tr>
+            <td colspan="5" class="empty">Loading customers...</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <script>
+    let allCustomers = [];
+
+    function escapeHTML(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+    }
+
+    function showMessage(message, success = false) {
+      const box = document.getElementById("message");
+      box.textContent = message;
+      box.style.display = "block";
+      box.style.background = success ? "#d9f7e7" : "#ffe0e0";
+      box.style.color = success ? "#126b3e" : "#a52222";
+    }
+
+    async function loadCustomers() {
+      const table = document.getElementById("customersTable");
+
+      table.innerHTML = `
+        <tr>
+          <td colspan="5" class="empty">Loading customers...</td>
+        </tr>
+      `;
+
+      try {
+        const response = await fetch("/api/admin/customers", {
+          credentials: "same-origin"
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Could not load customers.");
+        }
+
+        allCustomers = Array.isArray(data)
+          ? data
+          : (data.customers || []);
+
+        renderCustomers(allCustomers);
+
+      } catch (error) {
+        table.innerHTML = `
+          <tr>
+            <td colspan="5" class="empty">
+              ${escapeHTML(error.message)}
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    function renderCustomers(customers) {
+      const table = document.getElementById("customersTable");
+
+      if (!customers.length) {
+        table.innerHTML = `
+          <tr>
+            <td colspan="5" class="empty">No customers found.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      table.innerHTML = customers.map(customer => `
+        <tr>
+          <td>${escapeHTML(customer.id)}</td>
+          <td>${escapeHTML(customer.name || customer.full_name || "-")}</td>
+          <td>${escapeHTML(customer.email || "-")}</td>
+          <td>${escapeHTML(customer.phone || customer.phone_number || "-")}</td>
+          <td>${escapeHTML(
+            customer.created_at
+              ? new Date(customer.created_at).toLocaleString()
+              : "-"
+          )}</td>
+        </tr>
+      `).join("");
+    }
+
+    function filterCustomers() {
+      const query = document.getElementById("search")
+        .value.toLowerCase();
+
+      const filtered = allCustomers.filter(customer => {
+        const name = String(
+          customer.name || customer.full_name || ""
+        ).toLowerCase();
+
+        const email = String(customer.email || "").toLowerCase();
+
+        const phone = String(
+          customer.phone || customer.phone_number || ""
+        ).toLowerCase();
+
+        return name.includes(query) ||
+          email.includes(query) ||
+          phone.includes(query) ||
+          String(customer.id || "").includes(query);
+      });
+
+      renderCustomers(filtered);
+    }
+
+    async function logout() {
+      try {
+        await fetch("/api/admin/logout", {
+          method: "POST",
+          credentials: "same-origin"
+        });
+      } finally {
+        window.location.href = "/pages/admin.html";
+      }
+    }
+
+    loadCustomers();
+  </script>
+
+</body>
+</html>

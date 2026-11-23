@@ -1,0 +1,663 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages Management | ELITE SPHERE GROUP</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #f3f5f9;
+      color: #222;
+    }
+
+    header {
+      background: #111827;
+      color: white;
+      padding: 18px 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    header h2 {
+      font-size: 21px;
+    }
+
+    nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    nav a, nav button {
+      color: white;
+      text-decoration: none;
+      background: #263449;
+      border: none;
+      padding: 9px 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    nav a:hover, nav button:hover {
+      background: #2563eb;
+    }
+
+    .container {
+      max-width: 1250px;
+      margin: 30px auto;
+      padding: 0 18px;
+    }
+
+    .top-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .top-section h1 {
+      font-size: 26px;
+    }
+
+    .top-section p {
+      color: #6b7280;
+      margin-top: 6px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    input {
+      padding: 11px 13px;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #2563eb;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .btn {
+      border: none;
+      padding: 10px 14px;
+      border-radius: 6px;
+      color: white;
+      font-size: 13px;
+    }
+
+    .refresh-btn {
+      background: #2563eb;
+    }
+
+    .refresh-btn:hover {
+      background: #1d4ed8;
+    }
+
+    .table-box {
+      background: white;
+      border-radius: 10px;
+      padding: 18px;
+      box-shadow: 0 3px 15px rgba(0,0,0,0.05);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 950px;
+    }
+
+    th, td {
+      padding: 13px 11px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #374151;
+    }
+
+    tr:hover td {
+      background: #fafafa;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .read {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .unread {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .view-btn {
+      background: #2563eb;
+    }
+
+    .status-btn {
+      background: #08916b;
+    }
+
+    .delete-btn {
+      background: #dc2626;
+    }
+
+    .action-buttons button:hover {
+      opacity: 0.85;
+    }
+
+    .message-preview {
+      max-width: 180px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    #notice {
+      margin-bottom: 15px;
+      font-size: 14px;
+      color: #374151;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 35px;
+      color: #6b7280;
+    }
+
+    /* Modal */
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+    }
+
+    .modal-content {
+      background: white;
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 25px;
+      border-radius: 12px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .close-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 7px 12px;
+      border-radius: 5px;
+    }
+
+    .detail-row {
+      margin-bottom: 15px;
+    }
+
+    .detail-row strong {
+      display: block;
+      margin-bottom: 5px;
+      color: #374151;
+      font-size: 13px;
+    }
+
+    .detail-row p {
+      background: #f3f4f6;
+      padding: 11px;
+      border-radius: 6px;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 15px;
+      }
+
+      .container {
+        margin-top: 20px;
+      }
+
+      .top-section h1 {
+        font-size: 22px;
+      }
+
+      .controls {
+        width: 100%;
+      }
+
+      .controls input {
+        flex: 1;
+        min-width: 150px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h2>ELITE SPHERE GROUP</h2>
+
+  <nav>
+    <a href="/pages/dashboard.html">Dashboard</a>
+    <a href="/pages/products.html">Products</a>
+    <a href="/pages/orders.html">Orders</a>
+    <a href="/pages/customers.html">Customers</a>
+    <a href="/pages/services.html">Services</a>
+    <button onclick="logout()">Logout</button>
+  </nav>
+</header>
+
+<div class="container">
+
+  <div class="top-section">
+    <div>
+      <h1>Messages Management</h1>
+      <p>View and manage customer messages.</p>
+    </div>
+
+    <div class="controls">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Search messages..."
+        oninput="renderMessages()"
+      >
+
+      <button class="btn refresh-btn" onclick="loadMessages()">
+        Refresh Messages
+      </button>
+    </div>
+  </div>
+
+  <div id="notice"></div>
+
+  <div class="table-box">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Email</th>
+          <th>Subject</th>
+          <th>Message</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+
+      <tbody id="messagesTable">
+        <tr>
+          <td colspan="9" class="empty">Loading messages...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Message Details Modal -->
+
+<div class="modal" id="messageModal">
+  <div class="modal-content">
+
+    <div class="modal-header">
+      <h2>Message Details</h2>
+      <button class="close-btn" onclick="closeModal()">Close</button>
+    </div>
+
+    <div id="messageDetails"></div>
+
+  </div>
+</div>
+
+<script>
+  let messages = [];
+
+  const table = document.getElementById("messagesTable");
+  const notice = document.getElementById("notice");
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, function(char) {
+      return {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[char];
+    });
+  }
+
+  function showNotice(message, isError = false) {
+    notice.textContent = message;
+    notice.style.color = isError ? "#dc2626" : "#15803d";
+  }
+
+  async function apiRequest(url, options = {}) {
+    const response = await fetch(url, {
+      credentials: "same-origin",
+      ...options,
+      headers: {
+        ...(options.headers || {})
+      }
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      window.location.href = "/pages/admin.html";
+      throw new Error("Please login first.");
+    }
+
+    const data = await response.json();
+
+    if (!response.ok || data.success === false) {
+      throw new Error(data.message || "Request failed.");
+    }
+
+    return data;
+  }
+
+  async function loadMessages() {
+    table.innerHTML = `
+      <tr>
+        <td colspan="9" class="empty">Loading messages...</td>
+      </tr>
+    `;
+
+    try {
+      const data = await apiRequest("/api/admin/messages");
+
+      messages = Array.isArray(data)
+        ? data
+        : (data.messages || data.data || []);
+
+      renderMessages();
+      showNotice("Messages loaded successfully.");
+
+    } catch (error) {
+      table.innerHTML = `
+        <tr>
+          <td colspan="9" class="empty">
+            ${escapeHtml(error.message)}
+          </td>
+        </tr>
+      `;
+      showNotice(error.message, true);
+    }
+  }
+
+  function renderMessages() {
+    const search = document
+      .getElementById("searchInput")
+      .value.toLowerCase()
+      .trim();
+
+    const filtered = messages.filter(message => {
+      const text = [
+        message.id,
+        message.name,
+        message.phone,
+        message.email,
+        message.subject,
+        message.message,
+        message.status
+      ].join(" ").toLowerCase();
+
+      return text.includes(search);
+    });
+
+    if (filtered.length === 0) {
+      table.innerHTML = `
+        <tr>
+          <td colspan="9" class="empty">No messages found.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    table.innerHTML = filtered.map(message => {
+      const isRead = String(message.status).toLowerCase() === "read";
+
+      const statusClass = isRead ? "read" : "unread";
+      const statusText = isRead ? "Read" : "Unread";
+      const nextStatus = isRead ? "unread" : "read";
+      const nextLabel = isRead ? "Unread" : "Read";
+
+      const date = message.created_at
+        ? new Date(message.created_at).toLocaleString()
+        : "N/A";
+
+      return `
+        <tr>
+          <td>${escapeHtml(message.id)}</td>
+          <td>${escapeHtml(message.name)}</td>
+          <td>${escapeHtml(message.phone)}</td>
+          <td>${escapeHtml(message.email)}</td>
+          <td>${escapeHtml(message.subject)}</td>
+
+          <td>
+            <div class="message-preview">
+              ${escapeHtml(message.message)}
+            </div>
+          </td>
+
+          <td>
+            <span class="status ${statusClass}">
+              ${statusText}
+            </span>
+          </td>
+
+          <td>${escapeHtml(date)}</td>
+
+          <td>
+            <div class="action-buttons">
+              <button
+                class="btn view-btn"
+                onclick="viewMessage(${Number(message.id)})">
+                View
+              </button>
+
+              <button
+                class="btn status-btn"
+                onclick="updateStatus(${Number(message.id)}, '${nextStatus}')">
+                ${nextLabel}
+              </button>
+
+              <button
+                class="btn delete-btn"
+                onclick="deleteMessage(${Number(message.id)})">
+                Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  async function viewMessage(id) {
+    try {
+      const data = await apiRequest(`/api/admin/messages/${id}`);
+
+      const message = data.message || data;
+
+      if (!message || !message.id) {
+        throw new Error("Message not found.");
+      }
+
+      const date = message.created_at
+        ? new Date(message.created_at).toLocaleString()
+        : "N/A";
+
+      document.getElementById("messageDetails").innerHTML = `
+        <div class="detail-row">
+          <strong>Message ID</strong>
+          <p>${escapeHtml(message.id)}</p>
+        </div>
+
+        <div class="detail-row">
+          <strong>Name</strong>
+          <p>${escapeHtml(message.name)}</p>
+        </div>
+
+        <div class="detail-row">
+          <strong>Phone</strong>
+          <p>${escapeHtml(message.phone)}</p>
+        </div>
+
+        <div class="detail-row">
+          <strong>Email</strong>
+          <p>${escapeHtml(message.email)}</p>
+        </div>
+
+        <div class="detail-row">
+          <strong>Subject</strong>
+          <p>${escapeHtml(message.subject)}</p>
+        </div>
+
+        <div class="detail-row">
+          <strong>Message</strong>
+          <p>${escapeHtml(message.message)}</p>
+        </div>
+
+        <div class="detail-row">
+          <strong>Status</strong>
+          <p>${escapeHtml(message.status)}</p>
+        </div>
+
+        <div class="detail-row">
+          <strong>Date</strong>
+          <p>${escapeHtml(date)}</p>
+        </div>
+      `;
+
+      document.getElementById("messageModal").style.display = "flex";
+
+    } catch (error) {
+      showNotice(error.message, true);
+    }
+  }
+
+  function closeModal() {
+    document.getElementById("messageModal").style.display = "none";
+  }
+
+  async function updateStatus(id, status) {
+    try {
+      await apiRequest(`/api/admin/messages/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ status })
+      });
+
+      showNotice("Message status updated successfully.");
+      await loadMessages();
+
+    } catch (error) {
+      showNotice(error.message, true);
+    }
+  }
+
+  async function deleteMessage(id) {
+    const confirmed = confirm(
+      "Are you sure you want to permanently delete this message?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await apiRequest(`/api/admin/messages/${id}`, {
+        method: "DELETE"
+      });
+
+      showNotice("Message deleted successfully.");
+      await loadMessages();
+
+    } catch (error) {
+      showNotice(error.message, true);
+    }
+  }
+
+  async function logout() {
+    try {
+      await apiRequest("/api/admin/logout", {
+        method: "POST"
+      });
+    } catch (error) {
+      // Continue to the login page if the session has already expired.
+    }
+
+    window.location.href = "/pages/admin.html";
+  }
+
+  document.getElementById("messageModal").addEventListener("click", function(event) {
+    if (event.target === this) {
+      closeModal();
+    }
+  });
+
+  loadMessages();
+</script>
+
+</body>
+</html>
