@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 
 const express = require("express");
@@ -22,6 +21,44 @@ const COOKIE_MAX_AGE = 8 * 60 * 60;
 
 if (!JWT_SECRET || JWT_SECRET.length < 32) {
     throw new Error("JWT_SECRET is missing or too short.");
+}
+
+// =====================================
+// PUBLIC DATA CACHE
+// =====================================
+
+const PUBLIC_CACHE_TTL = 15 * 1000;
+const publicDataCache = new Map();
+
+function getPublicCache(key) {
+    const cached = publicDataCache.get(key);
+
+    if (!cached) return null;
+
+    if (Date.now() >= cached.expiresAt) {
+        publicDataCache.delete(key);
+        return null;
+    }
+
+    return cached.data;
+}
+
+function setPublicCache(key, data) {
+    publicDataCache.set(key, {
+        data,
+        expiresAt: Date.now() + PUBLIC_CACHE_TTL
+    });
+}
+
+function clearPublicCache(key) {
+    publicDataCache.delete(key);
+}
+
+function setPublicCacheHeaders(res) {
+    res.setHeader(
+        "Cache-Control",
+        "public, max-age=15, stale-while-revalidate=30"
+    );
 }
 
 // =====================================
@@ -259,16 +296,24 @@ async function requireAdmin(req, res, next) {
 // =====================================
 
 app.use("/assets", express.static(
-    path.join(__dirname, "..", "assets")
+    path.join(__dirname, "..", "assets"),
+    {
+        maxAge: "1d",
+        etag: true,
+        lastModified: true
+    }
 ));
 
 app.use("/uploads", express.static(uploadDirectory, {
     dotfiles: "deny",
     index: false,
-    maxAge: "7d"
+    maxAge: "7d",
+    etag: true,
+    lastModified: true
 }));
 
 app.get("/", (req, res) => {
+    res.setHeader("Cache-Control", "no-cache");
     res.sendFile(path.join(__dirname, "..", "index.html"));
 });
 
@@ -651,20 +696,26 @@ app.get("/api/admin/dashboard-stats", requireAdmin, async (req, res) => {
 
 app.get("/api/products", async (req, res) => {
     try {
-        const products = await sql`
-            SELECT
-                id,
-                name,
-                description,
-                price,
-                stock_quantity,
-                image_url
-            FROM products
-            WHERE is_active = TRUE
-            ORDER BY id DESC
-        `;
+        let products = getPublicCache("products");
 
-        res.setHeader("Cache-Control", "no-store");
+        if (!products) {
+            products = await sql`
+                SELECT
+                    id,
+                    name,
+                    description,
+                    price,
+                    stock_quantity,
+                    image_url
+                FROM products
+                WHERE is_active = TRUE
+                ORDER BY id DESC
+            `;
+
+            setPublicCache("products", products);
+        }
+
+        setPublicCacheHeaders(res);
 
         return res.json({
             success: true,
@@ -687,18 +738,24 @@ app.get("/api/products", async (req, res) => {
 
 app.get("/api/services", async (req, res) => {
     try {
-        const services = await sql`
-            SELECT
-                id,
-                title,
-                slug,
-                description
-            FROM services
-            WHERE is_active = TRUE
-            ORDER BY id DESC
-        `;
+        let services = getPublicCache("services");
 
-        res.setHeader("Cache-Control", "no-store");
+        if (!services) {
+            services = await sql`
+                SELECT
+                    id,
+                    title,
+                    slug,
+                    description
+                FROM services
+                WHERE is_active = TRUE
+                ORDER BY id DESC
+            `;
+
+            setPublicCache("services", services);
+        }
+
+        setPublicCacheHeaders(res);
 
         return res.json({
             success: true,
@@ -794,7 +851,7 @@ app.post(
                 });
             }
 
-            if (!["nagad", "cod"].includes(cleanPaymentMethod)) {
+            if (!["nagad", "bkash", "cod"].includes(cleanPaymentMethod)) {
                 return res.status(400).json({
                     success: false,
                     message: "Please select a valid payment method."
@@ -802,12 +859,12 @@ app.post(
             }
 
             if (
-                cleanPaymentMethod === "nagad" &&
+                ["nagad", "bkash"].includes(cleanPaymentMethod) &&
                 (!cleanReference || cleanReference.length > 100)
             ) {
                 return res.status(400).json({
                     success: false,
-                    message: "Please enter your Nagad Transaction ID."
+                    message: `Please enter your ${cleanPaymentMethod === "bkash" ? "bKash" : "Nagad"} Transaction ID.`
                 });
             }
 
@@ -952,7 +1009,7 @@ app.post(
                         'pending',
                         'unpaid',
                         ${cleanPaymentMethod},
-                        ${cleanPaymentMethod === "nagad" ? cleanReference : null},
+                        ${["nagad", "bkash"].includes(cleanPaymentMethod) ? cleanReference : null},
                         ${cleanAddress}
                     FROM new_customer c
                     RETURNING
@@ -1000,6 +1057,8 @@ app.post(
                 });
             }
 
+            clearPublicCache("products");
+
             console.log(
                 "Order created successfully:",
                 result[0].order_number
@@ -1007,7 +1066,7 @@ app.post(
 
             return res.status(201).json({
                 success: true,
-                message: "Your order has been placed successfully.",
+                message: "Your order has been placed successfully. Payment will be manually verified by the admin.",
                 order: result[0]
             });
 
@@ -1059,7 +1118,6 @@ app.post(
                 });
             }
 
-            // Verify the actual file content, not only its filename or MIME type.
             const { fileTypeFromBuffer } = await import("file-type");
 
             const detected = await fileTypeFromBuffer(req.file.buffer);
@@ -1213,6 +1271,8 @@ app.post("/api/admin/products", requireAdmin, async (req, res) => {
             RETURNING *
         `;
 
+        clearPublicCache("products");
+
         res.status(201).json({
             success: true,
             message: "Product added successfully.",
@@ -1326,6 +1386,8 @@ app.put("/api/admin/products/:id", requireAdmin, async (req, res) => {
             });
         }
 
+        clearPublicCache("products");
+
         res.json({
             success: true,
             message: "Product updated successfully.",
@@ -1365,6 +1427,8 @@ app.delete("/api/admin/products/:id", requireAdmin, async (req, res) => {
                 message: "Product not found."
             });
         }
+
+        clearPublicCache("products");
 
         res.json({
             success: true,
@@ -1467,6 +1531,8 @@ app.post("/api/admin/services", requireAdmin, async (req, res) => {
             RETURNING *
         `;
 
+        clearPublicCache("services");
+
         res.status(201).json({
             success: true,
             message: "Service added successfully.",
@@ -1552,6 +1618,8 @@ app.put("/api/admin/services/:id", requireAdmin, async (req, res) => {
             });
         }
 
+        clearPublicCache("services");
+
         res.json({
             success: true,
             message: "Service updated successfully.",
@@ -1591,6 +1659,8 @@ app.delete("/api/admin/services/:id", requireAdmin, async (req, res) => {
                 message: "Service not found."
             });
         }
+
+        clearPublicCache("services");
 
         res.json({
             success: true,
@@ -2318,6 +2388,6 @@ app.use((error, req, res, next) => {
 
 app.listen(PORT, () => {
     console.log(
-        `ELITE SPHERE backend running at http://localhost:${PORT}`
+        `BAZAR GHOR backend running at http://localhost:${PORT}`
     );
 });

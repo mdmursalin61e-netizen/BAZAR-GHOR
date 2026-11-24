@@ -498,29 +498,32 @@ nav .cart-link:hover {
     line-height:1.8;
     font-size:13px;
 }
-.nagad-number-row {
+.payment-number-row {
     display:flex;
     align-items:center;
     flex-wrap:wrap;
     gap:10px;
     margin:10px 0;
 }
-.nagad-number {
+.payment-number {
     font-size:19px;
     font-weight:900;
-    color:#d01b65;
     letter-spacing:1px;
 }
+.nagad-number {color:#d01b65;}
+.bkash-number {color:#e2136e;}
 .copy-number-btn {
     border:0;
-    background:#d01b65;
     color:white;
     padding:9px 15px;
     border-radius:7px;
     font-weight:700;
 }
-.copy-number-btn:hover {background:#a91350;}
-#copyMessage {
+.copy-nagad-btn {background:#d01b65;}
+.copy-nagad-btn:hover {background:#a91350;}
+.copy-bkash-btn {background:#e2136e;}
+.copy-bkash-btn:hover {background:#b80e58;}
+#copyMessage,#bkashCopyMessage {
     color:var(--green);
     font-size:12px;
     margin-top:5px;
@@ -649,6 +652,44 @@ footer p {color:#bdc9e2;font-size:12px;margin-top:9px;}
     .products {grid-template-columns:1fr;}
     .product img {height:190px;}
 }
+
+/* FLOATING WHATSAPP CONTACT BUTTON */
+.whatsapp-float {
+    position:fixed;
+    right:22px;
+    bottom:22px;
+    z-index:999;
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:13px 18px;
+    border-radius:999px;
+    background:#25D366;
+    color:#fff;
+    font-size:14px;
+    font-weight:800;
+    box-shadow:0 7px 22px rgba(0,0,0,.22);
+    transition:transform .2s, background .2s;
+}
+.whatsapp-float:hover {
+    background:#1ebe5d;
+    color:#fff;
+    transform:translateY(-3px);
+}
+.whatsapp-float svg {
+    width:23px;
+    height:23px;
+    flex-shrink:0;
+    fill:currentColor;
+}
+@media(max-width:700px) {
+    .whatsapp-float {
+        right:14px;
+        bottom:14px;
+        padding:12px 15px;
+        font-size:13px;
+    }
+}
 </style>
 </head>
 
@@ -675,7 +716,6 @@ footer p {color:#bdc9e2;font-size:12px;margin-top:9px;}
             <a href="#services">Services</a>
             <a href="#contact">Contact</a>
             <a href="/pages/register.html">Register</a>
-            <a href="/pages/admin.html">Admin</a>
             <a href="/pages/cart.html" class="cart-link">Cart (<span id="cartCount">0</span>)</a>
         </nav>
     </div>
@@ -709,7 +749,7 @@ footer p {color:#bdc9e2;font-size:12px;margin-top:9px;}
         </div>
         <div class="benefit">
             <div class="benefit-icon">💳</div>
-            <div><strong>Flexible Payment</strong><small>Nagad and Cash on Delivery</small></div>
+            <div><strong>Flexible Payment</strong><small>bKash, Nagad and Cash on Delivery</small></div>
         </div>
     </section>
 
@@ -787,29 +827,58 @@ footer p {color:#bdc9e2;font-size:12px;margin-top:9px;}
             </div>
 
             <div class="payment-option">
+                <input type="radio" id="paymentBkash" name="paymentMethod" value="bkash">
+                <label for="paymentBkash">bKash Personal Payment</label>
+            </div>
+
+            <div class="payment-option">
                 <input type="radio" id="paymentCOD" name="paymentMethod" value="cod">
                 <label for="paymentCOD">Cash on Delivery (COD)</label>
             </div>
 
+            <!-- NAGAD INFORMATION -->
             <div id="nagadInfo" class="payment-info hidden">
                 <strong>Nagad Personal Payment</strong>
                 <p>Send Money to this Nagad Personal number:</p>
 
-                <div class="nagad-number-row">
-                    <span class="nagad-number" id="nagadNumber">01307359149</span>
-                    <button type="button" class="copy-number-btn" id="copyNagadBtn">
-                        Copy Number
+                <div class="payment-number-row">
+                    <span class="payment-number nagad-number" id="nagadNumber">01307359149</span>
+                    <button type="button" class="copy-number-btn copy-nagad-btn" id="copyNagadBtn">
+                        Copy Nagad Number
                     </button>
                 </div>
 
                 <p id="copyMessage" aria-live="polite"></p>
-                <p>After payment, enter your Transaction ID below.</p>
-
-                <label for="transactionId">Nagad Transaction ID</label>
-                <input type="text" id="transactionId" maxlength="100"
-                       placeholder="Enter your Transaction ID">
             </div>
 
+            <!-- BKASH INFORMATION -->
+            <div id="bkashInfo" class="payment-info hidden">
+                <strong>bKash Personal Payment</strong>
+                <p>Send Money to this bKash Personal number:</p>
+
+                <div class="payment-number-row">
+                    <span class="payment-number bkash-number" id="bkashNumber">01740470179</span>
+                    <button type="button" class="copy-number-btn copy-bkash-btn" id="copyBkashBtn">
+                        Copy bKash Number
+                    </button>
+                </div>
+
+                <p id="bkashCopyMessage" aria-live="polite"></p>
+            </div>
+
+            <!-- COMMON TRANSACTION ID -->
+            <div id="transactionInfo" class="payment-info hidden">
+                <p>After sending money, enter your Transaction ID below.</p>
+                <label for="transactionId" id="transactionLabel">Transaction ID</label>
+                <input
+                    type="text"
+                    id="transactionId"
+                    maxlength="100"
+                    placeholder="Enter your Transaction ID"
+                >
+            </div>
+
+            <!-- COD INFORMATION -->
             <div id="codInfo" class="payment-info hidden">
                 You can pay in cash when your product is delivered.
             </div>
@@ -887,12 +956,18 @@ const checkoutMessage = document.getElementById("checkoutMessage");
 const placeOrderBtn = document.getElementById("placeOrderBtn");
 
 const nagadInfo = document.getElementById("nagadInfo");
+const bkashInfo = document.getElementById("bkashInfo");
 const codInfo = document.getElementById("codInfo");
+const transactionInfo = document.getElementById("transactionInfo");
 const transactionIdInput = document.getElementById("transactionId");
+const transactionLabel = document.getElementById("transactionLabel");
 
 const nagadNumber = document.getElementById("nagadNumber");
+const bkashNumber = document.getElementById("bkashNumber");
 const copyNagadBtn = document.getElementById("copyNagadBtn");
+const copyBkashBtn = document.getElementById("copyBkashBtn");
 const copyMessage = document.getElementById("copyMessage");
+const bkashCopyMessage = document.getElementById("bkashCopyMessage");
 
 const contactForm = document.getElementById("contactForm");
 const contactMessage = document.getElementById("contactMessage");
@@ -995,10 +1070,6 @@ async function loadProducts() {
 
         allProducts = Array.isArray(data.products) ? data.products : [];
 
-        /*
-         * Keep cart items from the separate Cart page.
-         * Refresh their name, price, stock and image from the product API.
-         */
         cart = cart.map(item => {
             const product = allProducts.find(
                 product => Number(product.id) === Number(item.id)
@@ -1186,29 +1257,60 @@ function updateCart() {
     cartTotal.textContent = "Total: ৳" + totalPrice.toLocaleString("en-BD");
 }
 
-/* NAGAD NUMBER COPY */
-copyNagadBtn.addEventListener("click", async function() {
-    const number = nagadNumber.textContent.trim();
+/* COPY PAYMENT NUMBER */
+async function copyPaymentNumber(numberElement, messageElement, paymentName) {
+    const number = numberElement.textContent.trim();
 
     try {
         await navigator.clipboard.writeText(number);
-        copyMessage.textContent = "Nagad number copied successfully!";
+        messageElement.textContent = paymentName + " number copied successfully!";
     } catch (error) {
-        copyMessage.textContent =
+        messageElement.textContent =
             "Copy failed. Please copy manually: " + number;
     }
+}
+
+/* NAGAD COPY */
+copyNagadBtn.addEventListener("click", function() {
+    copyPaymentNumber(nagadNumber, copyMessage, "Nagad");
+});
+
+/* BKASH COPY */
+copyBkashBtn.addEventListener("click", function() {
+    copyPaymentNumber(bkashNumber, bkashCopyMessage, "bKash");
 });
 
 /* PAYMENT METHOD */
+function updatePaymentDisplay(paymentMethod) {
+    const isNagad = paymentMethod === "nagad";
+    const isBkash = paymentMethod === "bkash";
+    const isCOD = paymentMethod === "cod";
+    const requiresTransaction = isNagad || isBkash;
+
+    nagadInfo.classList.toggle("hidden", !isNagad);
+    bkashInfo.classList.toggle("hidden", !isBkash);
+    codInfo.classList.toggle("hidden", !isCOD);
+    transactionInfo.classList.toggle("hidden", !requiresTransaction);
+
+    transactionIdInput.required = requiresTransaction;
+
+    if (isNagad) {
+        transactionLabel.textContent = "Nagad Transaction ID";
+        transactionIdInput.placeholder = "Enter your Nagad Transaction ID";
+    } else if (isBkash) {
+        transactionLabel.textContent = "bKash Transaction ID";
+        transactionIdInput.placeholder = "Enter your bKash Transaction ID";
+    } else {
+        transactionIdInput.value = "";
+    }
+
+    copyMessage.textContent = "";
+    bkashCopyMessage.textContent = "";
+}
+
 document.querySelectorAll('input[name="paymentMethod"]').forEach(input => {
     input.addEventListener("change", function() {
-        const isNagad = this.value === "nagad";
-
-        nagadInfo.classList.toggle("hidden", !isNagad);
-        codInfo.classList.toggle("hidden", isNagad);
-
-        transactionIdInput.required = isNagad;
-        copyMessage.textContent = "";
+        updatePaymentDisplay(this.value);
     });
 });
 
@@ -1227,10 +1329,6 @@ searchInput.addEventListener("input", function() {
 checkoutForm.addEventListener("submit", async function(event) {
     event.preventDefault();
 
-    /*
-     * Read the shared cart again before placing the order.
-     * This keeps products added from pages/cart.html available.
-     */
     cart = readStoredCart();
 
     if (!cart.length) {
@@ -1252,10 +1350,16 @@ checkoutForm.addEventListener("submit", async function(event) {
     }
 
     const transactionId = transactionIdInput.value.trim();
+    const requiresTransaction =
+        paymentMethod === "nagad" || paymentMethod === "bkash";
 
-    if (paymentMethod === "nagad" && !transactionId) {
+    if (requiresTransaction && !transactionId) {
         checkoutMessage.style.color = "#b91c1c";
-        checkoutMessage.textContent = "Please enter your Nagad Transaction ID.";
+        checkoutMessage.textContent =
+            paymentMethod === "bkash"
+                ? "Please enter your bKash Transaction ID."
+                : "Please enter your Nagad Transaction ID.";
+        transactionIdInput.focus();
         return;
     }
 
@@ -1264,7 +1368,7 @@ checkoutForm.addEventListener("submit", async function(event) {
         phone: document.getElementById("customerPhone").value.trim(),
         delivery_address: document.getElementById("customerAddress").value.trim(),
         payment_method: paymentMethod,
-        payment_reference: paymentMethod === "nagad" ? transactionId : "",
+        payment_reference: requiresTransaction ? transactionId : "",
         items: cart.map(item => ({
             id: Number(item.id),
             quantity: Number(item.quantity)
@@ -1308,9 +1412,12 @@ checkoutForm.addEventListener("submit", async function(event) {
         checkoutForm.reset();
 
         nagadInfo.classList.add("hidden");
+        bkashInfo.classList.add("hidden");
         codInfo.classList.add("hidden");
+        transactionInfo.classList.add("hidden");
         transactionIdInput.required = false;
         copyMessage.textContent = "";
+        bkashCopyMessage.textContent = "";
 
         checkoutMessage.style.color = "#15803d";
         checkoutMessage.textContent =
@@ -1321,7 +1428,9 @@ checkoutForm.addEventListener("submit", async function(event) {
                 : "") +
             (paymentMethod === "nagad"
                 ? " | Your Nagad payment will be manually verified by the admin."
-                : " | Please pay cash when your product is delivered.");
+                : paymentMethod === "bkash"
+                    ? " | Your bKash payment will be manually verified by the admin."
+                    : " | Please pay cash when your product is delivered.");
 
     } catch (error) {
         checkoutMessage.style.color = "#b91c1c";
@@ -1397,6 +1506,20 @@ updateCart();
 loadServices();
 loadProducts();
 </script>
+
+<!-- FLOATING WHATSAPP BUTTON -->
+<a
+    class="whatsapp-float"
+    href="https://wa.me/8801933018061?text=Assalamu%20Alaikum%2C%20I%20want%20to%20know%20more%20about%20your%20products."
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="Chat with Bazar Ghor on WhatsApp"
+>
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M16.02 3C8.86 3 3.04 8.77 3.04 15.88c0 2.27.6 4.49 1.74 6.45L3 29l6.87-1.79a13.1 13.1 0 0 0 6.14 1.52h.01c7.15 0 12.98-5.78 12.98-12.88 0-3.44-1.35-6.67-3.8-9.1A12.9 12.9 0 0 0 16.02 3zm0 23.55h-.01c-1.9 0-3.77-.51-5.4-1.48l-.39-.23-4.08 1.06 1.09-3.96-.25-.4a10.65 10.65 0 0 1-1.64-5.66c0-5.88 4.83-10.67 10.69-10.67 2.84 0 5.52 1.1 7.53 3.12a10.55 10.55 0 0 1 3.13 7.53c0 5.88-4.82 10.69-10.67 10.69zm5.86-8c-.32-.16-1.9-.94-2.2-1.05-.3-.11-.51-.16-.73.16-.22.32-.84 1.05-1.03 1.27-.19.22-.38.24-.7.08-.32-.16-1.36-.5-2.59-1.6-.96-.85-1.61-1.9-1.8-2.22-.19-.32-.02-.49.14-.65.14-.14.32-.38.48-.57.11-.19.21-.32.32-.54.11-.22.05-.41-.03-.57-.08-.16-.73-1.75-1-2.4-.26-.63-.53-.55-.73-.56h-.62c-.22 0-.57.08-.87.41-.3.32-1.14 1.11-1.14 2.7s1.17 3.13 1.33 3.35c.16.22 2.3 3.5 5.57 4.91.78.34 1.39.55 1.87.7.79.25 1.51.21 2.08.13.64-.1 1.9-.78 2.17-1.54.27-.76.27-1.41.19-1.54-.08-.13-.3-.21-.62-.37z"/>
+    </svg>
+    <span>WhatsApp Us</span>
+</a>
 
 </body>
 </html>
