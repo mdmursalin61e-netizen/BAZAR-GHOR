@@ -2034,29 +2034,27 @@ app.delete("/api/admin/orders/:id", requireAdmin, async (req, res) => {
 // ADMIN CUSTOMERS
 // =====================================
 
+// =====================================
+// ADMIN CUSTOMERS
+// =====================================
+
+// GET ACTIVE / ARCHIVED CUSTOMERS
 app.get("/api/admin/customers", requireAdmin, async (req, res) => {
     try {
+        const showArchived = req.query.archived === "true";
+
         const customers = await sql`
-            SELECT
-                id,
-                name,
-                email,
-                phone,
-                created_at
+            SELECT id, name, email, phone, created_at, is_archived
             FROM customers
+            WHERE is_archived = ${showArchived}
             ORDER BY id DESC
         `;
 
         res.setHeader("Cache-Control", "no-store");
-
-        res.json({
-            success: true,
-            customers
-        });
+        res.json({ success: true, customers });
 
     } catch (error) {
         console.error("Load customers error:", error);
-
         res.status(500).json({
             success: false,
             message: "Could not load customers."
@@ -2064,6 +2062,386 @@ app.get("/api/admin/customers", requireAdmin, async (req, res) => {
     }
 });
 
+// EXPORT CUSTOMERS CSV
+app.get("/api/admin/customers/export.csv", requireAdmin, async (req, res) => {
+    try {
+        const showArchived = req.query.archived === "true";
+
+        const customers = await sql`
+            SELECT id, name, email, phone, created_at, is_archived
+            FROM customers
+            WHERE is_archived = ${showArchived}
+            ORDER BY id DESC
+        `;
+
+        const csvCell = (value) => {
+            let text = value == null ? "" : String(value);
+
+            if (/^\s*[=+\-@\t\r]/.test(text)) {
+                text = "'" + text;
+            }
+
+            return `"${text.replace(/"/g, '""')}"`;
+        };
+
+        const rows = [
+            ["ID", "Name", "Email", "Phone", "Created At", "Archived"],
+            ...customers.map(customer => [
+                customer.id,
+                customer.name,
+                customer.email,
+                customer.phone,
+                customer.created_at,
+                customer.is_archived ? "Yes" : "No"
+            ])
+        ];
+
+        const csv = "\uFEFF" + rows
+            .map(row => row.map(csvCell).join(","))
+            .join("\r\n");
+
+        res.setHeader("Cache-Control", "no-store");
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="customers-${showArchived ? "archived" : "active"}.csv"`
+        );
+
+        res.send(csv);
+
+    } catch (error) {
+        console.error("Export customers error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Could not export customers."
+        });
+    }
+});
+
+// GET CUSTOMER DETAILS
+app.get("/api/admin/customers/:id", requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!/^\d+$/.test(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid customer ID."
+            });
+        }
+
+        const result = await sql`
+            SELECT id, name, email, phone, created_at, is_archived
+            FROM customers
+            WHERE id = ${id}
+            LIMIT 1
+        `;
+
+        if (!result.length) {
+            return res.status(404).json({
+                success: false,
+                message: "Customer not found."
+            });
+        }
+
+        res.setHeader("Cache-Control", "no-store");
+        res.json({ success: true, customer: result[0] });
+
+    } catch (error) {
+        console.error("Customer details error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Could not load customer details."
+        });
+    }
+});
+
+// UPDATE CUSTOMER
+app.put("/api/admin/customers/:id", requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!/^\d+$/.test(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid customer ID."
+            });
+        }
+
+        const name = typeof req.body.name === "string"
+            ? req.body.name.trim()
+            : "";
+
+        const emailInput = typeof req.body.email === "string"
+            ? req.body.email.trim()
+            : "";
+
+        const phoneInput = typeof req.body.phone === "string"
+            ? req.body.phone.trim()
+            : "";
+
+        if (!name || name.length > 150) {
+            return res.status(400).json({
+                success: false,
+                message: "Name is required and must be within 150 characters."
+            });
+        }
+
+        if (emailInput.length > 255 ||
+            (emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput))) {
+            return res.status(400).json({
+                success: false,
+                message: "Please enter a valid email address."
+            });
+        }
+
+        if (phoneInput.length > 30) {
+            return res.status(400).json({
+                success: false,
+                message: "Phone number is too long."
+            });
+        }
+
+        const email = emailInput || null;
+        const phone = phoneInput || null;
+
+        if (email) {
+            const duplicate = await sql`
+                SELECT id FROM customers
+                WHERE LOWER(email) = LOWER(${email})
+                AND id <> ${id}
+                LIMIT 1
+            `;
+
+            if (duplicate.length) {
+                return res.status(409).json({
+                    success: false,
+                    message: "This email is already used by another customer."
+                });
+            }
+        }
+
+        const updated = await sql`
+            UPDATE customers
+            SET name = ${name},
+                email = ${email},
+                phone = ${phone}
+            WHERE id = ${id}
+            RETURNING id, name, email, phone, created_at, is_archived
+        `;
+
+        if (!updated.length) {
+            return res.status(404).json({
+                success: false,
+                message: "Customer not found."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Customer updated successfully.",
+            customer: updated[0]
+        });
+
+    } catch (error) {
+        console.error("Update customer error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Could not update customer."
+        });
+    }
+});
+
+// CUSTOMER ORDER HISTORY
+app.get("/api/admin/customers/:id/orders", requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!/^\d+$/.test(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid customer ID."
+            });
+        }
+
+        const customer = await sql`
+            SELECT id FROM customers WHERE id = ${id} LIMIT 1
+        `;
+
+        if (!customer.length) {
+            return res.status(404).json({
+                success: false,
+                message: "Customer not found."
+            });
+        }
+
+        const orders = await sql`
+            SELECT
+                id, customer_id, order_number, total_amount,
+                status, payment_status, payment_method,
+                payment_reference, delivery_address,
+                created_at, is_archived
+            FROM orders
+            WHERE customer_id = ${id}
+            ORDER BY id DESC
+        `;
+
+        res.setHeader("Cache-Control", "no-store");
+        res.json({ success: true, orders });
+
+    } catch (error) {
+        console.error("Customer orders error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Could not load customer orders."
+        });
+    }
+});
+
+// ARCHIVE CUSTOMER
+app.patch("/api/admin/customers/:id/archive", requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!/^\d+$/.test(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid customer ID."
+            });
+        }
+
+        const result = await sql`
+            UPDATE customers
+            SET is_archived = TRUE
+            WHERE id = ${id} AND is_archived = FALSE
+            RETURNING id
+        `;
+
+        if (!result.length) {
+            return res.status(404).json({
+                success: false,
+                message: "Active customer not found."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Customer archived successfully."
+        });
+
+    } catch (error) {
+        console.error("Archive customer error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Could not archive customer."
+        });
+    }
+});
+
+// RESTORE CUSTOMER
+app.patch("/api/admin/customers/:id/restore", requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!/^\d+$/.test(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid customer ID."
+            });
+        }
+
+        const result = await sql`
+            UPDATE customers
+            SET is_archived = FALSE
+            WHERE id = ${id} AND is_archived = TRUE
+            RETURNING id
+        `;
+
+        if (!result.length) {
+            return res.status(404).json({
+                success: false,
+                message: "Archived customer not found."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Customer restored successfully."
+        });
+
+    } catch (error) {
+        console.error("Restore customer error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Could not restore customer."
+        });
+    }
+});
+
+// PERMANENTLY DELETE CUSTOMER
+app.delete("/api/admin/customers/:id", requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!/^\d+$/.test(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid customer ID."
+            });
+        }
+
+        const customer = await sql`
+            SELECT id, is_archived
+            FROM customers
+            WHERE id = ${id}
+            LIMIT 1
+        `;
+
+        if (!customer.length) {
+            return res.status(404).json({
+                success: false,
+                message: "Customer not found."
+            });
+        }
+
+        if (!customer[0].is_archived) {
+            return res.status(400).json({
+                success: false,
+                message: "Archive the customer before permanently deleting."
+            });
+        }
+
+        const orderCount = await sql`
+            SELECT COUNT(*) AS total
+            FROM orders
+            WHERE customer_id = ${id}
+        `;
+
+        if (Number(orderCount[0].total) > 0) {
+            return res.status(409).json({
+                success: false,
+                message: "This customer has orders. Archive the customer instead to preserve order history."
+            });
+        }
+
+        await sql`
+            DELETE FROM customers
+            WHERE id = ${id} AND is_archived = TRUE
+        `;
+
+        res.json({
+            success: true,
+            message: "Customer permanently deleted."
+        });
+
+    } catch (error) {
+        console.error("Delete customer error:", error);
+        res.status(409).json({
+            success: false,
+            message: "Could not delete customer. Related records may exist."
+        });
+    }
+});
 // =====================================
 // ADMIN MESSAGES MANAGEMENT
 // =====================================

@@ -30,9 +30,7 @@
       gap: 12px;
     }
 
-    .header h2 {
-      font-size: 21px;
-    }
+    .header h2 { font-size: 21px; }
 
     .header p {
       color: #b9c5d9;
@@ -62,29 +60,57 @@
 
     button {
       border: none;
-      padding: 10px 16px;
+      padding: 10px 14px;
       border-radius: 7px;
       cursor: pointer;
       font-weight: bold;
+      margin: 2px;
     }
 
-    .refresh {
-      background: #2457d6;
-      color: white;
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
     }
 
-    .logout {
-      background: #e34b4b;
-      color: white;
+    .refresh { background: #2457d6; color: white; }
+    .logout { background: #e34b4b; color: white; }
+    .blue { background: #2457d6; color: white; }
+    .green { background: #16834b; color: white; }
+    .orange { background: #e18a16; color: white; }
+    .red { background: #d83d3d; color: white; }
+    .gray { background: #e5e9f0; color: #263348; }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 18px;
     }
 
     .search {
       width: 100%;
-      max-width: 350px;
+      max-width: 380px;
       padding: 12px;
       border: 1px solid #d5dbe6;
       border-radius: 7px;
       outline: none;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      background: #e3e8f1;
+      color: #263348;
+    }
+
+    .tab.active {
+      background: #101c35;
+      color: white;
     }
 
     .table-box {
@@ -97,12 +123,12 @@
 
     table {
       width: 100%;
-      min-width: 900px;
+      min-width: 1050px;
       border-collapse: collapse;
     }
 
     th, td {
-      padding: 14px 12px;
+      padding: 13px 11px;
       border-bottom: 1px solid #edf0f5;
       text-align: left;
       font-size: 13px;
@@ -112,6 +138,8 @@
       background: #f7f8fc;
       color: #526078;
     }
+
+    td.actions { min-width: 250px; }
 
     .empty {
       text-align: center;
@@ -126,202 +154,692 @@
       border-radius: 7px;
     }
 
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.6);
+      z-index: 1000;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .modal-content {
+      background: white;
+      max-width: 750px;
+      margin: 35px auto;
+      padding: 25px;
+      border-radius: 12px;
+      position: relative;
+    }
+
+    .modal-content h2 {
+      margin-bottom: 18px;
+      color: #101c35;
+    }
+
+    .close {
+      position: absolute;
+      right: 15px;
+      top: 12px;
+      background: #e5e9f0;
+      font-size: 20px;
+      padding: 5px 12px;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .detail-item {
+      background: #f5f7fb;
+      padding: 13px;
+      border-radius: 7px;
+      overflow-wrap: anywhere;
+    }
+
+    .detail-item small {
+      display: block;
+      color: #657189;
+      margin-bottom: 6px;
+    }
+
+    .detail-item strong {
+      font-size: 14px;
+    }
+
+    .form-group { margin-bottom: 15px; }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d5dbe6;
+      border-radius: 7px;
+      font-size: 14px;
+    }
+
+    .modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 18px;
+    }
+
+    .order-list {
+      overflow-x: auto;
+    }
+
+    .order-list table {
+      min-width: 650px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 8px;
+      border-radius: 5px;
+      background: #edf0f5;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
     @media(max-width: 600px) {
-      .container {
-        padding: 15px;
-      }
-
-      .header {
-        padding: 18px;
-      }
-
-      .top h1 {
-        font-size: 22px;
-      }
+      .container { padding: 15px; }
+      .header { padding: 18px; }
+      .top h1 { font-size: 22px; }
+      .details-grid { grid-template-columns: 1fr; }
+      .modal-content { padding: 20px 15px; }
     }
   </style>
 </head>
 
 <body>
 
-  <header class="header">
+<header class="header">
+  <div>
+    <h2>ELITE SPHERE GROUP</h2>
+    <p>Bangladesh | Admin Panel</p>
+  </div>
+  <button class="logout" onclick="logout()">Logout</button>
+</header>
+
+<main class="container">
+
+  <div class="top">
     <div>
-      <h2>ELITE SPHERE GROUP</h2>
-      <p>Bangladesh | Admin Panel</p>
+      <h1>Customers Management</h1>
+      <p>View and manage registered customers.</p>
     </div>
 
-    <button class="logout" onclick="logout()">Logout</button>
-  </header>
+    <div>
+      <button class="refresh" onclick="loadCustomers()">Refresh</button>
+      <button class="green" onclick="exportCustomers()">Export CSV</button>
+    </div>
+  </div>
 
-  <main class="container">
+  <div id="message" class="message"></div>
 
-    <div class="top">
-      <div>
-        <h1>Customers Management</h1>
-        <p>View and manage registered customers.</p>
-      </div>
+  <div class="toolbar">
+    <div class="tabs">
+      <button id="activeTab" class="tab active" onclick="changeTab(false)">
+        Active Customers
+      </button>
 
-      <button class="refresh" onclick="loadCustomers()">
-        Refresh Customers
+      <button id="archivedTab" class="tab" onclick="changeTab(true)">
+        Archived Customers
       </button>
     </div>
-
-    <div id="message" class="message"></div>
 
     <input
       type="search"
       id="search"
       class="search"
-      placeholder="Search by customer name, email or phone..."
+      placeholder="Search by name, email, phone or ID..."
       oninput="filterCustomers()"
     >
+  </div>
 
-    <br><br>
-
-    <section class="table-box">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Customer Name</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>Created At</th>
-          </tr>
-        </thead>
-
-        <tbody id="customersTable">
-          <tr>
-            <td colspan="5" class="empty">Loading customers...</td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-
-  </main>
-
-  <script>
-    let allCustomers = [];
-
-    function escapeHTML(value) {
-      return String(value ?? "").replace(/[&<>"']/g, char => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-      })[char]);
-    }
-
-    function showMessage(message, success = false) {
-      const box = document.getElementById("message");
-      box.textContent = message;
-      box.style.display = "block";
-      box.style.background = success ? "#d9f7e7" : "#ffe0e0";
-      box.style.color = success ? "#126b3e" : "#a52222";
-    }
-
-    async function loadCustomers() {
-      const table = document.getElementById("customersTable");
-
-      table.innerHTML = `
+  <section class="table-box">
+    <table>
+      <thead>
         <tr>
-          <td colspan="5" class="empty">Loading customers...</td>
+          <th>ID</th>
+          <th>Customer Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Created At</th>
+          <th>Actions</th>
         </tr>
-      `;
+      </thead>
 
-      try {
-        const response = await fetch("/api/admin/customers", {
-          credentials: "same-origin"
-        });
+      <tbody id="customersTable">
+        <tr>
+          <td colspan="6" class="empty">Loading customers...</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 
-        const data = await response.json();
+</main>
 
-        if (!response.ok) {
-          throw new Error(data.message || "Could not load customers.");
-        }
+<!-- CUSTOMER MODAL -->
+<div id="customerModal" class="modal">
+  <div class="modal-content">
+    <button class="close" onclick="closeModal()">×</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
 
-        allCustomers = Array.isArray(data)
-          ? data
-          : (data.customers || []);
+<script>
+  let allCustomers = [];
+  let showArchived = false;
+  let currentCustomer = null;
 
-        renderCustomers(allCustomers);
+  function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char]);
+  }
 
-      } catch (error) {
-        table.innerHTML = `
-          <tr>
-            <td colspan="5" class="empty">
-              ${escapeHTML(error.message)}
-            </td>
-          </tr>
-        `;
+  function showMessage(message, success = false) {
+    const box = document.getElementById("message");
+    box.textContent = message;
+    box.style.display = "block";
+    box.style.background = success ? "#d9f7e7" : "#ffe0e0";
+    box.style.color = success ? "#126b3e" : "#a52222";
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function apiRequest(url, options = {}) {
+    const response = await fetch(url, {
+      credentials: "same-origin",
+      ...options,
+      headers: {
+        ...(options.headers || {})
       }
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+    let data = {};
+
+    if (contentType.includes("application/json")) {
+      data = await response.json();
     }
 
-    function renderCustomers(customers) {
-      const table = document.getElementById("customersTable");
+    if (!response.ok) {
+      throw new Error(data.message || "Request failed.");
+    }
 
-      if (!customers.length) {
-        table.innerHTML = `
-          <tr>
-            <td colspan="5" class="empty">No customers found.</td>
-          </tr>
-        `;
-        return;
-      }
+    return data;
+  }
 
-      table.innerHTML = customers.map(customer => `
+  async function loadCustomers() {
+    const table = document.getElementById("customersTable");
+
+    table.innerHTML = `
+      <tr><td colspan="6" class="empty">Loading customers...</td></tr>
+    `;
+
+    try {
+      const data = await apiRequest(
+        `/api/admin/customers?archived=${showArchived}`
+      );
+
+      allCustomers = Array.isArray(data.customers)
+        ? data.customers
+        : [];
+
+      filterCustomers();
+
+    } catch (error) {
+      table.innerHTML = `
+        <tr><td colspan="6" class="empty">${escapeHTML(error.message)}</td></tr>
+      `;
+      showMessage(error.message);
+    }
+  }
+
+  function changeTab(archived) {
+    showArchived = archived;
+
+    document.getElementById("activeTab")
+      .classList.toggle("active", !archived);
+
+    document.getElementById("archivedTab")
+      .classList.toggle("active", archived);
+
+    document.getElementById("search").value = "";
+
+    loadCustomers();
+  }
+
+  function filterCustomers() {
+    const query = document.getElementById("search")
+      .value.trim().toLowerCase();
+
+    const filtered = allCustomers.filter(customer => {
+      return [
+        customer.id,
+        customer.name,
+        customer.email,
+        customer.phone
+      ].some(value => String(value ?? "").toLowerCase().includes(query));
+    });
+
+    renderCustomers(filtered);
+  }
+
+  function renderCustomers(customers) {
+    const table = document.getElementById("customersTable");
+
+    if (!customers.length) {
+      table.innerHTML = `
+        <tr><td colspan="6" class="empty">No customers found.</td></tr>
+      `;
+      return;
+    }
+
+    table.innerHTML = customers.map(customer => {
+      const id = Number(customer.id);
+
+      return `
         <tr>
           <td>${escapeHTML(customer.id)}</td>
-          <td>${escapeHTML(customer.name || customer.full_name || "-")}</td>
+          <td>${escapeHTML(customer.name || "-")}</td>
           <td>${escapeHTML(customer.email || "-")}</td>
-          <td>${escapeHTML(customer.phone || customer.phone_number || "-")}</td>
+          <td>${escapeHTML(customer.phone || "-")}</td>
           <td>${escapeHTML(
             customer.created_at
               ? new Date(customer.created_at).toLocaleString()
               : "-"
           )}</td>
+          <td class="actions">
+            <button class="blue" onclick="viewCustomer(${id})">View</button>
+
+            ${
+              showArchived
+                ? `<button class="green" onclick="restoreCustomer(${id})">Restore</button>
+                   <button class="red" onclick="deleteCustomer(${id})">Delete</button>`
+                : `<button class="orange" onclick="archiveCustomer(${id})">Archive</button>`
+            }
+          </td>
         </tr>
-      `).join("");
+      `;
+    }).join("");
+  }
+
+  async function viewCustomer(id) {
+    try {
+      const data = await apiRequest(`/api/admin/customers/${id}`);
+      currentCustomer = data.customer;
+
+      renderCustomerDetails(currentCustomer);
+
+      document.getElementById("customerModal").style.display = "block";
+
+    } catch (error) {
+      showMessage(error.message);
     }
+  }
 
-    function filterCustomers() {
-      const query = document.getElementById("search")
-        .value.toLowerCase();
+  function renderCustomerDetails(customer) {
+    const body = document.getElementById("modalBody");
 
-      const filtered = allCustomers.filter(customer => {
-        const name = String(
-          customer.name || customer.full_name || ""
-        ).toLowerCase();
+    body.innerHTML = `
+      <h2>Customer Details</h2>
 
-        const email = String(customer.email || "").toLowerCase();
+      <div class="details-grid">
+        <div class="detail-item">
+          <small>Customer ID</small>
+          <strong>${escapeHTML(customer.id)}</strong>
+        </div>
 
-        const phone = String(
-          customer.phone || customer.phone_number || ""
-        ).toLowerCase();
+        <div class="detail-item">
+          <small>Name</small>
+          <strong>${escapeHTML(customer.name || "-")}</strong>
+        </div>
 
-        return name.includes(query) ||
-          email.includes(query) ||
-          phone.includes(query) ||
-          String(customer.id || "").includes(query);
-      });
+        <div class="detail-item">
+          <small>Email</small>
+          <strong>${escapeHTML(customer.email || "-")}</strong>
+        </div>
 
-      renderCustomers(filtered);
+        <div class="detail-item">
+          <small>Phone</small>
+          <strong>${escapeHTML(customer.phone || "-")}</strong>
+        </div>
+
+        <div class="detail-item">
+          <small>Created At</small>
+          <strong>${escapeHTML(
+            customer.created_at
+              ? new Date(customer.created_at).toLocaleString()
+              : "-"
+          )}</strong>
+        </div>
+
+        <div class="detail-item">
+          <small>Status</small>
+          <strong>${customer.is_archived ? "Archived" : "Active"}</strong>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="blue" onclick="showEditForm()">Edit Customer</button>
+        <button class="green" onclick="showOrderHistory(${Number(customer.id)})">
+          Order History
+        </button>
+        <button class="gray" onclick="closeModal()">Close</button>
+      </div>
+    `;
+  }
+
+  function showEditForm() {
+    if (!currentCustomer) return;
+
+    const body = document.getElementById("modalBody");
+
+    body.innerHTML = `
+      <h2>Edit Customer</h2>
+
+      <form onsubmit="saveCustomer(event)">
+        <div class="form-group">
+          <label>Customer Name</label>
+          <input
+            type="text"
+            id="editName"
+            maxlength="150"
+            required
+            value="${escapeHTML(currentCustomer.name || "")}"
+          >
+        </div>
+
+        <div class="form-group">
+          <label>Email</label>
+          <input
+            type="email"
+            id="editEmail"
+            maxlength="255"
+            value="${escapeHTML(currentCustomer.email || "")}"
+          >
+        </div>
+
+        <div class="form-group">
+          <label>Phone</label>
+          <input
+            type="text"
+            id="editPhone"
+            maxlength="30"
+            value="${escapeHTML(currentCustomer.phone || "")}"
+          >
+        </div>
+
+        <div class="modal-actions">
+          <button type="submit" class="green">Save Changes</button>
+          <button type="button" class="gray" onclick="renderCustomerDetails(currentCustomer)">
+            Cancel
+          </button>
+        </div>
+      </form>
+    `;
+  }
+
+  async function saveCustomer(event) {
+    event.preventDefault();
+
+    if (!currentCustomer) return;
+
+    const button = event.submitter;
+    if (button) button.disabled = true;
+
+    try {
+      const data = await apiRequest(
+        `/api/admin/customers/${currentCustomer.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: document.getElementById("editName").value,
+            email: document.getElementById("editEmail").value,
+            phone: document.getElementById("editPhone").value
+          })
+        }
+      );
+
+      currentCustomer = data.customer;
+
+      await loadCustomers();
+      renderCustomerDetails(currentCustomer);
+
+      showMessage("Customer updated successfully.", true);
+
+    } catch (error) {
+      showMessage(error.message);
+      if (button) button.disabled = false;
     }
+  }
 
-    async function logout() {
-      try {
-        await fetch("/api/admin/logout", {
-          method: "POST",
-          credentials: "same-origin"
-        });
-      } finally {
-        window.location.href = "/pages/admin.html";
+  async function showOrderHistory(id) {
+    const body = document.getElementById("modalBody");
+
+    body.innerHTML = `
+      <h2>Customer Order History</h2>
+      <p>Loading orders...</p>
+    `;
+
+    try {
+      const data = await apiRequest(
+        `/api/admin/customers/${id}/orders`
+      );
+
+      const orders = Array.isArray(data.orders) ? data.orders : [];
+
+      if (!orders.length) {
+        body.innerHTML = `
+          <h2>Customer Order History</h2>
+          <p class="empty">No orders found for this customer.</p>
+          <button class="gray" onclick="viewCustomer(${id})">Back</button>
+        `;
+        return;
       }
-    }
 
-    loadCustomers();
-  </script>
+      body.innerHTML = `
+        <h2>Customer Order History</h2>
+
+        <div class="order-list">
+          <table>
+            <thead>
+              <tr>
+                <th>Order Number</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Payment</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              ${orders.map(order => `
+                <tr>
+                  <td>${escapeHTML(order.order_number || order.id)}</td>
+                  <td>৳${escapeHTML(order.total_amount)}</td>
+                  <td><span class="status">${escapeHTML(order.status || "-")}</span></td>
+                  <td>
+                    ${escapeHTML(order.payment_method || "-")}
+                    <br>
+                    ${escapeHTML(order.payment_status || "-")}
+                  </td>
+                  <td>${escapeHTML(
+                    order.created_at
+                      ? new Date(order.created_at).toLocaleString()
+                      : "-"
+                  )}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="modal-actions">
+          <button class="gray" onclick="viewCustomer(${id})">Back to Customer</button>
+          <button class="gray" onclick="closeModal()">Close</button>
+        </div>
+      `;
+
+    } catch (error) {
+      body.innerHTML = `
+        <h2>Order History</h2>
+        <p>${escapeHTML(error.message)}</p>
+        <button class="gray" onclick="viewCustomer(${id})">Back</button>
+      `;
+    }
+  }
+
+  async function archiveCustomer(id) {
+    if (!confirm("Are you sure you want to archive this customer?")) return;
+
+    try {
+      const data = await apiRequest(
+        `/api/admin/customers/${id}/archive`,
+        { method: "PATCH" }
+      );
+
+      showMessage(data.message || "Customer archived successfully.", true);
+      await loadCustomers();
+
+    } catch (error) {
+      showMessage(error.message);
+    }
+  }
+
+  async function restoreCustomer(id) {
+    if (!confirm("Restore this customer to Active Customers?")) return;
+
+    try {
+      const data = await apiRequest(
+        `/api/admin/customers/${id}/restore`,
+        { method: "PATCH" }
+      );
+
+      showMessage(data.message || "Customer restored successfully.", true);
+      await loadCustomers();
+
+    } catch (error) {
+      showMessage(error.message);
+    }
+  }
+
+  async function deleteCustomer(id) {
+    if (!confirm(
+      "Check this customer's order history before permanent deletion. Continue?"
+    )) return;
+
+    try {
+      const orderData = await apiRequest(
+        `/api/admin/customers/${id}/orders`
+      );
+
+      const orders = Array.isArray(orderData.orders)
+        ? orderData.orders
+        : [];
+
+      if (orders.length > 0) {
+        showMessage(
+          "This customer has orders. Permanent deletion is not allowed. Keep the customer archived to preserve order history."
+        );
+        return;
+      }
+
+      if (!confirm(
+        "This customer has no orders. Permanently delete this customer? This cannot be undone."
+      )) return;
+
+      const data = await apiRequest(
+        `/api/admin/customers/${id}`,
+        { method: "DELETE" }
+      );
+
+      showMessage(data.message || "Customer permanently deleted.", true);
+      await loadCustomers();
+
+    } catch (error) {
+      showMessage(error.message);
+    }
+  }
+
+  async function exportCustomers() {
+    try {
+      const response = await fetch(
+        `/api/admin/customers/export.csv?archived=${showArchived}`,
+        { credentials: "same-origin" }
+      );
+
+      if (!response.ok) {
+        let data = {};
+        try { data = await response.json(); } catch (_) {}
+        throw new Error(data.message || "CSV export failed.");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = showArchived
+        ? "customers-archived.csv"
+        : "customers-active.csv";
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      URL.revokeObjectURL(url);
+
+      showMessage("Customer CSV exported successfully.", true);
+
+    } catch (error) {
+      showMessage(error.message);
+    }
+  }
+
+  function closeModal() {
+    document.getElementById("customerModal").style.display = "none";
+    currentCustomer = null;
+  }
+
+  document.getElementById("customerModal").addEventListener("click", event => {
+    if (event.target.id === "customerModal") {
+      closeModal();
+    }
+  });
+
+  async function logout() {
+    try {
+      await fetch("/api/admin/logout", {
+        method: "POST",
+        credentials: "same-origin"
+      });
+    } finally {
+      window.location.href = "/pages/admin.html";
+    }
+  }
+
+  loadCustomers();
+</script>
 
 </body>
 </html>
