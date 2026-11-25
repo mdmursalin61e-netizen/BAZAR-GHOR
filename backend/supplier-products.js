@@ -199,7 +199,10 @@ function createSupplierProductsRouter({
         };
     }
 
+    // =========================================================
     // ADMIN: GET ALL NON-DELETED SUPPLIER PRODUCTS
+    // =========================================================
+
     router.get("/supplier-products", requireAdmin, async (req, res) => {
         try {
             const records = await sql`
@@ -250,7 +253,10 @@ function createSupplierProductsRouter({
         }
     });
 
+    // =========================================================
     // ADMIN: ADD EXISTING PRODUCT TO SUPPLIER
+    // =========================================================
+
     router.post("/supplier-products", requireAdmin, async (req, res) => {
         try {
             const validation = validate(req.body);
@@ -351,7 +357,10 @@ function createSupplierProductsRouter({
         }
     });
 
+    // =========================================================
     // ADMIN: UPDATE SUPPLIER PRODUCT
+    // =========================================================
+
     router.put("/supplier-products/:id", requireAdmin, async (req, res) => {
         try {
             if (!validId(req.params.id)) {
@@ -462,7 +471,10 @@ function createSupplierProductsRouter({
         }
     });
 
-    // ADMIN: APPROVE OR REJECT
+    // =========================================================
+    // ADMIN: APPROVE OR REJECT SUPPLIER PRODUCT
+    // =========================================================
+
     router.patch("/supplier-products/:id/approval", requireAdmin, async (req, res) => {
         try {
             if (!validId(req.params.id)) {
@@ -638,7 +650,10 @@ function createSupplierProductsRouter({
         }
     });
 
+    // =========================================================
     // SHARED SAFE DELETE FUNCTION
+    // =========================================================
+
     async function safelyDeleteSupplierProduct(
         id,
         deletedNote,
@@ -679,8 +694,6 @@ function createSupplierProductsRouter({
             return false;
         }
 
-        // Deactivate public product only when no other
-        // approved and non-deleted supplier link exists.
         await sql`
             UPDATE products
             SET
@@ -706,7 +719,10 @@ function createSupplierProductsRouter({
         return true;
     }
 
+    // =========================================================
     // ADMIN: DELETE SUPPLIER PRODUCT
+    // =========================================================
+
     router.delete("/supplier-products/:id", requireAdmin, async (req, res) => {
         try {
             if (!validId(req.params.id)) {
@@ -742,7 +758,10 @@ function createSupplierProductsRouter({
         }
     });
 
+    // =========================================================
     // SUPPLIER: GET OWN NON-DELETED PRODUCTS
+    // =========================================================
+
     router.get("/supplier/my-products", requireSupplier, async (req, res) => {
         try {
             const records = await sql`
@@ -794,7 +813,10 @@ function createSupplierProductsRouter({
         }
     });
 
+    // =========================================================
     // SUPPLIER: DELETE OWN PRODUCT
+    // =========================================================
+
     router.delete("/supplier/my-products/:id", requireSupplier, async (req, res) => {
         try {
             if (!validId(req.params.id)) {
@@ -831,7 +853,10 @@ function createSupplierProductsRouter({
         }
     });
 
+    // =========================================================
     // SUPPLIER: ADD NEW PRODUCT
+    // =========================================================
+
     router.post("/supplier/my-products", requireSupplier, async (req, res) => {
         try {
             const validation = validateSupplierProduct(req.body);
@@ -914,7 +939,10 @@ function createSupplierProductsRouter({
         }
     });
 
+    // =========================================================
     // SUPPLIER: UPDATE OWN PRODUCT
+    // =========================================================
+
     router.put("/supplier/my-products/:id", requireSupplier, async (req, res) => {
         try {
             if (!validId(req.params.id)) {
@@ -1012,6 +1040,517 @@ function createSupplierProductsRouter({
             });
         }
     });
+
+    // =========================================================
+    // ADMIN: GET APPROVED SUPPLIERS FOR AN ORDER ITEM
+    // Actual URL: GET /api/admin/orders/:orderId/items/:itemId/supplier-options
+    // =========================================================
+
+    router.get(
+        "/orders/:orderId/items/:itemId/supplier-options",
+        requireAdmin,
+        async (req, res) => {
+            try {
+                const { orderId, itemId } = req.params;
+
+                if (!validId(orderId) || !validId(itemId)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Invalid order or item ID."
+                    });
+                }
+
+                const items = await sql`
+                    SELECT id, product_id, product_name, quantity
+                    FROM order_items
+                    WHERE id = ${itemId}
+                    AND order_id = ${orderId}
+                    LIMIT 1
+                `;
+
+                if (!items.length) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Order item not found."
+                    });
+                }
+
+                const item = items[0];
+
+                const suppliers = await sql`
+                    SELECT
+                        sp.id AS supplier_product_id,
+                        sp.supplier_id,
+                        s.supplier_name,
+                        s.business_name,
+                        sp.stock_available,
+                        sp.selling_price,
+                        sp.supplier_cost
+                    FROM supplier_products sp
+                    JOIN suppliers s ON s.id = sp.supplier_id
+                    WHERE sp.product_id = ${item.product_id}
+                    AND s.status = 'active'
+                    AND sp.approval_status = 'approved'
+                    AND sp.is_active = TRUE
+                    AND sp.is_available = TRUE
+                    AND COALESCE(sp.admin_approval_note, '') NOT IN (
+                        ${DELETED_BY_ADMIN},
+                        ${DELETED_BY_SUPPLIER},
+                        ${LEGACY_DELETED_NOTE}
+                    )
+                    ORDER BY sp.stock_available DESC, s.supplier_name ASC
+                `;
+
+                res.setHeader("Cache-Control", "no-store");
+
+                return res.json({
+                    success: true,
+                    item: {
+                        id: item.id,
+                        product_id: item.product_id,
+                        product_name: item.product_name,
+                        quantity: item.quantity
+                    },
+                    suppliers
+                });
+            } catch (error) {
+                console.error("Supplier options error:", error);
+
+                return res.status(500).json({
+                    success: false,
+                    message: "Could not load supplier options."
+                });
+            }
+        }
+    );
+
+    // =========================================================
+    // ADMIN: SEND ONE ORDER ITEM TO A SELECTED SUPPLIER
+    // Actual URL: POST /api/admin/orders/:orderId/items/:itemId/handoff
+    // Body: { "supplier_product_id": 123 }
+    // =========================================================
+
+    router.post(
+        "/orders/:orderId/items/:itemId/handoff",
+        requireAdmin,
+        async (req, res) => {
+            try {
+                const { orderId, itemId } = req.params;
+                const supplierProductId = req.body?.supplier_product_id;
+
+                if (
+                    !validId(orderId) ||
+                    !validId(itemId) ||
+                    !validId(supplierProductId)
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Please select a valid order item and supplier."
+                    });
+                }
+
+                const orderItems = await sql`
+                    SELECT
+                        oi.id,
+                        oi.product_id,
+                        oi.quantity,
+                        o.status AS order_status
+                    FROM order_items oi
+                    JOIN orders o ON o.id = oi.order_id
+                    WHERE oi.id = ${itemId}
+                    AND oi.order_id = ${orderId}
+                    LIMIT 1
+                `;
+
+                if (!orderItems.length) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Order item not found."
+                    });
+                }
+
+                if (
+                    ["cancelled"].includes(
+                        String(orderItems[0].order_status).toLowerCase()
+                    )
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "A cancelled order cannot be sent to a supplier."
+                    });
+                }
+
+                const selectedSupplierProducts = await sql`
+                    SELECT
+                        sp.id,
+                        sp.supplier_id,
+                        sp.product_id,
+                        s.supplier_name
+                    FROM supplier_products sp
+                    JOIN suppliers s ON s.id = sp.supplier_id
+                    WHERE sp.id = ${supplierProductId}
+                    AND sp.product_id = ${orderItems[0].product_id}
+                    AND s.status = 'active'
+                    AND sp.approval_status = 'approved'
+                    AND sp.is_active = TRUE
+                    AND sp.is_available = TRUE
+                    AND COALESCE(sp.admin_approval_note, '') NOT IN (
+                        ${DELETED_BY_ADMIN},
+                        ${DELETED_BY_SUPPLIER},
+                        ${LEGACY_DELETED_NOTE}
+                    )
+                    LIMIT 1
+                `;
+
+                if (!selectedSupplierProducts.length) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Selected supplier is not approved or is not linked to this product."
+                    });
+                }
+
+                const selected = selectedSupplierProducts[0];
+
+                const existing = await sql`
+                    SELECT id, status
+                    FROM supplier_order_handoffs
+                    WHERE order_item_id = ${itemId}
+                    LIMIT 1
+                `;
+
+                if (existing.length) {
+                    return res.status(409).json({
+                        success: false,
+                        message: "This order item has already been sent to a supplier.",
+                        handoff_status: existing[0].status
+                    });
+                }
+
+                const result = await sql`
+                    INSERT INTO supplier_order_handoffs (
+                        order_id,
+                        order_item_id,
+                        supplier_id,
+                        supplier_product_id,
+                        status,
+                        sent_at,
+                        updated_at
+                    )
+                    VALUES (
+                        ${orderId},
+                        ${itemId},
+                        ${selected.supplier_id},
+                        ${selected.id},
+                        'sent',
+                        NOW(),
+                        NOW()
+                    )
+                    RETURNING id, status, sent_at
+                `;
+
+                return res.status(201).json({
+                    success: true,
+                    message: "Order item sent to supplier successfully.",
+                    handoff: result[0]
+                });
+            } catch (error) {
+                console.error("Send order to supplier error:", error);
+
+                if (error.code === "23505") {
+                    return res.status(409).json({
+                        success: false,
+                        message: "This order item has already been assigned to a supplier."
+                    });
+                }
+
+                return res.status(500).json({
+                    success: false,
+                    message: "Could not send order item to supplier."
+                });
+            }
+        }
+    );
+
+    // =========================================================
+    // ADMIN: VIEW ALL SUPPLIER ORDER HANDOFFS
+    // Actual URL: GET /api/admin/supplier-order-handoffs
+    // =========================================================
+
+    router.get(
+        "/supplier-order-handoffs",
+        requireAdmin,
+        async (req, res) => {
+            try {
+                const records = await sql`
+                    SELECT
+                        h.id,
+                        h.order_id,
+                        h.order_item_id,
+                        h.supplier_id,
+                        h.supplier_product_id,
+                        h.status,
+                        h.supplier_response_note,
+                        h.admin_note,
+                        h.sent_at,
+                        h.responded_at,
+                        h.reviewed_at,
+                        o.order_number,
+                        o.status AS order_status,
+                        oi.product_name,
+                        oi.quantity,
+                        oi.unit_price,
+                        oi.subtotal,
+                        s.supplier_name,
+                        s.business_name
+                    FROM supplier_order_handoffs h
+                    JOIN orders o ON o.id = h.order_id
+                    JOIN order_items oi ON oi.id = h.order_item_id
+                    JOIN suppliers s ON s.id = h.supplier_id
+                    ORDER BY h.id DESC
+                `;
+
+                res.setHeader("Cache-Control", "no-store");
+
+                return res.json({
+                    success: true,
+                    handoffs: records
+                });
+            } catch (error) {
+                console.error("Admin handoff list error:", error);
+
+                return res.status(500).json({
+                    success: false,
+                    message: "Could not load supplier order handoffs."
+                });
+            }
+        }
+    );
+
+    // =========================================================
+    // SUPPLIER: VIEW ONLY ORDERS ASSIGNED TO THIS SUPPLIER
+    // Actual URL: GET /api/admin/supplier/orders
+    // Customer phone and address are intentionally not returned.
+    // =========================================================
+
+    router.get(
+        "/supplier/orders",
+        requireSupplier,
+        async (req, res) => {
+            try {
+                const records = await sql`
+                    SELECT
+                        h.id AS handoff_id,
+                        h.order_id,
+                        h.order_item_id,
+                        h.status AS handoff_status,
+                        h.supplier_response_note,
+                        h.sent_at,
+                        h.responded_at,
+                        o.order_number,
+                        o.created_at AS order_created_at,
+                        oi.product_name,
+                        oi.quantity,
+                        oi.unit_price,
+                        oi.subtotal
+                    FROM supplier_order_handoffs h
+                    JOIN orders o ON o.id = h.order_id
+                    JOIN order_items oi ON oi.id = h.order_item_id
+                    WHERE h.supplier_id = ${req.supplier.id}
+                    ORDER BY h.sent_at DESC, h.id DESC
+                `;
+
+                res.setHeader("Cache-Control", "no-store");
+
+                return res.json({
+                    success: true,
+                    orders: records
+                });
+            } catch (error) {
+                console.error("Supplier order list error:", error);
+
+                return res.status(500).json({
+                    success: false,
+                    message: "Could not load your received orders."
+                });
+            }
+        }
+    );
+
+    // =========================================================
+    // SUPPLIER: ACCEPT OR REJECT AN ASSIGNED ORDER ITEM
+    // Actual URL: PATCH /api/admin/supplier/orders/:handoffId/response
+    // Body: { "decision": "accepted" | "rejected", "note": "..." }
+    // =========================================================
+
+    router.patch(
+        "/supplier/orders/:handoffId/response",
+        requireSupplier,
+        async (req, res) => {
+            try {
+                const { handoffId } = req.params;
+
+                if (!validId(handoffId)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Invalid order reference."
+                    });
+                }
+
+                const decision = String(
+                    req.body?.decision || ""
+                ).trim().toLowerCase();
+
+                const note = String(
+                    req.body?.note || ""
+                ).trim().slice(0, 3000);
+
+                if (!["accepted", "rejected"].includes(decision)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Please choose Accept or Reject."
+                    });
+                }
+
+                if (decision === "rejected" && !note) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Please provide a reason for rejecting this order."
+                    });
+                }
+
+                const result = await sql`
+                    UPDATE supplier_order_handoffs
+                    SET
+                        status = ${decision},
+                        supplier_response_note = ${note || null},
+                        responded_at = NOW(),
+                        updated_at = NOW()
+                    WHERE id = ${handoffId}
+                    AND supplier_id = ${req.supplier.id}
+                    AND status = 'sent'
+                    RETURNING id, status, supplier_response_note, responded_at
+                `;
+
+                if (!result.length) {
+                    const existing = await sql`
+                        SELECT id, status
+                        FROM supplier_order_handoffs
+                        WHERE id = ${handoffId}
+                        AND supplier_id = ${req.supplier.id}
+                        LIMIT 1
+                    `;
+
+                    if (!existing.length) {
+                        return res.status(404).json({
+                            success: false,
+                            message: "Order not found in your supplier account."
+                        });
+                    }
+
+                    return res.status(409).json({
+                        success: false,
+                        message: "You have already responded to this order or it has been reviewed by Admin.",
+                        handoff_status: existing[0].status
+                    });
+                }
+
+                return res.json({
+                    success: true,
+                    message: decision === "accepted"
+                        ? "Order accepted successfully. Admin will review your response."
+                        : "Order rejected. Admin has been notified.",
+                    handoff: result[0]
+                });
+            } catch (error) {
+                console.error("Supplier order response error:", error);
+
+                return res.status(500).json({
+                    success: false,
+                    message: "Could not submit your order response."
+                });
+            }
+        }
+    );
+
+    // =========================================================
+    // ADMIN: FINAL REVIEW OF SUPPLIER RESPONSE
+    // Actual URL: PATCH /api/admin/supplier-order-handoffs/:id/review
+    // Body: { "decision": "approved" | "rejected", "note": "..." }
+    // =========================================================
+
+    router.patch(
+        "/supplier-order-handoffs/:id/review",
+        requireAdmin,
+        async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                if (!validId(id)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Invalid handoff ID."
+                    });
+                }
+
+                const decision = String(
+                    req.body?.decision || ""
+                ).trim().toLowerCase();
+
+                const note = String(
+                    req.body?.note || ""
+                ).trim().slice(0, 3000);
+
+                if (!["approved", "rejected"].includes(decision)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Decision must be approved or rejected."
+                    });
+                }
+
+                const requiredSupplierStatus =
+                    decision === "approved" ? "accepted" : "rejected";
+
+                const finalStatus =
+                    decision === "approved"
+                        ? "admin_approved"
+                        : "admin_rejected";
+
+                const result = await sql`
+                    UPDATE supplier_order_handoffs
+                    SET
+                        status = ${finalStatus},
+                        admin_note = ${note || null},
+                        reviewed_at = NOW(),
+                        updated_at = NOW()
+                    WHERE id = ${id}
+                    AND status = ${requiredSupplierStatus}
+                    RETURNING id, status, admin_note, reviewed_at
+                `;
+
+                if (!result.length) {
+                    return res.status(409).json({
+                        success: false,
+                        message: "This supplier response is not available for final review. Check its current status."
+                    });
+                }
+
+                return res.json({
+                    success: true,
+                    message: decision === "approved"
+                        ? "Supplier response approved by Admin."
+                        : "Supplier response rejected by Admin.",
+                    handoff: result[0]
+                });
+            } catch (error) {
+                console.error("Admin handoff review error:", error);
+
+                return res.status(500).json({
+                    success: false,
+                    message: "Could not review supplier response."
+                });
+            }
+        }
+    );
 
     return router;
 }

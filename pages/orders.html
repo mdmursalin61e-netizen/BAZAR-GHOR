@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Orders Management | ELITE SPHERE GROUP</title>
+<title>Orders Management | BAZAR GHOR</title>
 
 <style>
 * {
@@ -73,12 +73,12 @@ button:disabled {
     color: white;
 }
 
-.logout, .delete-btn {
+.logout, .delete-btn, .reject-handoff {
     background: #e34b4b;
     color: white;
 }
 
-.save, .restore-btn {
+.save, .restore-btn, .send-handoff, .approve-handoff {
     background: #168653;
     color: white;
 }
@@ -142,12 +142,12 @@ th {
     white-space: nowrap;
 }
 
-select {
+select, .admin-note-input {
     padding: 8px;
     border: 1px solid #d5dbe6;
     border-radius: 6px;
     background: white;
-    max-width: 145px;
+    max-width: 180px;
 }
 
 .message {
@@ -180,9 +180,7 @@ select {
     min-width: 110px;
 }
 
-.action-buttons button {
-    width: 100%;
-}
+.action-buttons button { width: 100%; }
 
 .modal {
     display: none;
@@ -197,7 +195,7 @@ select {
 .modal-content {
     background: white;
     width: 100%;
-    max-width: 750px;
+    max-width: 1000px;
     margin: 30px auto;
     border-radius: 13px;
     padding: 25px;
@@ -246,7 +244,7 @@ select {
 
 .items-table {
     width: 100%;
-    min-width: 500px;
+    min-width: 850px;
     margin-top: 12px;
 }
 
@@ -257,6 +255,60 @@ select {
     margin-top: 18px;
     font-size: 19px;
     font-weight: bold;
+}
+
+.handoff-box {
+    min-width: 230px;
+    padding: 10px;
+    background: #f5f7fb;
+    border-radius: 7px;
+    line-height: 1.5;
+}
+
+.handoff-box select {
+    display: block;
+    width: 100%;
+    max-width: none;
+    margin: 8px 0;
+}
+
+.handoff-box button {
+    margin: 4px 3px 0 0;
+}
+
+.handoff-status {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: capitalize;
+    background: #e3e8f1;
+    color: #26364e;
+}
+
+.handoff-status.sent {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.handoff-status.accepted,
+.handoff-status.admin_approved {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.handoff-status.rejected,
+.handoff-status.admin_rejected {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.handoff-note {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #475569;
+    overflow-wrap: anywhere;
 }
 
 @media(max-width: 600px) {
@@ -274,7 +326,7 @@ select {
 
 <header class="header">
     <div>
-        <h2>ELITE SPHERE GROUP</h2>
+        <h2>BAZAR GHOR</h2>
         <p>Bangladesh | Admin Panel</p>
     </div>
     <button class="logout" onclick="logout()">Logout</button>
@@ -343,7 +395,7 @@ select {
 <div class="modal" id="detailsModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Order Details</h2>
+            <h2>Order Details & Supplier Handover</h2>
             <button class="close-btn" onclick="closeDetails()">✕</button>
         </div>
 
@@ -354,6 +406,7 @@ select {
 <script>
 let allOrders = [];
 let showingArchived = false;
+let supplierHandoffs = [];
 
 function escapeHTML(value) {
     return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -395,6 +448,31 @@ function makeOptions(current, choices) {
     `).join("");
 }
 
+async function requestJSON(url, options = {}) {
+    const response = await fetch(url, {
+        credentials: "same-origin",
+        cache: "no-store",
+        ...options,
+        headers: {
+            ...(options.headers || {})
+        }
+    });
+
+    let data;
+
+    try {
+        data = await response.json();
+    } catch {
+        throw new Error("Invalid server response.");
+    }
+
+    if (!response.ok || data.success === false) {
+        throw new Error(data.message || "Request failed.");
+    }
+
+    return data;
+}
+
 function switchTab(archived) {
     showingArchived = archived;
 
@@ -417,19 +495,9 @@ async function loadOrders() {
     `;
 
     try {
-        const response = await fetch(
-            `/api/admin/orders?archived=${showingArchived}`,
-            {
-                credentials: "same-origin",
-                cache: "no-store"
-            }
+        const data = await requestJSON(
+            `/api/admin/orders?archived=${showingArchived}`
         );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message || "Could not load orders.");
-        }
 
         allOrders = Array.isArray(data.orders) ? data.orders : [];
 
@@ -468,7 +536,7 @@ function renderOrders(orders) {
         const activeActions = `
             <button class="details-btn"
                 onclick="viewDetails(${id})">
-                View Details
+                View Details / Supplier
             </button>
 
             <button class="save"
@@ -562,6 +630,20 @@ function renderOrders(orders) {
     }).join("");
 }
 
+// LOAD ALL SUPPLIER HANDOFF RECORDS
+async function loadSupplierHandoffs() {
+    const data = await requestJSON(
+        "/api/admin/supplier-order-handoffs"
+    );
+
+    supplierHandoffs = Array.isArray(data.handoffs)
+        ? data.handoffs
+        : [];
+
+    return supplierHandoffs;
+}
+
+// OPEN ORDER DETAILS
 async function viewDetails(id) {
     const modal = document.getElementById("detailsModal");
     const content = document.getElementById("detailsContent");
@@ -579,21 +661,14 @@ async function viewDetails(id) {
     content.innerHTML = "Loading order details...";
 
     try {
-        const response = await fetch(
-            `/api/admin/orders/${id}/items`,
-            {
-                credentials: "same-origin",
-                cache: "no-store"
-            }
-        );
+        const [itemsData] = await Promise.all([
+            requestJSON(`/api/admin/orders/${id}/items`),
+            loadSupplierHandoffs()
+        ]);
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message || "Could not load order items.");
-        }
-
-        const items = Array.isArray(data.items) ? data.items : [];
+        const items = Array.isArray(itemsData.items)
+            ? itemsData.items
+            : [];
 
         const itemRows = items.length
             ? items.map(item => `
@@ -602,11 +677,17 @@ async function viewDetails(id) {
                     <td>৳${escapeHTML(item.unit_price)}</td>
                     <td>${escapeHTML(item.quantity)}</td>
                     <td>৳${escapeHTML(item.subtotal)}</td>
+                    <td>
+                        <div class="handoff-box"
+                             id="supplier-box-${Number(item.id)}">
+                            Loading supplier options...
+                        </div>
+                    </td>
                 </tr>
             `).join("")
             : `
                 <tr>
-                    <td colspan="4" class="empty">
+                    <td colspan="5" class="empty">
                         No product items found.
                     </td>
                 </tr>
@@ -674,7 +755,11 @@ async function viewDetails(id) {
                 </div>
             </div>
 
-            <h3>Ordered Products</h3>
+            <h3>Ordered Products & Supplier Assignment</h3>
+
+            <p class="muted" style="margin-top:8px;">
+                প্রতিটি পণ্যের জন্য Admin একজন Supplier নির্বাচন করে পাঠাতে পারবেন।
+            </p>
 
             <div class="items-wrapper">
                 <table class="items-table">
@@ -684,6 +769,7 @@ async function viewDetails(id) {
                             <th>Price</th>
                             <th>Quantity</th>
                             <th>Subtotal</th>
+                            <th>Supplier Handover</th>
                         </tr>
                     </thead>
                     <tbody>${itemRows}</tbody>
@@ -695,11 +781,312 @@ async function viewDetails(id) {
             </div>
         `;
 
+        // Load supplier options separately for each order item.
+        for (const item of items) {
+            loadSupplierOptions(order.id, item);
+        }
+
     } catch (error) {
         content.innerHTML = `
             <p class="empty">${escapeHTML(error.message)}</p>
         `;
     }
+}
+
+// LOAD AVAILABLE SUPPLIERS FOR ONE ORDER ITEM
+async function loadSupplierOptions(orderId, item) {
+    const box = document.getElementById(
+        `supplier-box-${Number(item.id)}`
+    );
+
+    if (!box) return;
+
+    try {
+        const data = await requestJSON(
+            `/api/admin/orders/${encodeURIComponent(orderId)}` +
+            `/items/${encodeURIComponent(item.id)}/supplier-options`
+        );
+
+        const options = Array.isArray(data.suppliers)
+            ? data.suppliers
+            : Array.isArray(data.options)
+                ? data.options
+                : Array.isArray(data.supplier_options)
+                    ? data.supplier_options
+                    : [];
+
+        const existing = supplierHandoffs.find(
+            handoff =>
+                Number(handoff.order_item_id) === Number(item.id)
+        );
+
+        if (existing) {
+            renderExistingHandoff(box, existing);
+            return;
+        }
+
+        if (showingArchived) {
+            box.textContent =
+                "Archived order: no new supplier assignment.";
+            return;
+        }
+
+        if (!options.length) {
+            box.textContent =
+                "No approved and available supplier found.";
+            return;
+        }
+
+        const select = document.createElement("select");
+        select.id = `supplier-select-${Number(item.id)}`;
+
+        const first = document.createElement("option");
+        first.value = "";
+        first.textContent = "Select Supplier";
+        select.appendChild(first);
+
+        options.forEach(supplier => {
+            const option = document.createElement("option");
+
+            option.value = supplier.supplier_product_id;
+
+            option.textContent =
+                (supplier.supplier_name || "Supplier") +
+                (supplier.business_name
+                    ? " - " + supplier.business_name
+                    : "") +
+                " | Stock: " +
+                (supplier.stock_available ?? "N/A");
+
+            select.appendChild(option);
+        });
+
+        const sendButton = document.createElement("button");
+        sendButton.type = "button";
+        sendButton.className = "send-handoff";
+        sendButton.textContent = "Send to Supplier";
+
+        sendButton.addEventListener("click", () => {
+            sendToSupplier(
+                orderId,
+                item.id,
+                select.value,
+                sendButton
+            );
+        });
+
+        box.replaceChildren(select, sendButton);
+
+    } catch (error) {
+        box.textContent =
+            "Supplier options error: " + error.message;
+    }
+}
+
+// DISPLAY EXISTING HANDOFF AND SUPPLIER RESPONSE
+function renderExistingHandoff(box, handoff) {
+    box.replaceChildren();
+
+    const supplierName = document.createElement("strong");
+    supplierName.textContent =
+        handoff.supplier_name || "Assigned Supplier";
+
+    const status = document.createElement("div");
+    status.style.marginTop = "7px";
+
+    const badge = document.createElement("span");
+    badge.className =
+        "handoff-status " + (handoff.status || "sent");
+
+    badge.textContent =
+        String(handoff.status || "sent").replaceAll("_", " ");
+
+    status.appendChild(badge);
+
+    box.append(supplierName, status);
+
+    if (handoff.supplier_response_note) {
+        const response = document.createElement("p");
+        response.className = "handoff-note";
+        response.textContent =
+            "Supplier response: " + handoff.supplier_response_note;
+
+        box.appendChild(response);
+    }
+
+    if (handoff.admin_note) {
+        const note = document.createElement("p");
+        note.className = "handoff-note";
+        note.textContent = "Admin note: " + handoff.admin_note;
+
+        box.appendChild(note);
+    }
+
+    if (
+        handoff.status === "accepted" ||
+        handoff.status === "rejected"
+    ) {
+        const noteInput = document.createElement("input");
+        noteInput.type = "text";
+        noteInput.className = "admin-note-input";
+        noteInput.id = `review-note-${Number(handoff.id)}`;
+        noteInput.placeholder = "Admin review note (optional)";
+        noteInput.style.width = "100%";
+        noteInput.style.marginTop = "9px";
+
+        const reviewButton = document.createElement("button");
+        reviewButton.type = "button";
+
+        if (handoff.status === "accepted") {
+            reviewButton.className = "approve-handoff";
+            reviewButton.textContent = "Final Approve";
+        } else {
+            reviewButton.className = "reject-handoff";
+            reviewButton.textContent = "Final Reject";
+        }
+
+        reviewButton.addEventListener("click", () => {
+            const decision =
+                handoff.status === "accepted"
+                    ? "approved"
+                    : "rejected";
+
+            reviewHandoff(
+                handoff.id,
+                decision,
+                noteInput.value,
+                reviewButton
+            );
+        });
+
+        box.append(noteInput, reviewButton);
+
+    } else if (handoff.status === "sent") {
+        const waiting = document.createElement("p");
+        waiting.className = "handoff-note";
+        waiting.textContent =
+            "Waiting for Supplier response.";
+
+        box.appendChild(waiting);
+
+    } else {
+        const completed = document.createElement("p");
+        completed.className = "handoff-note";
+        completed.textContent =
+            "Admin review completed.";
+
+        box.appendChild(completed);
+    }
+}
+
+// SEND ORDER ITEM TO SELECTED SUPPLIER
+async function sendToSupplier(orderId, itemId, supplierProductId, button) {
+    if (!supplierProductId) {
+        showMessage("Please select a Supplier first.");
+        return;
+    }
+
+    const confirmed = confirm(
+        "Send this order item to the selected Supplier?"
+    );
+
+    if (!confirmed) return;
+
+    button.disabled = true;
+    button.textContent = "Sending...";
+
+    try {
+        const data = await requestJSON(
+            `/api/admin/orders/${encodeURIComponent(orderId)}` +
+            `/items/${encodeURIComponent(itemId)}/handoff`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    supplier_product_id: Number(supplierProductId)
+                })
+            }
+        );
+
+        showMessage(
+            data.message || "Order sent to Supplier successfully.",
+            true
+        );
+
+        await viewDetails(orderId);
+
+    } catch (error) {
+        showMessage(error.message);
+        button.disabled = false;
+        button.textContent = "Send to Supplier";
+    }
+}
+
+// ADMIN FINAL REVIEW OF SUPPLIER RESPONSE
+async function reviewHandoff(handoffId, decision, note, button) {
+    const actionText = decision === "approved"
+        ? "approve"
+        : "reject";
+
+    const confirmed = confirm(
+        `Are you sure you want to ${actionText} this Supplier response?`
+    );
+
+    if (!confirmed) return;
+
+    button.disabled = true;
+    button.textContent = "Saving...";
+
+    try {
+        const data = await requestJSON(
+            `/api/admin/supplier-order-handoffs/` +
+            `${encodeURIComponent(handoffId)}/review`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    decision,
+                    note: String(note || "").trim()
+                })
+            }
+        );
+
+        showMessage(
+            data.message || "Supplier response reviewed successfully.",
+            true
+        );
+
+        await loadSupplierHandoffs();
+
+        const currentOrder = getCurrentModalOrder();
+
+        if (currentOrder) {
+            await viewDetails(currentOrder.id);
+        }
+
+    } catch (error) {
+        showMessage(error.message);
+        button.disabled = false;
+        button.textContent =
+            decision === "approved" ? "Final Approve" : "Final Reject";
+    }
+}
+
+function getCurrentModalOrder() {
+    const content = document.getElementById("detailsContent");
+    const heading = content.querySelector(".detail-card strong");
+
+    if (!heading) return null;
+
+    const orderNumber = heading.textContent;
+
+    return allOrders.find(
+        order => String(order.order_number) === String(orderNumber)
+    ) || null;
 }
 
 function closeDetails() {
@@ -719,9 +1106,8 @@ async function updateOrder(id) {
     if (!statusElement || !paymentElement) return;
 
     try {
-        const response = await fetch(`/api/admin/orders/${id}/status`, {
+        const data = await requestJSON(`/api/admin/orders/${id}/status`, {
             method: "PUT",
-            credentials: "same-origin",
             headers: {
                 "Content-Type": "application/json"
             },
@@ -731,13 +1117,7 @@ async function updateOrder(id) {
             })
         });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message || "Update failed.");
-        }
-
-        showMessage("Order updated successfully!", true);
+        showMessage(data.message || "Order updated successfully!", true);
         await loadOrders();
 
     } catch (error) {
@@ -787,7 +1167,7 @@ async function deleteOrder(id) {
     if (!order) return;
 
     const confirmed = confirm(
-        `WARNING!\n\nPermanently delete order ${order.order_number}?\n\nThis cannot be undone. Its saved order items will also be deleted.`
+        `WARNING!\n\nPermanently delete order ${order.order_number}?\n\nThis cannot be undone. Its saved order items and related supplier handoffs will also be deleted.`
     );
 
     if (!confirmed) return;
@@ -807,16 +1187,7 @@ async function deleteOrder(id) {
 
 async function performOrderAction(url, method, successMessage) {
     try {
-        const response = await fetch(url, {
-            method,
-            credentials: "same-origin"
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message || "Action failed.");
-        }
+        const data = await requestJSON(url, { method });
 
         showMessage(data.message || successMessage, true);
         await loadOrders();

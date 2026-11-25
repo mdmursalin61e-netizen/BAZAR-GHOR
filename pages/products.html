@@ -170,7 +170,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 650px;
+            min-width: 750px;
         }
 
         th, td {
@@ -206,6 +206,26 @@
             font-weight: bold;
         }
 
+        .discount-price {
+            color: #15803d;
+            font-weight: bold;
+        }
+
+        .discount-badge {
+            display: inline-block;
+            background: #fee2e2;
+            color: #b91c1c;
+            padding: 5px 8px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .no-discount {
+            color: #64748b;
+            font-size: 13px;
+        }
+
         .private-note {
             background: #fff7ed;
             border: 1px solid #fed7aa;
@@ -215,6 +235,16 @@
             font-size: 13px;
             line-height: 1.6;
             margin-bottom: 18px;
+        }
+
+        .discount-preview {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+            padding: 12px;
+            border-radius: 7px;
+            font-size: 14px;
+            line-height: 1.6;
         }
 
         @media(max-width: 650px) {
@@ -246,9 +276,7 @@
         <p>Products & Supplier Products Management</p>
     </header>
 
-    <!-- =====================================
-         PRODUCT FORM
-    ====================================== -->
+    <!-- PRODUCT FORM -->
 
     <section class="panel">
 
@@ -266,10 +294,44 @@
                 </div>
 
                 <div class="field">
-                    <label for="price">Selling Price *</label>
+                    <label for="price">Original Selling Price (৳) *</label>
                     <input type="number" id="price"
-                        min="0" step="0.01" required
-                        placeholder="Enter selling price">
+                        min="0" max="9999999999.99"
+                        step="0.01" required
+                        placeholder="Enter original selling price">
+                    <p class="hint">
+                        This is the product's original price before discount.
+                    </p>
+                </div>
+
+                <!-- DISCOUNT SETTINGS -->
+
+                <div class="field">
+                    <label for="discountPercent">Discount Percentage (%)</label>
+                    <input type="number" id="discountPercent"
+                        min="0" max="99.99"
+                        step="0.01" value="0"
+                        placeholder="Example: 15">
+                    <p class="hint">
+                        Enter 10 for 10%, 15 for 15%, or 20 for 20%.
+                    </p>
+                </div>
+
+                <div class="field">
+                    <label for="discountEnabled">Discount Status</label>
+                    <select id="discountEnabled">
+                        <option value="false">Disabled</option>
+                        <option value="true">Enabled</option>
+                    </select>
+                    <p class="hint">
+                        Enable the discount to show the discounted price publicly.
+                    </p>
+                </div>
+
+                <div class="field full">
+                    <div class="discount-preview" id="discountPreview">
+                        Enter a product price and discount to see the final price.
+                    </div>
                 </div>
 
                 <div class="field">
@@ -284,7 +346,6 @@
                 <!-- LOCAL IMAGE UPLOAD -->
 
                 <div class="field full">
-
                     <label for="imageFile">Choose Product Image</label>
 
                     <input type="file" id="imageFile"
@@ -299,13 +360,11 @@
                         <img id="imagePreview" src=""
                             alt="Product image preview">
                     </div>
-
                 </div>
 
                 <!-- IMAGE URL -->
 
                 <div class="field full">
-
                     <label for="image">Or Image URL (Optional)</label>
 
                     <input type="url" id="image"
@@ -315,20 +374,16 @@
                         If you select a local image, the uploaded image
                         will be used instead of this URL.
                     </p>
-
                 </div>
 
                 <div class="field full">
-
                     <label for="description">Description</label>
 
                     <textarea id="description"
                         placeholder="Enter product description"></textarea>
-
                 </div>
 
                 <div class="field full">
-
                     <div class="actions">
 
                         <button type="submit" id="saveBtn">
@@ -341,7 +396,6 @@
                         </button>
 
                     </div>
-
                 </div>
 
             </div>
@@ -352,9 +406,7 @@
 
     </section>
 
-    <!-- =====================================
-         ALL PRODUCTS
-    ====================================== -->
+    <!-- ALL PRODUCTS -->
 
     <section class="panel">
 
@@ -367,7 +419,9 @@
                     <tr>
                         <th>Image</th>
                         <th>Name</th>
-                        <th>Price</th>
+                        <th>Original Price</th>
+                        <th>Discount</th>
+                        <th>Final Price</th>
                         <th>Own Stock</th>
                         <th>Actions</th>
                     </tr>
@@ -375,7 +429,7 @@
 
                 <tbody id="productList">
                     <tr>
-                        <td colspan="5">Loading products...</td>
+                        <td colspan="7">Loading products...</td>
                     </tr>
                 </tbody>
             </table>
@@ -384,9 +438,7 @@
 
     </section>
 
-    <!-- =====================================
-         SUPPLIER PRODUCT FORM
-    ====================================== -->
+    <!-- SUPPLIER PRODUCT FORM -->
 
     <section class="panel">
 
@@ -520,9 +572,7 @@
 
     </section>
 
-    <!-- =====================================
-         SUPPLIER PRODUCT LIST
-    ====================================== -->
+    <!-- SUPPLIER PRODUCT LIST -->
 
     <section class="panel">
 
@@ -566,9 +616,7 @@
 
 <script>
 
-    // =====================================
     // COMMON ELEMENTS
-    // =====================================
 
     const form = document.getElementById("productForm");
     const message = document.getElementById("message");
@@ -582,11 +630,20 @@
     const saveBtn = document.getElementById("saveBtn");
     const cancelBtn = document.getElementById("cancelBtn");
 
+    const discountPercentInput =
+        document.getElementById("discountPercent");
+
+    const discountEnabledInput =
+        document.getElementById("discountEnabled");
+
+    const discountPreview =
+        document.getElementById("discountPreview");
+
     let editingId = null;
     let products = [];
     let temporaryPreviewURL = null;
 
-    // Supplier Product Elements
+    // SUPPLIER PRODUCT ELEMENTS
 
     const supplierForm = document.getElementById("supplierProductForm");
     const supplierList = document.getElementById("supplierProductList");
@@ -602,9 +659,7 @@
     let supplierProducts = [];
     let editingSupplierProductId = null;
 
-    // =====================================
     // MESSAGE
-    // =====================================
 
     function showMessage(text, success = false) {
         message.textContent = text;
@@ -616,9 +671,7 @@
         supplierMessage.style.color = success ? "green" : "red";
     }
 
-    // =====================================
     // API REQUEST
-    // =====================================
 
     async function api(url, options = {}) {
 
@@ -652,9 +705,7 @@
         return data;
     }
 
-    // =====================================
     // HTML ESCAPE
-    // =====================================
 
     function escapeHTML(value) {
 
@@ -668,9 +719,100 @@
 
     }
 
-    // =====================================
+    // MONEY FORMAT
+
+    function money(value) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number.toFixed(2) : "0.00";
+    }
+
+    // DISCOUNT CALCULATION
+
+    function calculateDiscountedPrice(price, discountPercent, enabled) {
+
+        const originalPrice = Number(price);
+        const percent = Number(discountPercent);
+
+        if (
+            !Number.isFinite(originalPrice) ||
+            !Number.isFinite(percent) ||
+            !enabled ||
+            percent <= 0
+        ) {
+            return originalPrice;
+        }
+
+        return Math.round(
+            (originalPrice * (1 - percent / 100) + Number.EPSILON) * 100
+        ) / 100;
+    }
+
+    // DISCOUNT PREVIEW
+
+    function updateDiscountPreview() {
+
+        const priceValue = document.getElementById("price").value;
+        const discountValue = discountPercentInput.value;
+        const enabled = discountEnabledInput.value === "true";
+
+        const price = Number(priceValue);
+        const percent = Number(discountValue);
+
+        if (
+            priceValue === "" ||
+            discountValue === "" ||
+            !Number.isFinite(price) ||
+            !Number.isFinite(percent) ||
+            price < 0 ||
+            percent < 0 ||
+            percent > 99.99
+        ) {
+            discountPreview.textContent =
+                "Enter a valid price and discount percentage between 0 and 99.99.";
+            return;
+        }
+
+        const finalPrice = calculateDiscountedPrice(
+            price,
+            percent,
+            enabled
+        );
+
+        const savings = price - finalPrice;
+
+        if (!enabled || percent === 0) {
+
+            discountPreview.textContent =
+                "Discount is disabled. Current selling price: ৳" +
+                money(price);
+
+            return;
+        }
+
+        discountPreview.textContent =
+            "Original Price: ৳" + money(price) +
+            " | Discount: " + percent + "%" +
+            " | You Save: ৳" + money(savings) +
+            " | Final Price: ৳" + money(finalPrice);
+
+    }
+
+    document.getElementById("price").addEventListener(
+        "input",
+        updateDiscountPreview
+    );
+
+    discountPercentInput.addEventListener(
+        "input",
+        updateDiscountPreview
+    );
+
+    discountEnabledInput.addEventListener(
+        "change",
+        updateDiscountPreview
+    );
+
     // SAFE IMAGE URL
-    // =====================================
 
     function safeImageUrl(value) {
 
@@ -702,14 +844,12 @@
         return "";
     }
 
-    // =====================================
     // LOAD PRODUCTS
-    // =====================================
 
     async function loadProducts() {
 
         productList.innerHTML = `
-            <tr><td colspan="5">Loading products...</td></tr>
+            <tr><td colspan="7">Loading products...</td></tr>
         `;
 
         try {
@@ -724,7 +864,7 @@
         } catch (error) {
 
             productList.innerHTML = `
-                <tr><td colspan="5">${escapeHTML(error.message)}</td></tr>
+                <tr><td colspan="7">${escapeHTML(error.message)}</td></tr>
             `;
 
             supplierProductIdInput.innerHTML =
@@ -733,16 +873,14 @@
         }
     }
 
-    // =====================================
     // RENDER PRODUCTS
-    // =====================================
 
     function renderProducts() {
 
         if (products.length === 0) {
 
             productList.innerHTML = `
-                <tr><td colspan="5">No products found.</td></tr>
+                <tr><td colspan="7">No products found.</td></tr>
             `;
 
             return;
@@ -751,6 +889,19 @@
         productList.innerHTML = products.map(product => {
 
             const imageUrl = safeImageUrl(product.image_url);
+
+            const originalPrice = Number(product.price) || 0;
+            const discountPercent = Number(product.discount_percent) || 0;
+            const discountEnabled = product.discount_enabled === true;
+
+            const finalPrice = calculateDiscountedPrice(
+                originalPrice,
+                discountPercent,
+                discountEnabled
+            );
+
+            const hasDiscount =
+                discountEnabled && discountPercent > 0;
 
             return `
                 <tr>
@@ -767,7 +918,27 @@
 
                     <td>${escapeHTML(product.name)}</td>
 
-                    <td>৳${escapeHTML(product.price)}</td>
+                    <td>৳${money(originalPrice)}</td>
+
+                    <td>
+                        ${
+                            hasDiscount
+                                ? `<span class="discount-badge">
+                                    ${escapeHTML(discountPercent)}% OFF
+                                   </span>`
+                                : `<span class="no-discount">No discount</span>`
+                        }
+                        <br>
+                        <small class="${
+                            hasDiscount ? "status-active" : "status-inactive"
+                        }">
+                            ${hasDiscount ? "Enabled" : "Disabled"}
+                        </small>
+                    </td>
+
+                    <td class="discount-price">
+                        ৳${money(finalPrice)}
+                    </td>
 
                     <td>${escapeHTML(product.stock_quantity)}</td>
 
@@ -796,9 +967,7 @@
 
     }
 
-    // =====================================
     // IMAGE PREVIEW
-    // =====================================
 
     function clearPreview() {
 
@@ -852,9 +1021,7 @@
 
     });
 
-    // =====================================
     // UPLOAD IMAGE TO SERVER
-    // =====================================
 
     async function uploadImage(file) {
 
@@ -878,9 +1045,7 @@
 
     }
 
-    // =====================================
     // SAVE OR UPDATE PRODUCT
-    // =====================================
 
     form.addEventListener("submit", async event => {
 
@@ -895,6 +1060,10 @@
         const description =
             document.getElementById("description").value.trim();
 
+        const discountPercent = discountPercentInput.value;
+        const discountEnabled =
+            discountEnabledInput.value === "true";
+
         const selectedFile = imageFile.files[0];
 
         if (!name) {
@@ -905,7 +1074,8 @@
         if (
             price === "" ||
             !Number.isFinite(Number(price)) ||
-            Number(price) < 0
+            Number(price) < 0 ||
+            Number(price) > 9999999999.99
         ) {
             showMessage("Please enter a valid product price.");
             return;
@@ -917,6 +1087,16 @@
             Number(stock) < 0
         ) {
             showMessage("Please enter a valid stock quantity.");
+            return;
+        }
+
+        if (
+            discountPercent === "" ||
+            !Number.isFinite(Number(discountPercent)) ||
+            Number(discountPercent) < 0 ||
+            Number(discountPercent) > 99.99
+        ) {
+            showMessage("Discount must be between 0 and 99.99 percent.");
             return;
         }
 
@@ -942,7 +1122,6 @@
         }
 
         saveBtn.disabled = true;
-
         saveBtn.textContent = selectedFile
             ? "Uploading Image..."
             : "Saving...";
@@ -957,14 +1136,16 @@
 
             const product = {
                 name,
-                price,
-                stock_quantity: stock,
+                price: Number(price),
+                stock_quantity: Number(stock),
                 image_url: finalImageURL,
-                description
+                description,
+                discount_percent: Number(discountPercent),
+                discount_enabled: discountEnabled
             };
 
             const url = editingId
-                ? `/api/admin/products/${editingId}`
+                ? `/api/admin/products/${encodeURIComponent(editingId)}`
                 : "/api/admin/products";
 
             const result = await api(url, {
@@ -999,9 +1180,7 @@
 
     });
 
-    // =====================================
     // EDIT PRODUCT
-    // =====================================
 
     function editProduct(id) {
 
@@ -1021,6 +1200,12 @@
 
         document.getElementById("stock").value =
             product.stock_quantity ?? 0;
+
+        discountPercentInput.value =
+            product.discount_percent ?? 0;
+
+        discountEnabledInput.value =
+            product.discount_enabled === true ? "true" : "false";
 
         imageInput.value = safeImageUrl(product.image_url);
 
@@ -1043,6 +1228,8 @@
         saveBtn.textContent = "Update Product";
         cancelBtn.style.display = "inline-block";
 
+        updateDiscountPreview();
+
         showMessage("Editing product: " + product.name, true);
 
         window.scrollTo({
@@ -1052,9 +1239,7 @@
 
     }
 
-    // =====================================
     // DELETE PRODUCT
-    // =====================================
 
     async function deleteProduct(id) {
 
@@ -1091,9 +1276,7 @@
 
     }
 
-    // =====================================
     // PRODUCT TABLE BUTTON EVENTS
-    // =====================================
 
     productList.addEventListener("click", event => {
 
@@ -1109,9 +1292,7 @@
 
     });
 
-    // =====================================
     // RESET PRODUCT FORM
-    // =====================================
 
     function resetForm() {
 
@@ -1121,19 +1302,22 @@
 
         clearPreview();
 
+        discountPercentInput.value = 0;
+        discountEnabledInput.value = "false";
+
         document.getElementById("formTitle").textContent =
             "Add New Product";
 
         saveBtn.textContent = "Save Product";
         cancelBtn.style.display = "none";
 
+        updateDiscountPreview();
+
     }
 
     cancelBtn.addEventListener("click", resetForm);
 
-    // =====================================
     // LOAD SUPPLIERS
-    // =====================================
 
     async function loadSuppliers() {
 
@@ -1159,9 +1343,7 @@
 
     }
 
-    // =====================================
     // POPULATE SUPPLIER SELECT
-    // =====================================
 
     function populateSupplierSelect(selectedId = "") {
 
@@ -1194,9 +1376,7 @@
 
     }
 
-    // =====================================
     // POPULATE PRODUCT SELECT
-    // =====================================
 
     function populateProductSelect(selectedId = "") {
 
@@ -1209,8 +1389,14 @@
 
             option.value = product.id;
 
+            const discountedPrice = calculateDiscountedPrice(
+                product.price,
+                product.discount_percent,
+                product.discount_enabled === true
+            );
+
             option.textContent =
-                product.name + " - ৳" + product.price;
+                product.name + " - ৳" + money(discountedPrice);
 
             supplierProductIdInput.appendChild(option);
 
@@ -1224,9 +1410,7 @@
 
     }
 
-    // =====================================
     // PROFIT PREVIEW
-    // =====================================
 
     function updateProfitPreview() {
 
@@ -1265,13 +1449,17 @@
             return;
         }
 
-        const sellingPrice = Number(product.price);
+        const sellingPrice = calculateDiscountedPrice(
+            product.price,
+            product.discount_percent,
+            product.discount_enabled === true
+        );
 
         const profit = sellingPrice - purchase - delivery - other;
 
         preview.textContent =
-            "Selling Price: ৳" + sellingPrice.toFixed(2) +
-            " | Estimated Profit: ৳" + profit.toFixed(2);
+            "Current Selling Price: ৳" + money(sellingPrice) +
+            " | Estimated Profit: ৳" + money(profit);
 
         preview.style.color = profit >= 0 ? "#15803d" : "#dc2626";
 
@@ -1296,9 +1484,7 @@
 
     });
 
-    // =====================================
     // LOAD SUPPLIER PRODUCTS
-    // =====================================
 
     async function loadSupplierProducts() {
 
@@ -1325,9 +1511,7 @@
 
     }
 
-    // =====================================
     // RENDER SUPPLIER PRODUCTS
-    // =====================================
 
     function renderSupplierProducts() {
 
@@ -1371,14 +1555,14 @@
                         }
                     </td>
 
-                    <td>৳${Number(item.selling_price).toFixed(2)}</td>
+                    <td>৳${money(item.selling_price)}</td>
 
-                    <td>৳${Number(item.purchase_price).toFixed(2)}</td>
+                    <td>৳${money(item.purchase_price)}</td>
 
-                    <td>৳${extraCosts.toFixed(2)}</td>
+                    <td>৳${money(extraCosts)}</td>
 
                     <td class="${estimatedProfit >= 0 ? "profit" : "status-inactive"}">
-                        ৳${estimatedProfit.toFixed(2)}
+                        ৳${money(estimatedProfit)}
                     </td>
 
                     <td>${escapeHTML(item.supplier_stock_quantity)}</td>
@@ -1412,9 +1596,7 @@
 
     }
 
-    // =====================================
     // SUPPLIER PRODUCT FORM SUBMIT
-    // =====================================
 
     supplierForm.addEventListener("submit", async event => {
 
@@ -1544,9 +1726,7 @@
         return document.getElementById("supplierActive").value === "true";
     }
 
-    // =====================================
     // EDIT SUPPLIER PRODUCT
-    // =====================================
 
     function editSupplierProduct(id) {
 
@@ -1616,9 +1796,7 @@
 
     }
 
-    // =====================================
     // DEACTIVATE SUPPLIER PRODUCT
-    // =====================================
 
     async function deactivateSupplierProduct(id) {
 
@@ -1654,9 +1832,7 @@
 
     }
 
-    // =====================================
     // SUPPLIER PRODUCT TABLE EVENTS
-    // =====================================
 
     supplierList.addEventListener("click", event => {
 
@@ -1679,9 +1855,7 @@
 
     });
 
-    // =====================================
     // RESET SUPPLIER PRODUCT FORM
-    // =====================================
 
     function resetSupplierProductForm() {
 
@@ -1708,9 +1882,7 @@
         resetSupplierProductForm
     );
 
-    // =====================================
     // INITIAL LOAD
-    // =====================================
 
     async function initializePage() {
 
@@ -1721,6 +1893,8 @@
             await loadProducts();
             await loadSuppliers();
             await loadSupplierProducts();
+
+            updateDiscountPreview();
 
         } catch (error) {
 

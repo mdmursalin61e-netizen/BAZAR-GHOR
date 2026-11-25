@@ -10,7 +10,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const multer = require("multer");
 const { sql, testConnection } = require("./db");
-const createSupplierProductsRouter = require("./supplier-products"); 
+const createSupplierProductsRouter = require("./supplier-products");
 const createSupplierAuth = require("./supplier-auth");
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -21,6 +21,9 @@ const COOKIE_MAX_AGE = 8 * 60 * 60;
 if (!JWT_SECRET || JWT_SECRET.length < 32) {
     throw new Error("JWT_SECRET is missing or too short.");
 }
+
+// Dummy hash: used so login takes the same time even if the email does not exist
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync("dummy-password-for-timing", 10);
 
 // =====================================
 // PUBLIC DATA CACHE
@@ -65,6 +68,12 @@ function setPublicCacheHeaders(res) {
 // =====================================
 
 app.disable("x-powered-by");
+
+// Behind a hosting proxy (Render, Railway, etc.) the real client IP
+// comes from X-Forwarded-For. Needed for correct rate limiting.
+if (process.env.NODE_ENV === "production") {
+    app.set("trust proxy", 1);
+}
 
 app.use(helmet({
     contentSecurityPolicy: false
@@ -127,6 +136,7 @@ const imageUpload = multer({
 const adminLoginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 5,
+    skipSuccessfulRequests: true,
     standardHeaders: "draft-8",
     legacyHeaders: false,
     message: {
@@ -241,7 +251,9 @@ async function requireAdmin(req, res, next) {
     let decoded;
 
     try {
-        decoded = jwt.verify(token, JWT_SECRET);
+        decoded = jwt.verify(token, JWT_SECRET, {
+            algorithms: ["HS256"]
+        });
     } catch (error) {
         clearAdminCookie(res);
 
@@ -251,7 +263,8 @@ async function requireAdmin(req, res, next) {
         });
     }
 
-    if (!decoded.sub) {
+    // Only tokens issued for admins are accepted (supplier tokens are rejected)
+    if (!decoded.sub || decoded.type !== "admin") {
         clearAdminCookie(res);
 
         return res.status(401).json({
@@ -289,6 +302,7 @@ async function requireAdmin(req, res, next) {
         });
     }
 }
+
 // =====================================
 // SUPPLIER AUTHENTICATION
 // =====================================
@@ -300,6 +314,7 @@ const supplierAuth = createSupplierAuth({
 });
 
 app.use("/api", supplierAuth.router);
+
 // =====================================
 // SUPPLIER PRODUCT MANAGEMENT ROUTER
 // =====================================
@@ -313,6 +328,7 @@ app.use(
         clearPublicCache
     })
 );
+
 // =====================================
 // STATIC ASSETS AND UPLOADED IMAGES
 // =====================================
@@ -605,21 +621,16 @@ app.post(
                 LIMIT 1
             `;
 
-            if (admins.length === 0 || !admins[0].is_active) {
-                return res.status(401).json({
-                    success: false,
-                    message: "Invalid email or password."
-                });
-            }
-
             const admin = admins[0];
 
+            // Always run bcrypt so response time does not reveal
+            // whether the email exists.
             const passwordMatches = await bcrypt.compare(
                 password,
-                admin.password_hash
+                admin ? admin.password_hash : DUMMY_PASSWORD_HASH
             );
 
-            if (!passwordMatches) {
+            if (!admin || !admin.is_active || !passwordMatches) {
                 return res.status(401).json({
                     success: false,
                     message: "Invalid email or password."
@@ -627,7 +638,7 @@ app.post(
             }
 
             const token = jwt.sign(
-                { role: admin.role },
+                { role: admin.role, type: "admin" },
                 JWT_SECRET,
                 {
                     subject: String(admin.id),
@@ -682,9 +693,9 @@ app.get("/api/admin/dashboard-stats", requireAdmin, async (req, res) => {
     try {
         const result = await sql`
             SELECT
-                (SELECT COUNT(*) FROM products) AS total_products,
+                (SELECT COUNT(*) FROM products WHERE is_active = TRUE) AS total_products,
                 (SELECT COUNT(*) FROM orders WHERE is_archived = FALSE) AS total_orders,
-                (SELECT COUNT(*) FROM customers) AS total_customers,
+                (SELECT COUNT(*) FROM customers WHERE is_archived = FALSE) AS total_customers,
                 (SELECT COUNT(*) FROM messages) AS total_messages
         `;
 
@@ -753,6 +764,64 @@ app.get("/api/products", async (req, res) => {
         });
     }
 });
+
+// =====================================
+// PUBLIC PRODUCTS
+// =====================================
+
+app.get("/api/products", async (req, res) => {
+    try {
+        let products = getPublicCache("products");
+
+        if (!products) {
+            products = await sql`
+                SELECT
+                    p.id,
+                    p.name,
+                    p.description,
+                    CASE
+                        WHEN p.discount_enabled = TRUE
+                             AND p.discount_percent > 0
+                        THEN ROUND(
+                            p.price * (1 - p.discount_percent / 100),
+                            2
+                        )
+                        ELSE p.price
+                    END AS price,
+                    p.price AS old_price,
+                    CASE
+                        WHEN p.discount_enabled = TRUE
+                        THEN p.discount_percent
+                        ELSE 0
+                    END AS discount_percent,
+                    p.discount_enabled,
+                    p.stock_quantity,
+                    p.image_url
+                FROM products p
+                WHERE p.is_active = TRUE
+                ORDER BY p.id DESC
+            `;
+
+            setPublicCache("products", products);
+        }
+
+        setPublicCacheHeaders(res);
+
+        return res.json({
+            success: true,
+            products
+        });
+
+    } catch (error) {
+        console.error("Public products error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Could not load products."
+        });
+    }
+});
+
 
 // =====================================
 // PUBLIC SERVICES
@@ -940,6 +1009,23 @@ app.post(
                 })
             );
 
+            // If this email already belongs to a customer, reuse that customer
+            // instead of inserting a duplicate (which would break the order).
+            let existingCustomerId = null;
+
+            if (cleanEmail) {
+                const foundCustomer = await sql`
+                    SELECT id
+                    FROM customers
+                    WHERE LOWER(email) = ${cleanEmail}
+                    LIMIT 1
+                `;
+
+                if (foundCustomer.length > 0) {
+                    existingCustomerId = foundCustomer[0].id;
+                }
+            }
+
             const orderNumber =
                 "ESG-" +
                 Date.now() +
@@ -998,7 +1084,18 @@ app.post(
                     RETURNING p.id
                 ),
 
-                new_customer AS (
+                existing_customer AS (
+                    SELECT c.id
+                    FROM customers c, validation v
+                    WHERE
+                        c.id = ${existingCustomerId}::BIGINT
+                        AND v.item_count > 0
+                        AND v.item_count = v.requested_count
+                        AND v.enough_stock = TRUE
+                        AND (SELECT COUNT(*) FROM updated_stock) = v.item_count
+                ),
+
+                inserted_customer AS (
                     INSERT INTO customers (name, email, phone)
                     SELECT
                         ${cleanName},
@@ -1006,11 +1103,18 @@ app.post(
                         ${cleanPhone}
                     FROM validation v
                     WHERE
-                        v.item_count > 0
+                        ${existingCustomerId}::BIGINT IS NULL
+                        AND v.item_count > 0
                         AND v.item_count = v.requested_count
                         AND v.enough_stock = TRUE
                         AND (SELECT COUNT(*) FROM updated_stock) = v.item_count
                     RETURNING id
+                ),
+
+                new_customer AS (
+                    SELECT id FROM existing_customer
+                    UNION ALL
+                    SELECT id FROM inserted_customer
                 ),
 
                 new_order AS (
@@ -1180,6 +1284,7 @@ app.post(
         }
     }
 );
+
 // =====================================
 // ADMIN SUPPLIER MANAGEMENT
 // =====================================
@@ -1507,30 +1612,48 @@ app.delete("/api/admin/suppliers/:id", requireAdmin, async (req, res) => {
 // ADMIN PRODUCTS
 // =====================================
 
+const MAX_PRICE = 9999999999;
+const MAX_STOCK = 2147483647;
+
+// GET ALL PRODUCTS
 app.get("/api/admin/products", requireAdmin, async (req, res) => {
     try {
         const products = await sql`
             SELECT
-                id, name, description, price, stock_quantity,
-                image_url, is_active, created_at, updated_at
+                id,
+                name,
+                description,
+                price,
+                stock_quantity,
+                image_url,
+                is_active,
+                discount_percent,
+                discount_enabled,
+                created_at,
+                updated_at
             FROM products
+            WHERE is_active = TRUE
             ORDER BY id DESC
         `;
 
         res.setHeader("Cache-Control", "no-store");
 
-        res.json({ success: true, products });
+        return res.json({
+            success: true,
+            products
+        });
 
     } catch (error) {
         console.error("Load products error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: "Could not load products."
         });
     }
 });
 
+// ADD NEW PRODUCT
 app.post("/api/admin/products", requireAdmin, async (req, res) => {
     try {
         const {
@@ -1538,7 +1661,9 @@ app.post("/api/admin/products", requireAdmin, async (req, res) => {
             description,
             price,
             stock_quantity,
-            image_url
+            image_url,
+            discount_percent,
+            discount_enabled
         } = req.body || {};
 
         const cleanName =
@@ -1556,6 +1681,8 @@ app.post("/api/admin/products", requireAdmin, async (req, res) => {
 
         const numericPrice = Number(price);
         const numericStock = Number(stock_quantity ?? 0);
+        const numericDiscount = Number(discount_percent ?? 0);
+        const cleanDiscountEnabled = discount_enabled ?? false;
 
         if (!cleanName || cleanName.length > 200) {
             return res.status(400).json({
@@ -1569,7 +1696,8 @@ app.post("/api/admin/products", requireAdmin, async (req, res) => {
             price === null ||
             price === "" ||
             !Number.isFinite(numericPrice) ||
-            numericPrice < 0
+            numericPrice < 0 ||
+            numericPrice > MAX_PRICE
         ) {
             return res.status(400).json({
                 success: false,
@@ -1579,11 +1707,30 @@ app.post("/api/admin/products", requireAdmin, async (req, res) => {
 
         if (
             !Number.isSafeInteger(numericStock) ||
-            numericStock < 0
+            numericStock < 0 ||
+            numericStock > MAX_STOCK
         ) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid stock quantity."
+            });
+        }
+
+        if (
+            !Number.isFinite(numericDiscount) ||
+            numericDiscount < 0 ||
+            numericDiscount > 99.99
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Discount must be between 0 and 99.99 percent."
+            });
+        }
+
+        if (typeof cleanDiscountEnabled !== "boolean") {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid discount status."
             });
         }
 
@@ -1601,8 +1748,14 @@ app.post("/api/admin/products", requireAdmin, async (req, res) => {
 
         const result = await sql`
             INSERT INTO products (
-                name, description, price,
-                stock_quantity, image_url, is_active
+                name,
+                description,
+                price,
+                stock_quantity,
+                image_url,
+                is_active,
+                discount_percent,
+                discount_enabled
             )
             VALUES (
                 ${cleanName},
@@ -1610,14 +1763,16 @@ app.post("/api/admin/products", requireAdmin, async (req, res) => {
                 ${numericPrice},
                 ${numericStock},
                 ${cleanImage || null},
-                TRUE
+                TRUE,
+                ${numericDiscount},
+                ${cleanDiscountEnabled}
             )
             RETURNING *
         `;
 
         clearPublicCache("products");
 
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
             message: "Product added successfully.",
             product: result[0]
@@ -1626,18 +1781,19 @@ app.post("/api/admin/products", requireAdmin, async (req, res) => {
     } catch (error) {
         console.error("Add product error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: "Could not add product."
         });
     }
 });
 
+// UPDATE PRODUCT
 app.put("/api/admin/products/:id", requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
-        if (!/^\d+$/.test(id)) {
+        if (!/^\d+$/.test(id) || Number(id) <= 0) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid product ID."
@@ -1649,7 +1805,9 @@ app.put("/api/admin/products/:id", requireAdmin, async (req, res) => {
             description,
             price,
             stock_quantity,
-            image_url
+            image_url,
+            discount_percent,
+            discount_enabled
         } = req.body || {};
 
         const cleanName =
@@ -1668,6 +1826,36 @@ app.put("/api/admin/products/:id", requireAdmin, async (req, res) => {
         const numericPrice = Number(price);
         const numericStock = Number(stock_quantity ?? 0);
 
+        let numericDiscount = null;
+
+        if (discount_percent !== undefined) {
+            numericDiscount = Number(discount_percent);
+
+            if (
+                !Number.isFinite(numericDiscount) ||
+                numericDiscount < 0 ||
+                numericDiscount > 99.99
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Discount must be between 0 and 99.99 percent."
+                });
+            }
+        }
+
+        let cleanDiscountEnabled = null;
+
+        if (discount_enabled !== undefined) {
+            if (typeof discount_enabled !== "boolean") {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid discount status."
+                });
+            }
+
+            cleanDiscountEnabled = discount_enabled;
+        }
+
         if (!cleanName || cleanName.length > 200) {
             return res.status(400).json({
                 success: false,
@@ -1680,7 +1868,8 @@ app.put("/api/admin/products/:id", requireAdmin, async (req, res) => {
             price === null ||
             price === "" ||
             !Number.isFinite(numericPrice) ||
-            numericPrice < 0
+            numericPrice < 0 ||
+            numericPrice > MAX_PRICE
         ) {
             return res.status(400).json({
                 success: false,
@@ -1690,7 +1879,8 @@ app.put("/api/admin/products/:id", requireAdmin, async (req, res) => {
 
         if (
             !Number.isSafeInteger(numericStock) ||
-            numericStock < 0
+            numericStock < 0 ||
+            numericStock > MAX_STOCK
         ) {
             return res.status(400).json({
                 success: false,
@@ -1718,8 +1908,17 @@ app.put("/api/admin/products/:id", requireAdmin, async (req, res) => {
                 price = ${numericPrice},
                 stock_quantity = ${numericStock},
                 image_url = ${cleanImage || null},
+                discount_percent = COALESCE(
+                    ${numericDiscount},
+                    discount_percent
+                ),
+                discount_enabled = COALESCE(
+                    ${cleanDiscountEnabled},
+                    discount_enabled
+                ),
                 updated_at = NOW()
             WHERE id = ${id}
+              AND is_active = TRUE
             RETURNING *
         `;
 
@@ -1732,7 +1931,7 @@ app.put("/api/admin/products/:id", requireAdmin, async (req, res) => {
 
         clearPublicCache("products");
 
-        res.json({
+        return res.json({
             success: true,
             message: "Product updated successfully.",
             product: result[0]
@@ -1741,18 +1940,19 @@ app.put("/api/admin/products/:id", requireAdmin, async (req, res) => {
     } catch (error) {
         console.error("Update product error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: "Could not update product."
         });
     }
 });
 
+// DELETE PRODUCT (SAFE DEACTIVATION)
 app.delete("/api/admin/products/:id", requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
-        if (!/^\d+$/.test(id)) {
+        if (!/^\d+$/.test(id) || Number(id) <= 0) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid product ID."
@@ -1760,9 +1960,31 @@ app.delete("/api/admin/products/:id", requireAdmin, async (req, res) => {
         }
 
         const result = await sql`
-            DELETE FROM products
-            WHERE id = ${id}
-            RETURNING id
+            WITH deactivated_product AS (
+                UPDATE products
+                SET
+                    is_active = FALSE,
+                    updated_at = NOW()
+                WHERE id = ${id}
+                RETURNING id
+            ),
+            hidden_supplier_links AS (
+                UPDATE supplier_products
+                SET
+                    approval_status = 'rejected',
+                    admin_approval_note = 'Deleted by Admin',
+                    updated_at = NOW()
+                WHERE product_id IN (
+                    SELECT id FROM deactivated_product
+                )
+                AND COALESCE(admin_approval_note, '') NOT IN (
+                    'Deleted by Admin',
+                    'Deleted by Supplier',
+                    'Deactivated by Admin'
+                )
+                RETURNING id
+            )
+            SELECT id FROM deactivated_product
         `;
 
         if (result.length === 0) {
@@ -1774,20 +1996,21 @@ app.delete("/api/admin/products/:id", requireAdmin, async (req, res) => {
 
         clearPublicCache("products");
 
-        res.json({
+        return res.json({
             success: true,
-            message: "Product deleted successfully."
+            message: "Product and its supplier links deactivated successfully."
         });
 
     } catch (error) {
         console.error("Delete product error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
-            message: "Could not delete products. This product may be linked to an order."
+            message: "Could not deactivate product and its supplier links."
         });
     }
 });
+
 
 // =====================================
 // ADMIN SERVICES MANAGEMENT
@@ -2185,16 +2408,38 @@ app.put("/api/admin/orders/:id/status", requireAdmin, async (req, res) => {
             });
         }
 
+        // When an order is cancelled (and was not cancelled before),
+        // its items are returned to stock in the same statement.
         const result = await sql`
-            UPDATE orders
-            SET
-                status = COALESCE(${cleanStatus}, status),
-                payment_status = COALESCE(
-                    ${cleanPaymentStatus},
-                    payment_status
-                )
-            WHERE id = ${id}
-            RETURNING *
+            WITH old_order AS (
+                SELECT id, status
+                FROM orders
+                WHERE id = ${id}
+            ),
+            updated AS (
+                UPDATE orders
+                SET
+                    status = COALESCE(${cleanStatus}::text, status),
+                    payment_status = COALESCE(
+                        ${cleanPaymentStatus}::text,
+                        payment_status
+                    )
+                WHERE id = ${id}
+                RETURNING *
+            ),
+            restock AS (
+                UPDATE products p
+                SET
+                    stock_quantity = p.stock_quantity + oi.quantity,
+                    updated_at = NOW()
+                FROM order_items oi, old_order o
+                WHERE oi.order_id = ${id}
+                    AND p.id = oi.product_id
+                    AND ${cleanStatus}::text = 'cancelled'
+                    AND o.status <> 'cancelled'
+                RETURNING p.id
+            )
+            SELECT * FROM updated
         `;
 
         if (result.length === 0) {
@@ -2203,6 +2448,8 @@ app.put("/api/admin/orders/:id/status", requireAdmin, async (req, res) => {
                 message: "Order not found."
             });
         }
+
+        clearPublicCache("products");
 
         res.json({
             success: true,
@@ -2378,10 +2625,6 @@ app.delete("/api/admin/orders/:id", requireAdmin, async (req, res) => {
 // ADMIN CUSTOMERS
 // =====================================
 
-// =====================================
-// ADMIN CUSTOMERS
-// =====================================
-
 // GET ACTIVE / ARCHIVED CUSTOMERS
 app.get("/api/admin/customers", requireAdmin, async (req, res) => {
     try {
@@ -2512,16 +2755,18 @@ app.put("/api/admin/customers/:id", requireAdmin, async (req, res) => {
             });
         }
 
-        const name = typeof req.body.name === "string"
-            ? req.body.name.trim()
+        const body = req.body || {};
+
+        const name = typeof body.name === "string"
+            ? body.name.trim()
             : "";
 
-        const emailInput = typeof req.body.email === "string"
-            ? req.body.email.trim()
+        const emailInput = typeof body.email === "string"
+            ? body.email.trim().toLowerCase()
             : "";
 
-        const phoneInput = typeof req.body.phone === "string"
-            ? req.body.phone.trim()
+        const phoneInput = typeof body.phone === "string"
+            ? body.phone.trim()
             : "";
 
         if (!name || name.length > 150) {
@@ -2780,12 +3025,22 @@ app.delete("/api/admin/customers/:id", requireAdmin, async (req, res) => {
 
     } catch (error) {
         console.error("Delete customer error:", error);
-        res.status(409).json({
+
+        // 23503 = PostgreSQL foreign key violation (related records exist)
+        if (error && error.code === "23503") {
+            return res.status(409).json({
+                success: false,
+                message: "Could not delete customer. Related records exist."
+            });
+        }
+
+        res.status(500).json({
             success: false,
-            message: "Could not delete customer. Related records may exist."
+            message: "Could not delete customer."
         });
     }
 });
+
 // =====================================
 // ADMIN MESSAGES MANAGEMENT
 // =====================================
@@ -3001,64 +3256,43 @@ app.post("/api/admin/logout", (req, res) => {
         message: "Logged out successfully."
     });
 });
-app.get("/pages/suppliers.html", requireAdmin, (req, res) => {
-    res.setHeader("Cache-Control", "no-store");
-
-    res.sendFile(
-        path.join(__dirname, "..", "pages", "suppliers.html")
-    );
-});
 
 // =====================================
 // PROTECTED ADMIN PAGES
+// (checked on the decoded path, so encoded URLs like /pages/%64ashboard.html
+//  cannot bypass the login check)
 // =====================================
 
-app.get("/pages/dashboard.html", requireAdmin, (req, res) => {
-    res.setHeader("Cache-Control", "no-store");
+const protectedPages = new Set([
+    "dashboard.html",
+    "products.html",
+    "orders.html",
+    "customers.html",
+    "services.html",
+    "messages.html",
+    "suppliers.html"
+]);
 
-    res.sendFile(
-        path.join(__dirname, "..", "pages", "dashboard.html")
-    );
-});
+app.use("/pages", (req, res, next) => {
+    let pageName;
 
-app.get("/pages/products.html", requireAdmin, (req, res) => {
-    res.setHeader("Cache-Control", "no-store");
+    try {
+        pageName = decodeURIComponent(req.path)
+            .replace(/^\/+/, "")
+            .toLowerCase();
+    } catch {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid URL."
+        });
+    }
 
-    res.sendFile(
-        path.join(__dirname, "..", "pages", "products.html")
-    );
-});
+    if (protectedPages.has(pageName)) {
+        res.setHeader("Cache-Control", "no-store");
+        return requireAdmin(req, res, next);
+    }
 
-app.get("/pages/orders.html", requireAdmin, (req, res) => {
-    res.setHeader("Cache-Control", "no-store");
-
-    res.sendFile(
-        path.join(__dirname, "..", "pages", "orders.html")
-    );
-});
-
-app.get("/pages/customers.html", requireAdmin, (req, res) => {
-    res.setHeader("Cache-Control", "no-store");
-
-    res.sendFile(
-        path.join(__dirname, "..", "pages", "customers.html")
-    );
-});
-
-app.get("/pages/services.html", requireAdmin, (req, res) => {
-    res.setHeader("Cache-Control", "no-store");
-
-    res.sendFile(
-        path.join(__dirname, "..", "pages", "services.html")
-    );
-});
-
-app.get("/pages/messages.html", requireAdmin, (req, res) => {
-    res.setHeader("Cache-Control", "no-store");
-
-    res.sendFile(
-        path.join(__dirname, "..", "pages", "messages.html")
-    );
+    next();
 });
 
 // =====================================
