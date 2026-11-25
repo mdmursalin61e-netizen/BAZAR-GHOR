@@ -1,0 +1,251 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier Login | BAZAR GHOR</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #123b2b, #16834b);
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            background: white;
+            padding: 32px;
+            border-radius: 14px;
+            box-shadow: 0 10px 35px rgba(0,0,0,.2);
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .brand h1 {
+            margin: 0;
+            color: #173b2b;
+            font-size: 27px;
+        }
+
+        .brand p {
+            color: #666;
+            margin-top: 8px;
+        }
+
+        h2 {
+            color: #173b2b;
+            margin-bottom: 22px;
+        }
+
+        .field {
+            margin-bottom: 17px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 7px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ccc;
+            border-radius: 7px;
+            font-size: 15px;
+        }
+
+        input:focus {
+            outline: 2px solid #16834b;
+            border-color: #16834b;
+        }
+
+        button {
+            width: 100%;
+            padding: 13px;
+            background: #16834b;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+        }
+
+        #message {
+            margin-top: 17px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 1.5;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            color: #777;
+            font-size: 12px;
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 24px 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="login-card">
+
+    <div class="brand">
+        <h1>BAZAR GHOR</h1>
+        <p>Supplier Portal | Bangladesh</p>
+    </div>
+
+    <h2>Supplier Login</h2>
+
+    <form id="loginForm">
+
+        <div class="field">
+            <label for="username">Username</label>
+            <input
+                type="text"
+                id="username"
+                minlength="4"
+                maxlength="100"
+                autocomplete="username"
+                required
+            >
+        </div>
+
+        <div class="field">
+            <label for="password">Password</label>
+            <input
+                type="password"
+                id="password"
+                maxlength="128"
+                autocomplete="current-password"
+                required
+            >
+        </div>
+
+        <button type="submit" id="loginBtn">
+            Login to Supplier Portal
+        </button>
+
+    </form>
+
+    <div id="message" role="status" aria-live="polite"></div>
+
+    <div class="footer">
+        © BAZAR GHOR | Supplier Management System
+    </div>
+
+</div>
+
+<script>
+    const loginForm = document.getElementById("loginForm");
+    const loginBtn = document.getElementById("loginBtn");
+    const message = document.getElementById("message");
+
+    function showMessage(text, success = false) {
+        message.textContent = text;
+        message.style.color = success ? "#16834b" : "#c62828";
+    }
+
+    async function checkExistingSession() {
+        try {
+            const response = await fetch("/api/supplier/me", {
+                credentials: "same-origin",
+                cache: "no-store"
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (response.ok && data.success) {
+                window.location.replace("/pages/supplier-dashboard.html");
+            }
+        } catch (error) {
+            console.error("Session check failed.");
+        }
+    }
+
+    loginForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+
+        if (!username || !password) {
+            showMessage("Please enter username and password.");
+            return;
+        }
+
+        loginBtn.disabled = true;
+        loginBtn.textContent = "Logging in...";
+        showMessage("Please wait...");
+
+        try {
+            const response = await fetch("/api/supplier/login", {
+                method: "POST",
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    username,
+                    password
+                })
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.message || "Login failed. Please try again."
+                );
+            }
+
+            showMessage("Login successful! Opening dashboard...", true);
+
+            loginForm.reset();
+
+            window.location.replace("/pages/supplier-dashboard.html");
+
+        } catch (error) {
+            showMessage(error.message);
+        } finally {
+            loginBtn.disabled = false;
+            loginBtn.textContent = "Login to Supplier Portal";
+        }
+    });
+
+    checkExistingSession();
+</script>
+
+</body>
+</html>

@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Products Management | ELITE SPHERE GROUP</title>
+    <title>Products Management | BAZAR GHOR</title>
 
     <style>
         * {
@@ -20,7 +21,7 @@
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: auto;
         }
 
@@ -49,6 +50,14 @@
             margin-bottom: 20px;
         }
 
+        .section-description {
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-top: -12px;
+            margin-bottom: 20px;
+        }
+
         .form-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -70,12 +79,13 @@
             font-size: 14px;
         }
 
-        input, textarea {
+        input, textarea, select {
             padding: 12px;
             border: 1px solid #cbd5e1;
             border-radius: 7px;
             font-size: 15px;
             width: 100%;
+            background: white;
         }
 
         textarea {
@@ -126,7 +136,8 @@
             flex-wrap: wrap;
         }
 
-        #message {
+        #message,
+        #supplierProductMessage {
             margin-top: 15px;
             font-weight: bold;
             overflow-wrap: anywhere;
@@ -180,6 +191,32 @@
             background: #f1f5f9;
         }
 
+        .status-active {
+            color: #15803d;
+            font-weight: bold;
+        }
+
+        .status-inactive {
+            color: #dc2626;
+            font-weight: bold;
+        }
+
+        .profit {
+            color: #15803d;
+            font-weight: bold;
+        }
+
+        .private-note {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            padding: 12px;
+            border-radius: 7px;
+            color: #9a3412;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 18px;
+        }
+
         @media(max-width: 650px) {
             body {
                 padding: 12px;
@@ -205,11 +242,14 @@
 <div class="container">
 
     <header>
-        <h1>ELITE SPHERE GROUP</h1>
-        <p>Products Management System</p>
+        <h1>BAZAR GHOR</h1>
+        <p>Products & Supplier Products Management</p>
     </header>
 
-    <!-- PRODUCT FORM -->
+    <!-- =====================================
+         PRODUCT FORM
+    ====================================== -->
+
     <section class="panel">
 
         <h2 id="formTitle">Add New Product</h2>
@@ -220,74 +260,59 @@
 
                 <div class="field">
                     <label for="name">Product Name *</label>
-                    <input
-                        type="text"
-                        id="name"
-                        required
+                    <input type="text" id="name" required
                         maxlength="200"
-                        placeholder="Enter product name"
-                    >
+                        placeholder="Enter product name">
                 </div>
 
                 <div class="field">
-                    <label for="price">Price *</label>
-                    <input
-                        type="number"
-                        id="price"
-                        min="0"
-                        step="0.01"
-                        required
-                        placeholder="Enter price"
-                    >
+                    <label for="price">Selling Price *</label>
+                    <input type="number" id="price"
+                        min="0" step="0.01" required
+                        placeholder="Enter selling price">
                 </div>
 
                 <div class="field">
-                    <label for="stock">Stock Quantity</label>
-                    <input
-                        type="number"
-                        id="stock"
-                        min="0"
-                        step="1"
-                        value="0"
-                    >
+                    <label for="stock">Own Stock Quantity</label>
+                    <input type="number" id="stock"
+                        min="0" step="1" value="0">
+                    <p class="hint">
+                        This is your own stock, not supplier stock.
+                    </p>
                 </div>
 
                 <!-- LOCAL IMAGE UPLOAD -->
+
                 <div class="field full">
 
                     <label for="imageFile">Choose Product Image</label>
 
-                    <input
-                        type="file"
-                        id="imageFile"
-                        accept="image/jpeg,image/png,image/webp,image/gif"
-                    >
+                    <input type="file" id="imageFile"
+                        accept="image/jpeg,image/png,image/webp,image/gif">
 
                     <p class="hint">
-                        Select an image from your computer.
                         Supported: JPG, PNG, WEBP, GIF.
                         Maximum size: 5 MB.
                     </p>
 
                     <div class="preview-area" id="previewArea">
-                        <img id="imagePreview" src="" alt="Product image preview">
+                        <img id="imagePreview" src=""
+                            alt="Product image preview">
                     </div>
 
                 </div>
 
-                <!-- OPTIONAL IMAGE URL -->
+                <!-- IMAGE URL -->
+
                 <div class="field full">
 
                     <label for="image">Or Image URL (Optional)</label>
 
-                    <input
-                        type="url"
-                        id="image"
-                        placeholder="https://example.com/image.jpg"
-                    >
+                    <input type="url" id="image"
+                        placeholder="https://example.com/image.jpg">
 
                     <p class="hint">
-                        If you select a local image above, the uploaded image
+                        If you select a local image, the uploaded image
                         will be used instead of this URL.
                     </p>
 
@@ -297,10 +322,8 @@
 
                     <label for="description">Description</label>
 
-                    <textarea
-                        id="description"
-                        placeholder="Enter product description"
-                    ></textarea>
+                    <textarea id="description"
+                        placeholder="Enter product description"></textarea>
 
                 </div>
 
@@ -312,11 +335,8 @@
                             Save Product
                         </button>
 
-                        <button
-                            type="button"
-                            class="cancel"
-                            id="cancelBtn"
-                        >
+                        <button type="button"
+                            class="cancel" id="cancelBtn">
                             Cancel Edit
                         </button>
 
@@ -332,7 +352,10 @@
 
     </section>
 
-    <!-- PRODUCT LIST -->
+    <!-- =====================================
+         ALL PRODUCTS
+    ====================================== -->
+
     <section class="panel">
 
         <h2>All Products</h2>
@@ -340,23 +363,197 @@
         <div class="table-wrap">
 
             <table>
-
                 <thead>
                     <tr>
                         <th>Image</th>
                         <th>Name</th>
                         <th>Price</th>
-                        <th>Stock</th>
+                        <th>Own Stock</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
 
                 <tbody id="productList">
-
                     <tr>
                         <td colspan="5">Loading products...</td>
                     </tr>
+                </tbody>
+            </table>
 
+        </div>
+
+    </section>
+
+    <!-- =====================================
+         SUPPLIER PRODUCT FORM
+    ====================================== -->
+
+    <section class="panel">
+
+        <h2 id="supplierFormTitle">Add Supplier Product</h2>
+
+        <p class="section-description">
+            Connect an existing BAZAR GHOR product with one of your suppliers.
+        </p>
+
+        <div class="private-note">
+            <strong>Admin Private Information:</strong>
+            Supplier purchase price, delivery costs and estimated profit
+            are displayed only in this admin management page.
+        </div>
+
+        <form id="supplierProductForm">
+
+            <div class="form-grid">
+
+                <div class="field">
+                    <label for="supplierId">Select Supplier *</label>
+                    <select id="supplierId" required>
+                        <option value="">Loading suppliers...</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="supplierProductId">Select Existing Product *</label>
+                    <select id="supplierProductId" required>
+                        <option value="">Loading products...</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="purchasePrice">Supplier Purchase Price (৳) *</label>
+                    <input type="number" id="purchasePrice"
+                        min="0" step="0.01" required value="0">
+                </div>
+
+                <div class="field">
+                    <label for="deliveryCost">Delivery Cost (৳) *</label>
+                    <input type="number" id="deliveryCost"
+                        min="0" step="0.01" required value="0">
+                </div>
+
+                <div class="field">
+                    <label for="otherCost">Other Cost (৳) *</label>
+                    <input type="number" id="otherCost"
+                        min="0" step="0.01" required value="0">
+                </div>
+
+                <div class="field">
+                    <label for="supplierStock">Supplier Stock Quantity *</label>
+                    <input type="number" id="supplierStock"
+                        min="0" step="1" required value="0">
+                </div>
+
+                <div class="field">
+                    <label for="supplierSku">Supplier SKU</label>
+                    <input type="text" id="supplierSku"
+                        maxlength="100" placeholder="Optional SKU">
+                </div>
+
+                <div class="field">
+                    <label for="supplierCategory">Category</label>
+                    <input type="text" id="supplierCategory"
+                        maxlength="100" placeholder="Product category">
+                </div>
+
+                <div class="field">
+                    <label for="supplierAvailable">Availability</label>
+                    <select id="supplierAvailable" required>
+                        <option value="true">Available</option>
+                        <option value="false">Not Available</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="supplierActive">Supplier Product Status</label>
+                    <select id="supplierActive" required>
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+
+                <div class="field full">
+                    <label for="supplierNotes">Admin Notes</label>
+                    <textarea id="supplierNotes"
+                        maxlength="5000"
+                        placeholder="Private notes about this supplier product"></textarea>
+                </div>
+
+                <div class="field full">
+
+                    <div class="private-note">
+                        <strong>Estimated Profit Calculation</strong>
+                        <p>
+                            Selling Price − Purchase Price − Delivery Cost
+                            − Other Cost
+                        </p>
+                        <p id="profitPreview">
+                            Select a product to calculate estimated profit.
+                        </p>
+                        <p class="hint">
+                            This is an estimate only. Payment fees, refunds,
+                            advertising and other expenses may change actual profit.
+                        </p>
+                    </div>
+
+                    <div class="actions">
+
+                        <button type="submit" id="supplierSaveBtn">
+                            Save Supplier Product
+                        </button>
+
+                        <button type="button"
+                            class="cancel" id="supplierCancelBtn">
+                            Cancel Edit
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </form>
+
+        <p id="supplierProductMessage"
+            role="status" aria-live="polite"></p>
+
+    </section>
+
+    <!-- =====================================
+         SUPPLIER PRODUCT LIST
+    ====================================== -->
+
+    <section class="panel">
+
+        <h2>Supplier Products Management</h2>
+
+        <p class="section-description">
+            Manage supplier connections, purchase costs and stock availability.
+        </p>
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Supplier</th>
+                        <th>Selling Price</th>
+                        <th>Purchase Price</th>
+                        <th>Total Extra Costs</th>
+                        <th>Estimated Profit</th>
+                        <th>Supplier Stock</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody id="supplierProductList">
+                    <tr>
+                        <td colspan="9">Loading supplier products...</td>
+                    </tr>
                 </tbody>
 
             </table>
@@ -368,29 +565,42 @@
 </div>
 
 <script>
+
+    // =====================================
+    // COMMON ELEMENTS
+    // =====================================
+
     const form = document.getElementById("productForm");
-
     const message = document.getElementById("message");
-
     const productList = document.getElementById("productList");
 
     const imageFile = document.getElementById("imageFile");
-
     const imageInput = document.getElementById("image");
-
     const imagePreview = document.getElementById("imagePreview");
-
     const previewArea = document.getElementById("previewArea");
 
     const saveBtn = document.getElementById("saveBtn");
-
     const cancelBtn = document.getElementById("cancelBtn");
 
     let editingId = null;
-
     let products = [];
-
     let temporaryPreviewURL = null;
+
+    // Supplier Product Elements
+
+    const supplierForm = document.getElementById("supplierProductForm");
+    const supplierList = document.getElementById("supplierProductList");
+    const supplierMessage = document.getElementById("supplierProductMessage");
+
+    const supplierIdInput = document.getElementById("supplierId");
+    const supplierProductIdInput = document.getElementById("supplierProductId");
+
+    const supplierSaveBtn = document.getElementById("supplierSaveBtn");
+    const supplierCancelBtn = document.getElementById("supplierCancelBtn");
+
+    let suppliers = [];
+    let supplierProducts = [];
+    let editingSupplierProductId = null;
 
     // =====================================
     // MESSAGE
@@ -399,6 +609,11 @@
     function showMessage(text, success = false) {
         message.textContent = text;
         message.style.color = success ? "green" : "red";
+    }
+
+    function showSupplierMessage(text, success = false) {
+        supplierMessage.textContent = text;
+        supplierMessage.style.color = success ? "green" : "red";
     }
 
     // =====================================
@@ -411,13 +626,13 @@
             ...(options.headers || {})
         };
 
-        // Do not set JSON Content-Type for FormData.
         if (!(options.body instanceof FormData)) {
             headers["Content-Type"] = "application/json";
         }
 
         const response = await fetch(url, {
             credentials: "same-origin",
+            cache: "no-store",
             ...options,
             headers
         });
@@ -431,9 +646,7 @@
         }
 
         if (!response.ok || !data.success) {
-            throw new Error(
-                data.message || "Something went wrong."
-            );
+            throw new Error(data.message || "Something went wrong.");
         }
 
         return data;
@@ -496,9 +709,7 @@
     async function loadProducts() {
 
         productList.innerHTML = `
-            <tr>
-                <td colspan="5">Loading products...</td>
-            </tr>
+            <tr><td colspan="5">Loading products...</td></tr>
         `;
 
         try {
@@ -508,16 +719,16 @@
             products = data.products || [];
 
             renderProducts();
+            populateProductSelect();
 
         } catch (error) {
 
             productList.innerHTML = `
-                <tr>
-                    <td colspan="5">
-                        ${escapeHTML(error.message)}
-                    </td>
-                </tr>
+                <tr><td colspan="5">${escapeHTML(error.message)}</td></tr>
             `;
+
+            supplierProductIdInput.innerHTML =
+                '<option value="">Could not load products</option>';
 
         }
     }
@@ -531,9 +742,7 @@
         if (products.length === 0) {
 
             productList.innerHTML = `
-                <tr>
-                    <td colspan="5">No products found.</td>
-                </tr>
+                <tr><td colspan="5">No products found.</td></tr>
             `;
 
             return;
@@ -549,14 +758,9 @@
                     <td>
                         ${
                             imageUrl
-                                ? `
-                                    <img
-                                        class="product-image"
-                                        src="${escapeHTML(imageUrl)}"
-                                        alt="Product"
-                                        loading="lazy"
-                                    >
-                                `
+                                ? `<img class="product-image"
+                                    src="${escapeHTML(imageUrl)}"
+                                    alt="Product" loading="lazy">`
                                 : "No image"
                         }
                     </td>
@@ -570,19 +774,15 @@
                     <td>
                         <div class="actions">
 
-                            <button
-                                class="edit"
+                            <button class="edit"
                                 data-action="edit"
-                                data-id="${escapeHTML(product.id)}"
-                            >
+                                data-id="${escapeHTML(product.id)}">
                                 Edit
                             </button>
 
-                            <button
-                                class="delete"
+                            <button class="delete"
                                 data-action="delete"
-                                data-id="${escapeHTML(product.id)}"
-                            >
+                                data-id="${escapeHTML(product.id)}">
                                 Delete
                             </button>
 
@@ -608,7 +808,6 @@
         }
 
         imagePreview.removeAttribute("src");
-
         previewArea.style.display = "none";
 
     }
@@ -631,25 +830,22 @@
         if (!allowedTypes.includes(file.type)) {
 
             showMessage("Please select a JPG, PNG, WEBP or GIF image.");
-
             imageFile.value = "";
-
             return;
+
         }
 
         if (file.size > 5 * 1024 * 1024) {
 
             showMessage("Image must be 5MB or smaller.");
-
             imageFile.value = "";
-
             return;
+
         }
 
         temporaryPreviewURL = URL.createObjectURL(file);
 
         imagePreview.src = temporaryPreviewURL;
-
         previewArea.style.display = "block";
 
         showMessage("Image selected successfully.", true);
@@ -693,9 +889,7 @@
         if (saveBtn.disabled) return;
 
         const name = document.getElementById("name").value.trim();
-
         const price = document.getElementById("price").value;
-
         const stock = document.getElementById("stock").value;
 
         const description =
@@ -708,7 +902,11 @@
             return;
         }
 
-        if (price === "" || !Number.isFinite(Number(price)) || Number(price) < 0) {
+        if (
+            price === "" ||
+            !Number.isFinite(Number(price)) ||
+            Number(price) < 0
+        ) {
             showMessage("Please enter a valid product price.");
             return;
         }
@@ -753,11 +951,8 @@
 
             let finalImageURL = imageInput.value.trim();
 
-            // Upload local image if selected.
             if (selectedFile) {
-
                 finalImageURL = await uploadImage(selectedFile);
-
             }
 
             const product = {
@@ -773,11 +968,8 @@
                 : "/api/admin/products";
 
             const result = await api(url, {
-
                 method: editingId ? "PUT" : "POST",
-
                 body: JSON.stringify(product)
-
             });
 
             showMessage(
@@ -789,7 +981,6 @@
             );
 
             resetForm();
-
             await loadProducts();
 
         } catch (error) {
@@ -831,31 +1022,25 @@
         document.getElementById("stock").value =
             product.stock_quantity ?? 0;
 
-        imageInput.value =
-            safeImageUrl(product.image_url);
+        imageInput.value = safeImageUrl(product.image_url);
 
         document.getElementById("description").value =
             product.description || "";
 
         imageFile.value = "";
-
         clearPreview();
 
         const existingImage = safeImageUrl(product.image_url);
 
         if (existingImage) {
-
             imagePreview.src = existingImage;
-
             previewArea.style.display = "block";
-
         }
 
         document.getElementById("formTitle").textContent =
             "Edit Product";
 
         saveBtn.textContent = "Update Product";
-
         cancelBtn.style.display = "inline-block";
 
         showMessage("Editing product: " + product.name, true);
@@ -883,9 +1068,7 @@
 
             const result = await api(
                 `/api/admin/products/${encodeURIComponent(id)}`,
-                {
-                    method: "DELETE"
-                }
+                { method: "DELETE" }
             );
 
             showMessage(
@@ -894,6 +1077,7 @@
             );
 
             await loadProducts();
+            await loadSupplierProducts();
 
             if (String(editingId) === String(id)) {
                 resetForm();
@@ -918,21 +1102,15 @@
         if (!button) return;
 
         const id = button.dataset.id;
-
         const action = button.dataset.action;
 
-        if (action === "edit") {
-            editProduct(id);
-        }
-
-        if (action === "delete") {
-            deleteProduct(id);
-        }
+        if (action === "edit") editProduct(id);
+        if (action === "delete") deleteProduct(id);
 
     });
 
     // =====================================
-    // RESET FORM
+    // RESET PRODUCT FORM
     // =====================================
 
     function resetForm() {
@@ -947,7 +1125,6 @@
             "Add New Product";
 
         saveBtn.textContent = "Save Product";
-
         cancelBtn.style.display = "none";
 
     }
@@ -955,10 +1132,613 @@
     cancelBtn.addEventListener("click", resetForm);
 
     // =====================================
+    // LOAD SUPPLIERS
+    // =====================================
+
+    async function loadSuppliers() {
+
+        supplierIdInput.innerHTML =
+            '<option value="">Loading suppliers...</option>';
+
+        try {
+
+            const data = await api("/api/admin/suppliers");
+
+            suppliers = data.suppliers || [];
+
+            populateSupplierSelect();
+
+        } catch (error) {
+
+            supplierIdInput.innerHTML =
+                '<option value="">Could not load suppliers</option>';
+
+            showSupplierMessage(error.message);
+
+        }
+
+    }
+
+    // =====================================
+    // POPULATE SUPPLIER SELECT
+    // =====================================
+
+    function populateSupplierSelect(selectedId = "") {
+
+        const activeSuppliers = suppliers.filter(
+            supplier => supplier.status === "active"
+        );
+
+        supplierIdInput.innerHTML =
+            '<option value="">Select a supplier</option>';
+
+        activeSuppliers.forEach(supplier => {
+
+            const option = document.createElement("option");
+
+            option.value = supplier.id;
+
+            option.textContent =
+                supplier.supplier_name +
+                (supplier.business_name
+                    ? " - " + supplier.business_name
+                    : "");
+
+            supplierIdInput.appendChild(option);
+
+        });
+
+        if (selectedId) {
+            supplierIdInput.value = String(selectedId);
+        }
+
+    }
+
+    // =====================================
+    // POPULATE PRODUCT SELECT
+    // =====================================
+
+    function populateProductSelect(selectedId = "") {
+
+        supplierProductIdInput.innerHTML =
+            '<option value="">Select an existing product</option>';
+
+        products.forEach(product => {
+
+            const option = document.createElement("option");
+
+            option.value = product.id;
+
+            option.textContent =
+                product.name + " - ৳" + product.price;
+
+            supplierProductIdInput.appendChild(option);
+
+        });
+
+        if (selectedId) {
+            supplierProductIdInput.value = String(selectedId);
+        }
+
+        updateProfitPreview();
+
+    }
+
+    // =====================================
+    // PROFIT PREVIEW
+    // =====================================
+
+    function updateProfitPreview() {
+
+        const productId = supplierProductIdInput.value;
+
+        const product = products.find(
+            item => String(item.id) === String(productId)
+        );
+
+        const purchase = Number(
+            document.getElementById("purchasePrice").value
+        );
+
+        const delivery = Number(
+            document.getElementById("deliveryCost").value
+        );
+
+        const other = Number(
+            document.getElementById("otherCost").value
+        );
+
+        const preview = document.getElementById("profitPreview");
+
+        if (!product) {
+            preview.textContent =
+                "Select a product to calculate estimated profit.";
+            return;
+        }
+
+        if (
+            !Number.isFinite(purchase) ||
+            !Number.isFinite(delivery) ||
+            !Number.isFinite(other)
+        ) {
+            preview.textContent = "Enter valid cost amounts.";
+            return;
+        }
+
+        const sellingPrice = Number(product.price);
+
+        const profit = sellingPrice - purchase - delivery - other;
+
+        preview.textContent =
+            "Selling Price: ৳" + sellingPrice.toFixed(2) +
+            " | Estimated Profit: ৳" + profit.toFixed(2);
+
+        preview.style.color = profit >= 0 ? "#15803d" : "#dc2626";
+
+    }
+
+    [
+        "supplierProductId",
+        "purchasePrice",
+        "deliveryCost",
+        "otherCost"
+    ].forEach(id => {
+
+        document.getElementById(id).addEventListener(
+            "input",
+            updateProfitPreview
+        );
+
+        document.getElementById(id).addEventListener(
+            "change",
+            updateProfitPreview
+        );
+
+    });
+
+    // =====================================
+    // LOAD SUPPLIER PRODUCTS
+    // =====================================
+
+    async function loadSupplierProducts() {
+
+        supplierList.innerHTML =
+            '<tr><td colspan="9">Loading supplier products...</td></tr>';
+
+        try {
+
+            const data = await api("/api/admin/supplier-products");
+
+            supplierProducts = data.supplier_products || [];
+
+            renderSupplierProducts();
+
+        } catch (error) {
+
+            supplierList.innerHTML = `
+                <tr>
+                    <td colspan="9">${escapeHTML(error.message)}</td>
+                </tr>
+            `;
+
+        }
+
+    }
+
+    // =====================================
+    // RENDER SUPPLIER PRODUCTS
+    // =====================================
+
+    function renderSupplierProducts() {
+
+        if (supplierProducts.length === 0) {
+
+            supplierList.innerHTML = `
+                <tr>
+                    <td colspan="9">No supplier products found.</td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        supplierList.innerHTML = supplierProducts.map(item => {
+
+            const extraCosts =
+                Number(item.delivery_cost) + Number(item.other_cost);
+
+            const estimatedProfit =
+                Number(item.selling_price) -
+                Number(item.purchase_price) -
+                extraCosts;
+
+            const active =
+                item.is_active && item.is_available;
+
+            return `
+                <tr>
+
+                    <td>${escapeHTML(item.product_name)}</td>
+
+                    <td>
+                        ${escapeHTML(item.supplier_name)}
+                        ${
+                            item.business_name
+                                ? "<br><small>" +
+                                    escapeHTML(item.business_name) +
+                                  "</small>"
+                                : ""
+                        }
+                    </td>
+
+                    <td>৳${Number(item.selling_price).toFixed(2)}</td>
+
+                    <td>৳${Number(item.purchase_price).toFixed(2)}</td>
+
+                    <td>৳${extraCosts.toFixed(2)}</td>
+
+                    <td class="${estimatedProfit >= 0 ? "profit" : "status-inactive"}">
+                        ৳${estimatedProfit.toFixed(2)}
+                    </td>
+
+                    <td>${escapeHTML(item.supplier_stock_quantity)}</td>
+
+                    <td class="${active ? "status-active" : "status-inactive"}">
+                        ${active ? "Active" : "Inactive"}
+                    </td>
+
+                    <td>
+                        <div class="actions">
+
+                            <button class="edit"
+                                data-supplier-action="edit"
+                                data-id="${escapeHTML(item.id)}">
+                                Edit
+                            </button>
+
+                            <button class="delete"
+                                data-supplier-action="deactivate"
+                                data-id="${escapeHTML(item.id)}">
+                                Deactivate
+                            </button>
+
+                        </div>
+                    </td>
+
+                </tr>
+            `;
+
+        }).join("");
+
+    }
+
+    // =====================================
+    // SUPPLIER PRODUCT FORM SUBMIT
+    // =====================================
+
+    supplierForm.addEventListener("submit", async event => {
+
+        event.preventDefault();
+
+        if (supplierSaveBtn.disabled) return;
+
+        const supplierId = supplierIdInput.value;
+        const productId = supplierProductIdInput.value;
+
+        const purchasePrice =
+            document.getElementById("purchasePrice").value;
+
+        const deliveryCost =
+            document.getElementById("deliveryCost").value;
+
+        const otherCost =
+            document.getElementById("otherCost").value;
+
+        const stock =
+            document.getElementById("supplierStock").value;
+
+        const validMoney = value =>
+            value !== "" &&
+            Number.isFinite(Number(value)) &&
+            Number(value) >= 0 &&
+            Number(value) <= 9999999999.99;
+
+        if (!supplierId || !productId) {
+            showSupplierMessage("Please select a supplier and product.");
+            return;
+        }
+
+        if (
+            !validMoney(purchasePrice) ||
+            !validMoney(deliveryCost) ||
+            !validMoney(otherCost)
+        ) {
+            showSupplierMessage("Please enter valid cost amounts.");
+            return;
+        }
+
+        if (
+            stock === "" ||
+            !Number.isSafeInteger(Number(stock)) ||
+            Number(stock) < 0
+        ) {
+            showSupplierMessage("Please enter a valid supplier stock quantity.");
+            return;
+        }
+
+        const payload = {
+
+            supplier_id: supplierId,
+            product_id: productId,
+
+            purchase_price: Number(purchasePrice),
+            delivery_cost: Number(deliveryCost),
+            other_cost: Number(otherCost),
+
+            supplier_stock_quantity: Number(stock),
+
+            supplier_sku:
+                document.getElementById("supplierSku").value.trim(),
+
+            category:
+                document.getElementById("supplierCategory").value.trim(),
+
+            is_available:
+                supplierAvailableValue(),
+
+            is_active:
+                supplierActiveValue(),
+
+            notes:
+                document.getElementById("supplierNotes").value.trim()
+
+        };
+
+        supplierSaveBtn.disabled = true;
+        supplierSaveBtn.textContent = "Saving...";
+
+        try {
+
+            const url = editingSupplierProductId
+                ? `/api/admin/supplier-products/${encodeURIComponent(editingSupplierProductId)}`
+                : "/api/admin/supplier-products";
+
+            const result = await api(url, {
+
+                method: editingSupplierProductId ? "PUT" : "POST",
+
+                body: JSON.stringify(payload)
+
+            });
+
+            showSupplierMessage(
+                result.message || "Supplier product saved successfully.",
+                true
+            );
+
+            resetSupplierProductForm();
+
+            await loadSupplierProducts();
+
+        } catch (error) {
+
+            showSupplierMessage(error.message);
+
+        } finally {
+
+            supplierSaveBtn.disabled = false;
+
+            supplierSaveBtn.textContent = editingSupplierProductId
+                ? "Update Supplier Product"
+                : "Save Supplier Product";
+
+        }
+
+    });
+
+    function supplierAvailableValue() {
+        return document.getElementById("supplierAvailable").value === "true";
+    }
+
+    function supplierActiveValue() {
+        return document.getElementById("supplierActive").value === "true";
+    }
+
+    // =====================================
+    // EDIT SUPPLIER PRODUCT
+    // =====================================
+
+    function editSupplierProduct(id) {
+
+        const item = supplierProducts.find(
+            product => String(product.id) === String(id)
+        );
+
+        if (!item) return;
+
+        if (item.supplier_status !== "active") {
+            showSupplierMessage(
+                "This supplier is inactive. Activate the supplier first."
+            );
+            return;
+        }
+
+        editingSupplierProductId = item.id;
+
+        populateSupplierSelect(item.supplier_id);
+        populateProductSelect(item.product_id);
+
+        document.getElementById("purchasePrice").value =
+            item.purchase_price ?? 0;
+
+        document.getElementById("deliveryCost").value =
+            item.delivery_cost ?? 0;
+
+        document.getElementById("otherCost").value =
+            item.other_cost ?? 0;
+
+        document.getElementById("supplierStock").value =
+            item.supplier_stock_quantity ?? 0;
+
+        document.getElementById("supplierSku").value =
+            item.supplier_sku || "";
+
+        document.getElementById("supplierCategory").value =
+            item.category || "";
+
+        document.getElementById("supplierAvailable").value =
+            String(item.is_available);
+
+        document.getElementById("supplierActive").value =
+            String(item.is_active);
+
+        document.getElementById("supplierNotes").value =
+            item.notes || "";
+
+        document.getElementById("supplierFormTitle").textContent =
+            "Edit Supplier Product";
+
+        supplierSaveBtn.textContent = "Update Supplier Product";
+
+        supplierCancelBtn.style.display = "inline-block";
+
+        updateProfitPreview();
+
+        showSupplierMessage(
+            "Editing supplier product: " + item.product_name,
+            true
+        );
+
+        document.getElementById("supplierFormTitle").scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+
+    }
+
+    // =====================================
+    // DEACTIVATE SUPPLIER PRODUCT
+    // =====================================
+
+    async function deactivateSupplierProduct(id) {
+
+        const confirmed = confirm(
+            "Are you sure you want to deactivate this supplier product?"
+        );
+
+        if (!confirmed) return;
+
+        try {
+
+            const result = await api(
+                `/api/admin/supplier-products/${encodeURIComponent(id)}`,
+                { method: "DELETE" }
+            );
+
+            showSupplierMessage(
+                result.message || "Supplier product deactivated successfully.",
+                true
+            );
+
+            await loadSupplierProducts();
+
+            if (String(editingSupplierProductId) === String(id)) {
+                resetSupplierProductForm();
+            }
+
+        } catch (error) {
+
+            showSupplierMessage(error.message);
+
+        }
+
+    }
+
+    // =====================================
+    // SUPPLIER PRODUCT TABLE EVENTS
+    // =====================================
+
+    supplierList.addEventListener("click", event => {
+
+        const button = event.target.closest(
+            "button[data-supplier-action]"
+        );
+
+        if (!button) return;
+
+        const id = button.dataset.id;
+        const action = button.dataset.supplierAction;
+
+        if (action === "edit") {
+            editSupplierProduct(id);
+        }
+
+        if (action === "deactivate") {
+            deactivateSupplierProduct(id);
+        }
+
+    });
+
+    // =====================================
+    // RESET SUPPLIER PRODUCT FORM
+    // =====================================
+
+    function resetSupplierProductForm() {
+
+        supplierForm.reset();
+
+        editingSupplierProductId = null;
+
+        document.getElementById("supplierFormTitle").textContent =
+            "Add Supplier Product";
+
+        supplierSaveBtn.textContent = "Save Supplier Product";
+
+        supplierCancelBtn.style.display = "none";
+
+        populateSupplierSelect();
+        populateProductSelect();
+
+        updateProfitPreview();
+
+    }
+
+    supplierCancelBtn.addEventListener(
+        "click",
+        resetSupplierProductForm
+    );
+
+    // =====================================
     // INITIAL LOAD
     // =====================================
 
-    loadProducts();
+    async function initializePage() {
+
+        try {
+
+            await api("/api/admin/me");
+
+            await loadProducts();
+            await loadSuppliers();
+            await loadSupplierProducts();
+
+        } catch (error) {
+
+            if (
+                error.message.toLowerCase().includes("unauthorized") ||
+                error.message.toLowerCase().includes("admin")
+            ) {
+                window.location.href = "/pages/admin.html";
+                return;
+            }
+
+            showMessage(error.message);
+
+        }
+
+    }
+
+    initializePage();
 
 </script>
 

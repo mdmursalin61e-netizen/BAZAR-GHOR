@@ -1,0 +1,893 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier Dashboard | BAZAR GHOR</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f7f5;
+            color: #1f2937;
+        }
+
+        header {
+            background: #087443;
+            color: white;
+            padding: 18px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        header h2 { font-size: 23px; }
+
+        header p {
+            font-size: 13px;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .logout-btn {
+            background: white;
+            color: #087443;
+            border: none;
+            padding: 11px 18px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .container {
+            width: 92%;
+            max-width: 1200px;
+            margin: 28px auto;
+        }
+
+        .welcome, .section, .stat-card {
+            background: white;
+            padding: 23px;
+            border-radius: 10px;
+            margin-bottom: 22px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .welcome h1 {
+            color: #087443;
+            margin-bottom: 8px;
+            font-size: 25px;
+        }
+
+        .welcome p {
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card h3 {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card strong {
+            color: #087443;
+            font-size: 27px;
+        }
+
+        .section h2 {
+            margin-bottom: 18px;
+            color: #087443;
+            font-size: 20px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .info-item {
+            background: #f8fafc;
+            padding: 14px;
+            border-radius: 7px;
+        }
+
+        .info-item span {
+            display: block;
+            color: #64748b;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .info-item strong {
+            overflow-wrap: anywhere;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #374151;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            background: white;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: #087443;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        .primary-btn, .secondary-btn {
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .primary-btn {
+            background: #087443;
+            color: white;
+        }
+
+        .secondary-btn {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .edit-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 7px 12px;
+            border-radius: 5px;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+            line-height: 1.5;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 850px;
+        }
+
+        th, td {
+            padding: 13px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f0fdf4;
+            color: #087443;
+        }
+
+        .empty {
+            color: #64748b;
+            text-align: center;
+            padding: 25px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: capitalize;
+        }
+
+        .status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status.approved {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status.rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .note {
+            background: #eff6ff;
+            color: #1e40af;
+            padding: 12px;
+            border-radius: 6px;
+            line-height: 1.5;
+            font-size: 13px;
+            margin-bottom: 18px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 22px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        @media (max-width: 700px) {
+            .stats, .info-grid, .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            header h2 { font-size: 19px; }
+            .welcome h1 { font-size: 21px; }
+
+            .section, .welcome {
+                padding: 17px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div>
+        <h2>BAZAR GHOR</h2>
+        <p>Supplier Management Portal | Bangladesh</p>
+    </div>
+
+    <button class="logout-btn" id="logoutBtn">Logout</button>
+</header>
+
+<main class="container">
+
+    <div id="errorMessage" class="message error"></div>
+    <div id="successMessage" class="message success"></div>
+
+    <section class="welcome">
+        <h1>Welcome, <span id="supplierName">Supplier</span>!</h1>
+        <p>
+            Welcome to your BAZAR GHOR Supplier Dashboard.
+            Manage your own products and monitor your business information here.
+        </p>
+    </section>
+
+    <section class="stats">
+        <div class="stat-card">
+            <h3>My Products</h3>
+            <strong id="totalProducts">0</strong>
+        </div>
+
+        <div class="stat-card">
+            <h3>My Orders</h3>
+            <strong id="totalOrders">--</strong>
+        </div>
+
+        <div class="stat-card">
+            <h3>My Sales</h3>
+            <strong id="totalSales">৳ --</strong>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2>My Supplier Information</h2>
+
+        <div class="info-grid">
+            <div class="info-item">
+                <span>Supplier Name</span>
+                <strong id="infoName">Loading...</strong>
+            </div>
+
+            <div class="info-item">
+                <span>Business Name</span>
+                <strong id="infoBusiness">Loading...</strong>
+            </div>
+
+            <div class="info-item">
+                <span>Phone Number</span>
+                <strong id="infoPhone">Loading...</strong>
+            </div>
+
+            <div class="info-item">
+                <span>District</span>
+                <strong id="infoDistrict">Loading...</strong>
+            </div>
+
+            <div class="info-item">
+                <span>Account Status</span>
+                <strong id="infoStatus">Loading...</strong>
+            </div>
+        </div>
+    </section>
+
+    <!-- ADD / EDIT PRODUCT -->
+    <section class="section">
+        <h2 id="formTitle">Add New Product</h2>
+
+        <div class="note">
+            Your product will be submitted to Admin for approval.
+            It will not appear publicly until Admin approves it.
+            The final selling price is controlled by Admin.
+        </div>
+
+        <form id="productForm">
+
+            <input type="hidden" id="editingProductId">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label for="productName">Product Name *</label>
+                    <input id="productName" type="text"
+                           maxlength="180" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Category *</label>
+                    <input id="category" type="text"
+                           maxlength="100" required>
+                </div>
+
+                <div class="form-group full">
+                    <label for="description">Product Description</label>
+                    <textarea id="description"
+                              maxlength="10000"></textarea>
+                </div>
+
+                <div class="form-group full">
+                    <label for="imageUrl">Product Image URL</label>
+                    <input id="imageUrl" type="url"
+                           placeholder="https://example.com/image.jpg">
+                </div>
+
+                <div class="form-group">
+                    <label for="purchasePrice">Purchase Price (৳) *</label>
+                    <input id="purchasePrice" type="number"
+                           min="0" step="0.01" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="proposedPrice">Proposed Selling Price (৳) *</label>
+                    <input id="proposedPrice" type="number"
+                           min="0.01" step="0.01" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="deliveryCost">Delivery Cost (৳) *</label>
+                    <input id="deliveryCost" type="number"
+                           min="0" step="0.01" value="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="otherCost">Other Cost (৳) *</label>
+                    <input id="otherCost" type="number"
+                           min="0" step="0.01" value="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="stock">Available Stock *</label>
+                    <input id="stock" type="number"
+                           min="0" step="1" value="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="sku">Supplier SKU</label>
+                    <input id="sku" type="text" maxlength="100">
+                </div>
+
+                <div class="form-group full">
+                    <label for="notes">Additional Notes</label>
+                    <textarea id="notes" maxlength="5000"></textarea>
+                </div>
+
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="primary-btn" id="submitBtn">
+                    Submit Product
+                </button>
+
+                <button type="button" class="secondary-btn"
+                        id="cancelEditBtn" style="display:none;">
+                    Cancel Edit
+                </button>
+            </div>
+
+        </form>
+    </section>
+
+    <!-- MY PRODUCTS -->
+    <section class="section">
+        <h2>My Products</h2>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Purchase Price</th>
+                        <th>Proposed Price</th>
+                        <th>Stock</th>
+                        <th>Approval Status</th>
+                        <th>Admin Note</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody id="productsTable">
+                    <tr>
+                        <td colspan="7" class="empty">
+                            Loading products...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    © BAZAR GHOR | Supplier Management System
+</footer>
+
+<script>
+    const errorMessage = document.getElementById("errorMessage");
+    const successMessage = document.getElementById("successMessage");
+
+    let myProducts = [];
+
+    function showError(message) {
+        successMessage.style.display = "none";
+        errorMessage.textContent = message;
+        errorMessage.style.display = "block";
+    }
+
+    function showSuccess(message) {
+        errorMessage.style.display = "none";
+        successMessage.textContent = message;
+        successMessage.style.display = "block";
+    }
+
+    function setText(id, value, fallback = "Not provided") {
+        const element = document.getElementById(id);
+
+        if (!element) return;
+
+        element.textContent =
+            value !== null && value !== undefined && value !== ""
+                ? value
+                : fallback;
+    }
+
+    function money(value) {
+        const number = Number(value);
+
+        if (!Number.isFinite(number)) return "৳ 0.00";
+
+        return "৳ " + number.toFixed(2);
+    }
+
+    async function apiRequest(url, options = {}) {
+        const response = await fetch(url, {
+            credentials: "same-origin",
+            cache: "no-store",
+            ...options,
+            headers: {
+                ...(options.headers || {})
+            }
+        });
+
+        let result;
+
+        try {
+            result = await response.json();
+        } catch {
+            throw new Error("Invalid server response.");
+        }
+
+        if (response.status === 401 || response.status === 403) {
+            window.location.replace("/pages/supplier-login.html");
+            throw new Error("Please login again.");
+        }
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "Request failed.");
+        }
+
+        return result;
+    }
+
+    async function loadDashboard() {
+        try {
+            const result = await apiRequest("/api/supplier/me");
+            const supplier = result.supplier;
+
+            if (!supplier) {
+                showError("Supplier information could not be loaded.");
+                return;
+            }
+
+            setText("supplierName", supplier.supplier_name, "Supplier");
+            setText("infoName", supplier.supplier_name);
+            setText("infoBusiness", supplier.business_name);
+            setText("infoPhone", supplier.phone);
+            setText("infoDistrict", supplier.district);
+            setText("infoStatus", supplier.status);
+
+            await loadProducts();
+
+            console.log("Supplier dashboard loaded successfully.");
+
+        } catch (error) {
+            console.error("Dashboard loading error:", error);
+            showError(error.message || "Unable to load dashboard.");
+        }
+    }
+
+    async function loadProducts() {
+        const tbody = document.getElementById("productsTable");
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty">Loading products...</td>
+            </tr>
+        `;
+
+        try {
+            const result = await apiRequest(
+                "/api/admin/supplier/my-products"
+            );
+
+            myProducts = Array.isArray(result.products)
+                ? result.products
+                : [];
+
+            setText("totalProducts", myProducts.length, "0");
+
+            renderProducts();
+
+        } catch (error) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="empty">
+                        Could not load products.
+                    </td>
+                </tr>
+            `;
+
+            throw error;
+        }
+    }
+
+    function renderProducts() {
+        const tbody = document.getElementById("productsTable");
+
+        tbody.replaceChildren();
+
+        if (!myProducts.length) {
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+
+            cell.colSpan = 7;
+            cell.className = "empty";
+            cell.textContent = "You have not added any products yet.";
+
+            row.appendChild(cell);
+            tbody.appendChild(row);
+            return;
+        }
+
+        myProducts.forEach(product => {
+            const row = document.createElement("tr");
+
+            const name = document.createElement("td");
+            name.textContent = product.product_name || "Unnamed";
+
+            const purchase = document.createElement("td");
+            purchase.textContent = money(product.purchase_price);
+
+            const proposed = document.createElement("td");
+            proposed.textContent = money(product.proposed_selling_price);
+
+            const stock = document.createElement("td");
+            stock.textContent = product.supplier_stock_quantity;
+
+            const statusCell = document.createElement("td");
+            const status = document.createElement("span");
+
+            status.className =
+                "status " + (product.approval_status || "pending");
+
+            status.textContent = product.approval_status || "pending";
+            statusCell.appendChild(status);
+
+            const note = document.createElement("td");
+            note.textContent = product.admin_approval_note || "No note";
+
+            const action = document.createElement("td");
+            const editButton = document.createElement("button");
+
+            editButton.type = "button";
+            editButton.className = "edit-btn";
+            editButton.textContent = "Edit";
+
+            editButton.addEventListener("click", () => {
+                editProduct(product.id);
+            });
+
+            action.appendChild(editButton);
+
+            row.append(
+                name,
+                purchase,
+                proposed,
+                stock,
+                statusCell,
+                note,
+                action
+            );
+
+            tbody.appendChild(row);
+        });
+    }
+
+    function resetForm() {
+        document.getElementById("productForm").reset();
+        document.getElementById("editingProductId").value = "";
+
+        document.getElementById("formTitle").textContent =
+            "Add New Product";
+
+        document.getElementById("submitBtn").textContent =
+            "Submit Product";
+
+        document.getElementById("cancelEditBtn").style.display = "none";
+
+        document.getElementById("deliveryCost").value = "0";
+        document.getElementById("otherCost").value = "0";
+        document.getElementById("stock").value = "0";
+    }
+
+    function editProduct(id) {
+        const product = myProducts.find(
+            item => String(item.id) === String(id)
+        );
+
+        if (!product) {
+            showError("Product not found.");
+            return;
+        }
+
+        document.getElementById("editingProductId").value = product.id;
+
+        document.getElementById("productName").value =
+            product.product_name || "";
+
+        document.getElementById("category").value =
+            product.category || "";
+
+        document.getElementById("description").value =
+            product.description || "";
+
+        document.getElementById("imageUrl").value =
+            product.image_url || "";
+
+        document.getElementById("purchasePrice").value =
+            product.purchase_price ?? 0;
+
+        document.getElementById("proposedPrice").value =
+            product.proposed_selling_price ?? 0;
+
+        document.getElementById("deliveryCost").value =
+            product.delivery_cost ?? 0;
+
+        document.getElementById("otherCost").value =
+            product.other_cost ?? 0;
+
+        document.getElementById("stock").value =
+            product.supplier_stock_quantity ?? 0;
+
+        document.getElementById("sku").value =
+            product.supplier_sku || "";
+
+        document.getElementById("notes").value =
+            product.notes || "";
+
+        document.getElementById("formTitle").textContent =
+            "Edit Product";
+
+        document.getElementById("submitBtn").textContent =
+            "Update Product";
+
+        document.getElementById("cancelEditBtn").style.display =
+            "inline-block";
+
+        document.getElementById("formTitle").scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    }
+
+    document.getElementById("cancelEditBtn")
+        .addEventListener("click", resetForm);
+
+    document.getElementById("productForm")
+        .addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const submitButton = document.getElementById("submitBtn");
+
+            const editingId =
+                document.getElementById("editingProductId").value;
+
+            const data = {
+                name: document.getElementById("productName").value.trim(),
+                category: document.getElementById("category").value.trim(),
+                description: document.getElementById("description").value.trim(),
+                image_url: document.getElementById("imageUrl").value.trim(),
+                purchase_price: document.getElementById("purchasePrice").value,
+                proposed_selling_price: document.getElementById("proposedPrice").value,
+                delivery_cost: document.getElementById("deliveryCost").value,
+                other_cost: document.getElementById("otherCost").value,
+                supplier_stock_quantity: Number(
+                    document.getElementById("stock").value
+                ),
+                supplier_sku: document.getElementById("sku").value.trim(),
+                notes: document.getElementById("notes").value.trim()
+            };
+
+            if (!data.name || !data.category) {
+                showError("Please enter product name and category.");
+                return;
+            }
+
+            if (
+                data.image_url &&
+                !/^https?:\/\//i.test(data.image_url)
+            ) {
+                showError("Image URL must start with http:// or https://");
+                return;
+            }
+
+            submitButton.disabled = true;
+            submitButton.textContent = "Please wait...";
+
+            try {
+                // সঠিক API ঠিকানা:
+                // নতুন পণ্য যোগ এবং পণ্য সম্পাদনা
+                const url = editingId
+                    ? "/api/admin/supplier/my-products/" +
+                      encodeURIComponent(editingId)
+                    : "/api/admin/supplier/my-products";
+
+                const method = editingId ? "PUT" : "POST";
+
+                const result = await apiRequest(url, {
+                    method,
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                resetForm();
+
+                await loadProducts();
+
+                showSuccess(
+                    result.message ||
+                    "Product submitted successfully."
+                );
+
+            } catch (error) {
+                showError(error.message || "Could not submit product.");
+            } finally {
+                submitButton.disabled = false;
+
+                if (document.getElementById("editingProductId").value) {
+                    submitButton.textContent = "Update Product";
+                } else {
+                    submitButton.textContent = "Submit Product";
+                }
+            }
+        });
+
+    // Supplier logout
+    document.getElementById("logoutBtn")
+        .addEventListener("click", async function() {
+            this.disabled = true;
+
+            try {
+                await apiRequest("/api/supplier/logout", {
+                    method: "POST"
+                });
+
+                window.location.replace("/pages/supplier-login.html");
+
+            } catch (error) {
+                showError(error.message || "Logout failed.");
+                this.disabled = false;
+            }
+        });
+
+    loadDashboard();
+</script>
+
+</body>
+</html>

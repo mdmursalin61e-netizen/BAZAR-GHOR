@@ -9,12 +9,11 @@ const crypto = require("crypto");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const multer = require("multer");
-
 const { sql, testConnection } = require("./db");
-
+const createSupplierProductsRouter = require("./supplier-products"); 
+const createSupplierAuth = require("./supplier-auth");
 const app = express();
 const PORT = process.env.PORT || 5000;
-
 const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_COOKIE = "elite_admin_token";
 const COOKIE_MAX_AGE = 8 * 60 * 60;
@@ -290,7 +289,30 @@ async function requireAdmin(req, res, next) {
         });
     }
 }
+// =====================================
+// SUPPLIER AUTHENTICATION
+// =====================================
 
+const supplierAuth = createSupplierAuth({
+    sql,
+    requireAdmin,
+    jwtSecret: JWT_SECRET
+});
+
+app.use("/api", supplierAuth.router);
+// =====================================
+// SUPPLIER PRODUCT MANAGEMENT ROUTER
+// =====================================
+
+app.use(
+    "/api/admin",
+    createSupplierProductsRouter({
+        sql,
+        requireAdmin,
+        requireSupplier: supplierAuth.requireSupplier,
+        clearPublicCache
+    })
+);
 // =====================================
 // STATIC ASSETS AND UPLOADED IMAGES
 // =====================================
@@ -1158,6 +1180,328 @@ app.post(
         }
     }
 );
+// =====================================
+// ADMIN SUPPLIER MANAGEMENT
+// =====================================
+
+// GET ALL SUPPLIERS
+app.get("/api/admin/suppliers", requireAdmin, async (req, res) => {
+    try {
+        const suppliers = await sql`
+            SELECT
+                id,
+                supplier_name,
+                business_name,
+                phone,
+                whatsapp,
+                address,
+                district,
+                status,
+                notes,
+                created_at,
+                updated_at
+            FROM suppliers
+            ORDER BY id DESC
+        `;
+
+        res.setHeader("Cache-Control", "no-store");
+
+        return res.json({
+            success: true,
+            suppliers
+        });
+
+    } catch (error) {
+        console.error("Load suppliers error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Could not load suppliers."
+        });
+    }
+});
+
+// ADD NEW SUPPLIER
+app.post("/api/admin/suppliers", requireAdmin, async (req, res) => {
+    try {
+        const {
+            supplier_name,
+            business_name,
+            phone,
+            whatsapp,
+            address,
+            district,
+            status,
+            notes
+        } = req.body || {};
+
+        const cleanName =
+            typeof supplier_name === "string"
+                ? supplier_name.trim()
+                : "";
+
+        const cleanBusiness =
+            typeof business_name === "string"
+                ? business_name.trim()
+                : "";
+
+        const cleanPhone =
+            typeof phone === "string" ? phone.trim() : "";
+
+        const cleanWhatsApp =
+            typeof whatsapp === "string" ? whatsapp.trim() : "";
+
+        const cleanAddress =
+            typeof address === "string" ? address.trim() : "";
+
+        const cleanDistrict =
+            typeof district === "string" ? district.trim() : "";
+
+        const cleanNotes =
+            typeof notes === "string" ? notes.trim() : "";
+
+        const cleanStatus = status || "active";
+
+        if (!cleanName || cleanName.length > 150) {
+            return res.status(400).json({
+                success: false,
+                message: "Supplier name is required (maximum 150 characters)."
+            });
+        }
+
+        if (cleanBusiness.length > 180) {
+            return res.status(400).json({
+                success: false,
+                message: "Business name is too long."
+            });
+        }
+
+        if (cleanPhone.length > 30 || cleanWhatsApp.length > 30) {
+            return res.status(400).json({
+                success: false,
+                message: "Phone number is too long."
+            });
+        }
+
+        if (
+            cleanAddress.length > 5000 ||
+            cleanDistrict.length > 100 ||
+            cleanNotes.length > 5000
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "One or more fields exceed the allowed length."
+            });
+        }
+
+        if (!["active", "inactive"].includes(cleanStatus)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid supplier status."
+            });
+        }
+
+        const result = await sql`
+            INSERT INTO suppliers (
+                supplier_name,
+                business_name,
+                phone,
+                whatsapp,
+                address,
+                district,
+                status,
+                notes
+            )
+            VALUES (
+                ${cleanName},
+                ${cleanBusiness || null},
+                ${cleanPhone || null},
+                ${cleanWhatsApp || null},
+                ${cleanAddress || null},
+                ${cleanDistrict || null},
+                ${cleanStatus},
+                ${cleanNotes || null}
+            )
+            RETURNING *
+        `;
+
+        res.setHeader("Cache-Control", "no-store");
+
+        return res.status(201).json({
+            success: true,
+            message: "Supplier added successfully.",
+            supplier: result[0]
+        });
+
+    } catch (error) {
+        console.error("Add supplier error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Could not add supplier."
+        });
+    }
+});
+
+// UPDATE SUPPLIER
+app.put("/api/admin/suppliers/:id", requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!/^\d+$/.test(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid supplier ID."
+            });
+        }
+
+        const {
+            supplier_name,
+            business_name,
+            phone,
+            whatsapp,
+            address,
+            district,
+            status,
+            notes
+        } = req.body || {};
+
+        const cleanName =
+            typeof supplier_name === "string"
+                ? supplier_name.trim()
+                : "";
+
+        const cleanBusiness =
+            typeof business_name === "string"
+                ? business_name.trim()
+                : "";
+
+        const cleanPhone =
+            typeof phone === "string" ? phone.trim() : "";
+
+        const cleanWhatsApp =
+            typeof whatsapp === "string" ? whatsapp.trim() : "";
+
+        const cleanAddress =
+            typeof address === "string" ? address.trim() : "";
+
+        const cleanDistrict =
+            typeof district === "string" ? district.trim() : "";
+
+        const cleanNotes =
+            typeof notes === "string" ? notes.trim() : "";
+
+        if (!cleanName || cleanName.length > 150) {
+            return res.status(400).json({
+                success: false,
+                message: "Supplier name is required."
+            });
+        }
+
+        if (
+            cleanBusiness.length > 180 ||
+            cleanPhone.length > 30 ||
+            cleanWhatsApp.length > 30 ||
+            cleanAddress.length > 5000 ||
+            cleanDistrict.length > 100 ||
+            cleanNotes.length > 5000
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "One or more fields exceed the allowed length."
+            });
+        }
+
+        if (!["active", "inactive"].includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid supplier status."
+            });
+        }
+
+        const result = await sql`
+            UPDATE suppliers
+            SET
+                supplier_name = ${cleanName},
+                business_name = ${cleanBusiness || null},
+                phone = ${cleanPhone || null},
+                whatsapp = ${cleanWhatsApp || null},
+                address = ${cleanAddress || null},
+                district = ${cleanDistrict || null},
+                status = ${status},
+                notes = ${cleanNotes || null},
+                updated_at = NOW()
+            WHERE id = ${id}
+            RETURNING *
+        `;
+
+        if (result.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Supplier not found."
+            });
+        }
+
+        res.setHeader("Cache-Control", "no-store");
+
+        return res.json({
+            success: true,
+            message: "Supplier updated successfully.",
+            supplier: result[0]
+        });
+
+    } catch (error) {
+        console.error("Update supplier error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Could not update supplier."
+        });
+    }
+});
+
+// DEACTIVATE SUPPLIER (SAFE)
+app.delete("/api/admin/suppliers/:id", requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!/^\d+$/.test(id) || Number(id) <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid supplier ID."
+            });
+        }
+
+        const result = await sql`
+            UPDATE suppliers
+            SET
+                status = 'inactive',
+                updated_at = NOW()
+            WHERE id = ${id}
+            RETURNING id
+        `;
+
+        if (result.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Supplier not found."
+            });
+        }
+
+        return res.json({
+            success: true,
+            message: "Supplier deactivated successfully."
+        });
+
+    } catch (error) {
+        console.error("Deactivate supplier error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Could not deactivate supplier."
+        });
+    }
+});
 
 // =====================================
 // ADMIN PRODUCTS
@@ -2656,6 +3000,13 @@ app.post("/api/admin/logout", (req, res) => {
         success: true,
         message: "Logged out successfully."
     });
+});
+app.get("/pages/suppliers.html", requireAdmin, (req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+
+    res.sendFile(
+        path.join(__dirname, "..", "pages", "suppliers.html")
+    );
 });
 
 // =====================================
