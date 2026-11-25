@@ -146,6 +146,18 @@
         .error { color: #d9364f; }
         .success { color: #16834a; }
 
+        /* Supplier Product Approval Menu */
+        .menu a.approval-link {
+            background: #174b45;
+            color: #ffffff;
+            border: 1px solid #287e70;
+            margin-top: 8px;
+        }
+
+        .menu a.approval-link:hover {
+            background: #21675d;
+        }
+
         @media (max-width: 900px) {
             .cards { grid-template-columns: repeat(2, 1fr); }
         }
@@ -176,6 +188,9 @@
             <a href="/pages/dashboard.html" class="active">▦ Dashboard</a>
             <a href="/pages/products.html">▣ Products</a>
             <a href="/pages/suppliers.html">♧ Supplier Management</a>
+            <a href="/pages/supplier-products.html" class="approval-link">
+                ✓ Supplier Product Approval
+            </a>
             <a href="/pages/orders.html">▤ Orders</a>
             <a href="/pages/customers.html">♙ Customers</a>
             <a href="/pages/services.html">◇ Services</a>
