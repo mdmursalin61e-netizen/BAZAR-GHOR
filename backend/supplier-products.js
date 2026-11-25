@@ -8,6 +8,11 @@ function createSupplierProductsRouter({
     const express = require("express");
     const router = express.Router();
 
+    // Deleted product markers
+    const DELETED_BY_ADMIN = "Deleted by Admin";
+    const DELETED_BY_SUPPLIER = "Deleted by Supplier";
+    const LEGACY_DELETED_NOTE = "Deactivated by Admin";
+
     function validId(value) {
         return /^\d+$/.test(String(value)) && Number(value) > 0;
     }
@@ -46,11 +51,6 @@ function createSupplierProductsRouter({
         return Math.round(n * 100) / 100;
     }
 
-    // ==========================================
-    // ADMIN INPUT VALIDATION
-    // Supports both old and current HTML field names.
-    // ==========================================
-
     function validate(body = {}) {
         const supplierId = Number(body.supplier_id);
         const productId = Number(body.product_id);
@@ -60,7 +60,6 @@ function createSupplierProductsRouter({
         );
 
         const sellingPrice = money(body.selling_price);
-
         const deliveryCost = money(body.delivery_cost ?? 0);
         const otherCost = money(body.other_cost ?? 0);
 
@@ -69,7 +68,9 @@ function createSupplierProductsRouter({
         );
 
         if (!validId(body.supplier_id) || !validId(body.product_id)) {
-            return { error: "Please select a valid supplier and product." };
+            return {
+                error: "Please select a valid supplier and product."
+            };
         }
 
         if (
@@ -77,11 +78,15 @@ function createSupplierProductsRouter({
             deliveryCost === null ||
             otherCost === null
         ) {
-            return { error: "Please enter valid cost amounts." };
+            return {
+                error: "Please enter valid cost amounts."
+            };
         }
 
         if (stock === null) {
-            return { error: "Please enter a valid supplier stock quantity." };
+            return {
+                error: "Please enter a valid supplier stock quantity."
+            };
         }
 
         return {
@@ -99,10 +104,6 @@ function createSupplierProductsRouter({
             }
         };
     }
-
-    // ==========================================
-    // SUPPLIER INPUT VALIDATION
-    // ==========================================
 
     function validateSupplierProduct(body = {}) {
         const name = String(body.name || "").trim();
@@ -126,11 +127,15 @@ function createSupplierProductsRouter({
         }
 
         if (description.length > 10000) {
-            return { error: "Description is too long." };
+            return {
+                error: "Description is too long."
+            };
         }
 
         if (!category || category.length > 100) {
-            return { error: "Please enter a valid product category." };
+            return {
+                error: "Please enter a valid product category."
+            };
         }
 
         if (proposedPrice === null || proposedPrice <= 0) {
@@ -144,15 +149,21 @@ function createSupplierProductsRouter({
             deliveryCost === null ||
             otherCost === null
         ) {
-            return { error: "Please enter valid cost amounts." };
+            return {
+                error: "Please enter valid cost amounts."
+            };
         }
 
         if (stock === null) {
-            return { error: "Please enter a valid stock quantity." };
+            return {
+                error: "Please enter a valid stock quantity."
+            };
         }
 
         if (sku.length > 100 || notes.length > 5000) {
-            return { error: "SKU or notes are too long." };
+            return {
+                error: "SKU or notes are too long."
+            };
         }
 
         if (imageUrl) {
@@ -165,7 +176,9 @@ function createSupplierProductsRouter({
                     };
                 }
             } catch {
-                return { error: "Please enter a valid image URL." };
+                return {
+                    error: "Please enter a valid image URL."
+                };
             }
         }
 
@@ -186,10 +199,7 @@ function createSupplierProductsRouter({
         };
     }
 
-    // ==========================================
-    // ADMIN: GET ALL SUPPLIER PRODUCTS
-    // ==========================================
-
+    // ADMIN: GET ALL NON-DELETED SUPPLIER PRODUCTS
     router.get("/supplier-products", requireAdmin, async (req, res) => {
         try {
             const records = await sql`
@@ -206,11 +216,16 @@ function createSupplierProductsRouter({
                     sp.sku AS supplier_sku,
                     NULL::text AS category,
                     TRUE AS is_available,
-                    TRUE AS is_active,
+                    p.is_active AS is_active,
                     NULL::text AS notes
                 FROM supplier_products sp
                 JOIN suppliers s ON s.id = sp.supplier_id
                 JOIN products p ON p.id = sp.product_id
+                WHERE COALESCE(sp.admin_approval_note, '') NOT IN (
+                    ${DELETED_BY_ADMIN},
+                    ${DELETED_BY_SUPPLIER},
+                    ${LEGACY_DELETED_NOTE}
+                )
                 ORDER BY
                     CASE
                         WHEN sp.approval_status = 'pending' THEN 0
@@ -235,10 +250,7 @@ function createSupplierProductsRouter({
         }
     });
 
-    // ==========================================
     // ADMIN: ADD EXISTING PRODUCT TO SUPPLIER
-    // ==========================================
-
     router.post("/supplier-products", requireAdmin, async (req, res) => {
         try {
             const validation = validate(req.body);
@@ -281,7 +293,8 @@ function createSupplierProductsRouter({
                 });
             }
 
-            const finalPrice = d.sellingPrice ?? Number(products[0].price);
+            const finalPrice =
+                d.sellingPrice ?? Number(products[0].price);
 
             if (!Number.isFinite(finalPrice) || finalPrice <= 0) {
                 return res.status(400).json({
@@ -338,10 +351,7 @@ function createSupplierProductsRouter({
         }
     });
 
-    // ==========================================
     // ADMIN: UPDATE SUPPLIER PRODUCT
-    // ==========================================
-
     router.put("/supplier-products/:id", requireAdmin, async (req, res) => {
         try {
             if (!validId(req.params.id)) {
@@ -391,7 +401,8 @@ function createSupplierProductsRouter({
                 });
             }
 
-            const finalPrice = d.sellingPrice ?? Number(products[0].price);
+            const finalPrice =
+                d.sellingPrice ?? Number(products[0].price);
 
             if (!Number.isFinite(finalPrice) || finalPrice <= 0) {
                 return res.status(400).json({
@@ -413,6 +424,11 @@ function createSupplierProductsRouter({
                     sku = ${d.sku || null},
                     updated_at = NOW()
                 WHERE id = ${req.params.id}
+                AND COALESCE(admin_approval_note, '') NOT IN (
+                    ${DELETED_BY_ADMIN},
+                    ${DELETED_BY_SUPPLIER},
+                    ${LEGACY_DELETED_NOTE}
+                )
                 RETURNING id
             `;
 
@@ -446,184 +462,251 @@ function createSupplierProductsRouter({
         }
     });
 
-    // ==========================================
-    // ADMIN: APPROVE OR REJECT SUPPLIER PRODUCT
-    // Admin controls final price and profit percentage.
-    // ==========================================
+    // ADMIN: APPROVE OR REJECT
+    router.patch("/supplier-products/:id/approval", requireAdmin, async (req, res) => {
+        try {
+            if (!validId(req.params.id)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid supplier product ID."
+                });
+            }
 
-    router.patch(
-        "/supplier-products/:id/approval",
-        requireAdmin,
-        async (req, res) => {
-            try {
-                if (!validId(req.params.id)) {
+            const status = req.body.approval_status;
+
+            const note = String(
+                req.body.admin_approval_note || ""
+            ).trim().slice(0, 3000);
+
+            if (!["approved", "rejected"].includes(status)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Approval status must be approved or rejected."
+                });
+            }
+
+            let finalPrice = null;
+            let profitPercent = null;
+
+            if (status === "approved") {
+                finalPrice = money(
+                    req.body.final_selling_price ?? req.body.selling_price
+                );
+
+                if (finalPrice === null || finalPrice <= 0) {
                     return res.status(400).json({
                         success: false,
-                        message: "Invalid supplier product ID."
+                        message: "A valid final selling price is required for approval."
                     });
                 }
 
-                const status = req.body.approval_status;
-
-                const note = String(req.body.admin_approval_note || "")
-                    .trim()
-                    .slice(0, 3000);
-
-                if (!["approved", "rejected"].includes(status)) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Approval status must be approved or rejected."
-                    });
-                }
-
-                let finalPrice = null;
-                let profitPercent = null;
-
-                if (status === "approved") {
-                    finalPrice = money(
-                        req.body.final_selling_price ??
-                        req.body.selling_price
-                    );
-
-                    if (finalPrice === null || finalPrice <= 0) {
-                        return res.status(400).json({
-                            success: false,
-                            message: "A valid final selling price is required for approval."
-                        });
-                    }
-
-                    const existing = await sql`
-                        SELECT bazar_ghor_profit_percentage
-                        FROM supplier_products
-                        WHERE id = ${req.params.id}
-                        LIMIT 1
-                    `;
-
-                    if (!existing.length) {
-                        return res.status(404).json({
-                            success: false,
-                            message: "Supplier product not found."
-                        });
-                    }
-
-                    if (
-                        req.body.bazar_ghor_profit_percentage !== undefined
-                    ) {
-                        profitPercent = profitPercentage(
-                            req.body.bazar_ghor_profit_percentage
-                        );
-
-                        if (profitPercent === null) {
-                            return res.status(400).json({
-                                success: false,
-                                message: "Profit percentage must be between 0 and 100."
-                            });
-                        }
-                    } else {
-                        profitPercent = Number(
-                            existing[0].bazar_ghor_profit_percentage || 0
-                        );
-                    }
-                }
-
-                const records = await sql`
-                    WITH updated_link AS (
-                        UPDATE supplier_products
-                        SET
-                            approval_status = ${status},
-                            admin_approval_note = ${note || null},
-                            selling_price = CASE
-                                WHEN ${status} = 'approved'
-                                THEN ${finalPrice}
-                                ELSE selling_price
-                            END,
-                            bazar_ghor_profit_percentage = CASE
-                                WHEN ${status} = 'approved'
-                                THEN ${profitPercent}
-                                ELSE bazar_ghor_profit_percentage
-                            END,
-                            updated_at = NOW()
-                        WHERE id = ${req.params.id}
-                        RETURNING
-                            id,
-                            product_id,
-                            stock_available,
-                            selling_price,
-                            approval_status
-                    ),
-                    updated_product AS (
-                        UPDATE products p
-                        SET
-                            price = CASE
-                                WHEN ul.approval_status = 'approved'
-                                THEN ul.selling_price
-                                ELSE p.price
-                            END,
-                            stock_quantity = CASE
-                                WHEN ul.approval_status = 'approved'
-                                THEN ul.stock_available
-                                ELSE p.stock_quantity
-                            END,
-                            is_active = CASE
-                                WHEN ul.approval_status = 'approved'
-                                THEN TRUE
-                                ELSE FALSE
-                            END,
-                            updated_at = NOW()
-                        FROM updated_link ul
-                        WHERE p.id = ul.product_id
-                        AND (
-                            ul.approval_status = 'approved'
-                            OR NOT EXISTS (
-                                SELECT 1
-                                FROM supplier_products other_sp
-                                WHERE other_sp.product_id = p.id
-                                AND other_sp.id <> ul.id
-                                AND other_sp.approval_status = 'approved'
-                            )
-                        )
-                        RETURNING p.id
+                const existing = await sql`
+                    SELECT bazar_ghor_profit_percentage
+                    FROM supplier_products
+                    WHERE id = ${req.params.id}
+                    AND COALESCE(admin_approval_note, '') NOT IN (
+                        ${DELETED_BY_ADMIN},
+                        ${DELETED_BY_SUPPLIER},
+                        ${LEGACY_DELETED_NOTE}
                     )
-                    SELECT
-                        ul.id,
-                        ul.product_id,
-                        ul.approval_status
-                    FROM updated_link ul
+                    LIMIT 1
                 `;
 
-                if (!records.length) {
+                if (!existing.length) {
                     return res.status(404).json({
                         success: false,
                         message: "Supplier product not found."
                     });
                 }
 
-                clearPublicCache();
+                profitPercent =
+                    req.body.bazar_ghor_profit_percentage !== undefined
+                        ? profitPercentage(
+                            req.body.bazar_ghor_profit_percentage
+                        )
+                        : Number(
+                            existing[0].bazar_ghor_profit_percentage || 0
+                        );
 
-                return res.json({
-                    success: true,
-                    message: status === "approved"
-                        ? "Supplier product approved successfully."
-                        : "Supplier product rejected.",
-                    approval_status: status,
-                    final_selling_price: finalPrice,
-                    bazar_ghor_profit_percentage: profitPercent
-                });
-            } catch (error) {
-                console.error("Supplier product approval error:", error);
+                if (profitPercent === null) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Profit percentage must be between 0 and 100."
+                    });
+                }
+            }
 
-                return res.status(500).json({
+            const records = await sql`
+                WITH updated_link AS (
+                    UPDATE supplier_products
+                    SET
+                        approval_status = ${status},
+                        admin_approval_note = ${note || null},
+                        selling_price = CASE
+                            WHEN ${status} = 'approved'
+                            THEN ${finalPrice}
+                            ELSE selling_price
+                        END,
+                        bazar_ghor_profit_percentage = CASE
+                            WHEN ${status} = 'approved'
+                            THEN ${profitPercent}
+                            ELSE bazar_ghor_profit_percentage
+                        END,
+                        updated_at = NOW()
+                    WHERE id = ${req.params.id}
+                    AND COALESCE(admin_approval_note, '') NOT IN (
+                        ${DELETED_BY_ADMIN},
+                        ${DELETED_BY_SUPPLIER},
+                        ${LEGACY_DELETED_NOTE}
+                    )
+                    RETURNING
+                        id,
+                        product_id,
+                        stock_available,
+                        selling_price,
+                        approval_status
+                ),
+                updated_product AS (
+                    UPDATE products p
+                    SET
+                        price = CASE
+                            WHEN ul.approval_status = 'approved'
+                            THEN ul.selling_price
+                            ELSE p.price
+                        END,
+                        stock_quantity = CASE
+                            WHEN ul.approval_status = 'approved'
+                            THEN ul.stock_available
+                            ELSE p.stock_quantity
+                        END,
+                        is_active = CASE
+                            WHEN ul.approval_status = 'approved'
+                            THEN TRUE
+                            ELSE FALSE
+                        END,
+                        updated_at = NOW()
+                    FROM updated_link ul
+                    WHERE p.id = ul.product_id
+                    AND (
+                        ul.approval_status = 'approved'
+                        OR NOT EXISTS (
+                            SELECT 1
+                            FROM supplier_products other_sp
+                            WHERE other_sp.product_id = p.id
+                            AND other_sp.id <> ul.id
+                            AND other_sp.approval_status = 'approved'
+                            AND COALESCE(
+                                other_sp.admin_approval_note, ''
+                            ) NOT IN (
+                                ${DELETED_BY_ADMIN},
+                                ${DELETED_BY_SUPPLIER},
+                                ${LEGACY_DELETED_NOTE}
+                            )
+                        )
+                    )
+                    RETURNING p.id
+                )
+                SELECT id, product_id, approval_status
+                FROM updated_link
+            `;
+
+            if (!records.length) {
+                return res.status(404).json({
                     success: false,
-                    message: "Could not update product approval."
+                    message: "Supplier product not found."
                 });
             }
+
+            clearPublicCache();
+
+            return res.json({
+                success: true,
+                message: status === "approved"
+                    ? "Supplier product approved successfully."
+                    : "Supplier product rejected.",
+                approval_status: status,
+                final_selling_price: finalPrice,
+                bazar_ghor_profit_percentage: profitPercent
+            });
+        } catch (error) {
+            console.error("Supplier product approval error:", error);
+
+            return res.status(500).json({
+                success: false,
+                message: "Could not update product approval."
+            });
         }
-    );
+    });
 
-    // ==========================================
-    // ADMIN: DEACTIVATE SUPPLIER PRODUCT
-    // ==========================================
+    // SHARED SAFE DELETE FUNCTION
+    async function safelyDeleteSupplierProduct(
+        id,
+        deletedNote,
+        supplierId = null
+    ) {
+        const result = supplierId === null
+            ? await sql`
+                UPDATE supplier_products
+                SET
+                    approval_status = 'rejected',
+                    admin_approval_note = ${deletedNote},
+                    updated_at = NOW()
+                WHERE id = ${id}
+                AND COALESCE(admin_approval_note, '') NOT IN (
+                    ${DELETED_BY_ADMIN},
+                    ${DELETED_BY_SUPPLIER},
+                    ${LEGACY_DELETED_NOTE}
+                )
+                RETURNING id, product_id
+            `
+            : await sql`
+                UPDATE supplier_products
+                SET
+                    approval_status = 'rejected',
+                    admin_approval_note = ${deletedNote},
+                    updated_at = NOW()
+                WHERE id = ${id}
+                AND supplier_id = ${supplierId}
+                AND COALESCE(admin_approval_note, '') NOT IN (
+                    ${DELETED_BY_ADMIN},
+                    ${DELETED_BY_SUPPLIER},
+                    ${LEGACY_DELETED_NOTE}
+                )
+                RETURNING id, product_id
+            `;
 
+        if (!result.length) {
+            return false;
+        }
+
+        // Deactivate public product only when no other
+        // approved and non-deleted supplier link exists.
+        await sql`
+            UPDATE products
+            SET
+                is_active = FALSE,
+                updated_at = NOW()
+            WHERE id = ${result[0].product_id}
+            AND NOT EXISTS (
+                SELECT 1
+                FROM supplier_products other_sp
+                WHERE other_sp.product_id = products.id
+                AND other_sp.id <> ${result[0].id}
+                AND other_sp.approval_status = 'approved'
+                AND COALESCE(other_sp.admin_approval_note, '') NOT IN (
+                    ${DELETED_BY_ADMIN},
+                    ${DELETED_BY_SUPPLIER},
+                    ${LEGACY_DELETED_NOTE}
+                )
+            )
+        `;
+
+        clearPublicCache();
+
+        return true;
+    }
+
+    // ADMIN: DELETE SUPPLIER PRODUCT
     router.delete("/supplier-products/:id", requireAdmin, async (req, res) => {
         try {
             if (!validId(req.params.id)) {
@@ -633,58 +716,33 @@ function createSupplierProductsRouter({
                 });
             }
 
-            const result = await sql`
-                UPDATE supplier_products
-                SET
-                    approval_status = 'rejected',
-                    admin_approval_note = 'Deactivated by Admin',
-                    updated_at = NOW()
-                WHERE id = ${req.params.id}
-                RETURNING id, product_id
-            `;
+            const deleted = await safelyDeleteSupplierProduct(
+                req.params.id,
+                DELETED_BY_ADMIN
+            );
 
-            if (!result.length) {
+            if (!deleted) {
                 return res.status(404).json({
                     success: false,
-                    message: "Supplier product not found."
+                    message: "Supplier product not found or already deleted."
                 });
             }
 
-            await sql`
-                UPDATE products
-                SET
-                    is_active = FALSE,
-                    updated_at = NOW()
-                WHERE id = ${result[0].product_id}
-                AND NOT EXISTS (
-                    SELECT 1
-                    FROM supplier_products other_sp
-                    WHERE other_sp.product_id = products.id
-                    AND other_sp.id <> ${result[0].id}
-                    AND other_sp.approval_status = 'approved'
-                )
-            `;
-
-            clearPublicCache();
-
             return res.json({
                 success: true,
-                message: "Supplier product deactivated successfully."
+                message: "Supplier product deleted successfully."
             });
         } catch (error) {
-            console.error("Deactivate supplier product error:", error);
+            console.error("Admin delete supplier product error:", error);
 
             return res.status(500).json({
                 success: false,
-                message: "Could not deactivate supplier product."
+                message: "Could not delete supplier product."
             });
         }
     });
 
-    // ==========================================
-    // SUPPLIER: GET OWN PRODUCTS
-    // ==========================================
-
+    // SUPPLIER: GET OWN NON-DELETED PRODUCTS
     router.get("/supplier/my-products", requireSupplier, async (req, res) => {
         try {
             const records = await sql`
@@ -708,10 +766,15 @@ function createSupplierProductsRouter({
                     NULL::text AS category,
                     NULL::text AS notes,
                     TRUE AS is_available,
-                    TRUE AS is_active
+                    p.is_active AS is_active
                 FROM supplier_products sp
                 JOIN products p ON p.id = sp.product_id
                 WHERE sp.supplier_id = ${req.supplier.id}
+                AND COALESCE(sp.admin_approval_note, '') NOT IN (
+                    ${DELETED_BY_ADMIN},
+                    ${DELETED_BY_SUPPLIER},
+                    ${LEGACY_DELETED_NOTE}
+                )
                 ORDER BY sp.id DESC
             `;
 
@@ -731,10 +794,44 @@ function createSupplierProductsRouter({
         }
     });
 
-    // ==========================================
-    // SUPPLIER: ADD A NEW PRODUCT
-    // ==========================================
+    // SUPPLIER: DELETE OWN PRODUCT
+    router.delete("/supplier/my-products/:id", requireSupplier, async (req, res) => {
+        try {
+            if (!validId(req.params.id)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid product ID."
+                });
+            }
 
+            const deleted = await safelyDeleteSupplierProduct(
+                req.params.id,
+                DELETED_BY_SUPPLIER,
+                req.supplier.id
+            );
+
+            if (!deleted) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Product not found or you do not have permission to delete it."
+                });
+            }
+
+            return res.json({
+                success: true,
+                message: "Your product has been deleted successfully."
+            });
+        } catch (error) {
+            console.error("Supplier delete product error:", error);
+
+            return res.status(500).json({
+                success: false,
+                message: "Could not delete your product."
+            });
+        }
+    });
+
+    // SUPPLIER: ADD NEW PRODUCT
     router.post("/supplier/my-products", requireSupplier, async (req, res) => {
         try {
             const validation = validateSupplierProduct(req.body);
@@ -817,11 +914,7 @@ function createSupplierProductsRouter({
         }
     });
 
-    // ==========================================
     // SUPPLIER: UPDATE OWN PRODUCT
-    // Editing sends it back for Admin approval.
-    // ==========================================
-
     router.put("/supplier/my-products/:id", requireSupplier, async (req, res) => {
         try {
             if (!validId(req.params.id)) {
@@ -858,11 +951,23 @@ function createSupplierProductsRouter({
                         updated_at = NOW()
                     WHERE sp.id = ${req.params.id}
                     AND sp.supplier_id = ${req.supplier.id}
+                    AND COALESCE(sp.admin_approval_note, '') NOT IN (
+                        ${DELETED_BY_ADMIN},
+                        ${DELETED_BY_SUPPLIER},
+                        ${LEGACY_DELETED_NOTE}
+                    )
                     AND NOT EXISTS (
                         SELECT 1
                         FROM supplier_products other_sp
                         WHERE other_sp.product_id = sp.product_id
                         AND other_sp.supplier_id <> sp.supplier_id
+                        AND COALESCE(
+                            other_sp.admin_approval_note, ''
+                        ) NOT IN (
+                            ${DELETED_BY_ADMIN},
+                            ${DELETED_BY_SUPPLIER},
+                            ${LEGACY_DELETED_NOTE}
+                        )
                     )
                     RETURNING sp.id, sp.product_id
                 ),

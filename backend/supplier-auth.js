@@ -15,9 +15,10 @@ function createSupplierAuth({ sql, requireAdmin, jwtSecret }) {
         limit: 5,
         standardHeaders: "draft-8",
         legacyHeaders: false,
+        skipSuccessfulRequests: true,
         message: {
             success: false,
-            message: "Too many login attempts. Please try again later."
+            message: "Too many failed login attempts. Please try again later."
         }
     });
 
@@ -94,10 +95,7 @@ function createSupplierAuth({ sql, requireAdmin, jwtSecret }) {
             });
         }
 
-        if (
-            decoded.role !== "supplier" ||
-            !decoded.sub
-        ) {
+        if (decoded.role !== "supplier" || !decoded.sub) {
             clearSupplierCookie(res);
 
             return res.status(401).json({
@@ -323,9 +321,7 @@ function createSupplierAuth({ sql, requireAdmin, jwtSecret }) {
 
                 const password = req.body?.password;
 
-                if (
-                    !/^[1-9]\d*$/.test(String(supplierId || ""))
-                ) {
+                if (!/^[1-9]\d*$/.test(String(supplierId || ""))) {
                     return res.status(400).json({
                         success: false,
                         message: "Please select a valid supplier."
@@ -452,6 +448,73 @@ function createSupplierAuth({ sql, requireAdmin, jwtSecret }) {
                 return res.status(500).json({
                     success: false,
                     message: "Could not load supplier accounts."
+                });
+            }
+        }
+    );
+
+    // =====================================
+    // ADMIN: RESET SUPPLIER PASSWORD
+    // =====================================
+
+    router.patch(
+        "/admin/supplier-users/:id/password",
+        requireAdmin,
+        async (req, res) => {
+            try {
+                const id = req.params.id;
+                const newPassword = req.body?.new_password;
+
+                if (!/^[1-9]\d*$/.test(id)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Invalid account ID."
+                    });
+                }
+
+                if (
+                    typeof newPassword !== "string" ||
+                    newPassword.length < 10 ||
+                    newPassword.length > 128
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "New password must be at least 10 characters and no more than 128 characters."
+                    });
+                }
+
+                const passwordHash = await bcrypt.hash(newPassword, 12);
+
+                const result = await sql`
+                    UPDATE supplier_users
+                    SET
+                        password_hash = ${passwordHash},
+                        updated_at = NOW()
+                    WHERE id = ${id}
+                    RETURNING id, supplier_id, username, is_active, updated_at
+                `;
+
+                if (!result.length) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Supplier account not found."
+                    });
+                }
+
+                res.setHeader("Cache-Control", "no-store");
+
+                return res.json({
+                    success: true,
+                    message: "Supplier password reset successfully.",
+                    account: result[0]
+                });
+
+            } catch (error) {
+                console.error("Reset supplier password error:", error);
+
+                return res.status(500).json({
+                    success: false,
+                    message: "Could not reset supplier password."
                 });
             }
         }

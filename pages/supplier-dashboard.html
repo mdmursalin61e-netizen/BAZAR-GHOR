@@ -199,6 +199,16 @@
             border: none;
             padding: 7px 12px;
             border-radius: 5px;
+            margin: 3px;
+        }
+
+        .delete-btn {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 7px 12px;
+            border-radius: 5px;
+            margin: 3px;
         }
 
         .message {
@@ -681,6 +691,8 @@
             note.textContent = product.admin_approval_note || "No note";
 
             const action = document.createElement("td");
+
+            // EDIT BUTTON
             const editButton = document.createElement("button");
 
             editButton.type = "button";
@@ -691,7 +703,18 @@
                 editProduct(product.id);
             });
 
-            action.appendChild(editButton);
+            // DELETE BUTTON
+            const deleteButton = document.createElement("button");
+
+            deleteButton.type = "button";
+            deleteButton.className = "delete-btn";
+            deleteButton.textContent = "Delete";
+
+            deleteButton.addEventListener("click", () => {
+                deleteProduct(product.id, deleteButton);
+            });
+
+            action.append(editButton, deleteButton);
 
             row.append(
                 name,
@@ -705,6 +728,66 @@
 
             tbody.appendChild(row);
         });
+    }
+
+    // DELETE SUPPLIER PRODUCT
+    async function deleteProduct(id, button) {
+        const product = myProducts.find(
+            item => String(item.id) === String(id)
+        );
+
+        if (!product) {
+            showError("Product not found.");
+            return;
+        }
+
+        const confirmed = confirm(
+            "Are you sure you want to delete '" +
+            (product.product_name || "this product") +
+            "'?\n\nThis product will be removed from your product list."
+        );
+
+        if (!confirmed) return;
+
+        button.disabled = true;
+        button.textContent = "Deleting...";
+
+        try {
+            const result = await apiRequest(
+                "/api/admin/supplier/my-products/" +
+                encodeURIComponent(id),
+                {
+                    method: "DELETE"
+                }
+            );
+
+            // Remove from local list
+            myProducts = myProducts.filter(
+                item => String(item.id) !== String(id)
+            );
+
+            // Reset form if the deleted product was being edited
+            const editingId =
+                document.getElementById("editingProductId").value;
+
+            if (String(editingId) === String(id)) {
+                resetForm();
+            }
+
+            // Update product list and count
+            setText("totalProducts", myProducts.length, "0");
+            renderProducts();
+
+            showSuccess(
+                result.message || "Product deleted successfully."
+            );
+
+        } catch (error) {
+            showError(error.message || "Could not delete product.");
+
+            button.disabled = false;
+            button.textContent = "Delete";
+        }
     }
 
     function resetForm() {
@@ -829,8 +912,6 @@
             submitButton.textContent = "Please wait...";
 
             try {
-                // সঠিক API ঠিকানা:
-                // নতুন পণ্য যোগ এবং পণ্য সম্পাদনা
                 const url = editingId
                     ? "/api/admin/supplier/my-products/" +
                       encodeURIComponent(editingId)

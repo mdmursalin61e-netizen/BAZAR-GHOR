@@ -17,10 +17,7 @@
             color: #222;
         }
 
-        .container {
-            max-width: 1150px;
-            margin: auto;
-        }
+        .container { max-width: 1250px; margin: auto; }
 
         .header {
             display: flex;
@@ -50,14 +47,10 @@
             text-decoration: none;
         }
 
-        button:disabled {
-            opacity: .6;
-            cursor: not-allowed;
-        }
+        button:disabled { opacity: .6; cursor: not-allowed; }
 
         .back-btn { background: #173b2b; color: white; }
-        .logout-btn { background: #c62828; color: white; }
-
+        .logout-btn, .delete-btn { background: #c62828; color: white; }
         .card {
             background: white;
             padding: 22px;
@@ -74,18 +67,10 @@
             gap: 15px;
         }
 
-        .field {
-            display: flex;
-            flex-direction: column;
-            gap: 7px;
-        }
-
+        .field { display: flex; flex-direction: column; gap: 7px; }
         .field.full { grid-column: 1 / -1; }
 
-        label {
-            font-weight: bold;
-            font-size: 14px;
-        }
+        label { font-weight: bold; font-size: 14px; }
 
         input, textarea, select {
             width: 100%;
@@ -100,41 +85,19 @@
             border-color: #16834b;
         }
 
-        textarea {
-            min-height: 85px;
-            resize: vertical;
-        }
+        textarea { min-height: 85px; resize: vertical; }
 
-        .save-btn {
+        .save-btn, .create-btn {
             background: #16834b;
             color: white;
             margin-top: 16px;
         }
 
-        .cancel-btn {
-            background: #777;
-            color: white;
-            margin-top: 16px;
-            margin-left: 7px;
-        }
-
-        .refresh-btn {
-            background: #173b2b;
-            color: white;
-            margin-bottom: 15px;
-        }
-
-        .edit-btn {
-            background: #1769aa;
-            color: white;
-            margin: 3px;
-        }
-
-        .delete-btn {
-            background: #c62828;
-            color: white;
-            margin: 3px;
-        }
+        .cancel-btn { background: #777; color: white; margin-top: 16px; }
+        .refresh-btn { background: #173b2b; color: white; margin-bottom: 15px; }
+        .edit-btn { background: #1769aa; color: white; margin: 3px; }
+        .reset-btn { background: #7b3fa1; color: white; margin: 3px; }
+        .toggle-btn { background: #e18b16; color: white; margin: 3px; }
 
         .table-wrap { overflow-x: auto; }
 
@@ -150,32 +113,40 @@
             text-align: left;
         }
 
-        th {
-            background: #173b2b;
-            color: white;
-        }
+        th { background: #173b2b; color: white; }
 
-        .status-active {
-            color: #16834b;
-            font-weight: bold;
-        }
+        .status-active { color: #16834b; font-weight: bold; }
+        .status-inactive { color: #c62828; font-weight: bold; }
 
-        .status-inactive {
-            color: #c62828;
-            font-weight: bold;
-        }
-
-        #message, #accountMessage {
+        #message, #accountMessage, #accountListMessage {
             margin: 12px 0;
             font-weight: bold;
         }
 
-        #loading { color: #555; }
+        #loading, #accountLoading { color: #555; }
 
         .help-text {
             color: #666;
             font-size: 13px;
             line-height: 1.6;
+        }
+
+        .account-status {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .account-status.active {
+            color: #16834b;
+            background: #e5f5ec;
+        }
+
+        .account-status.inactive {
+            color: #c62828;
+            background: #fdeaea;
         }
 
         @media (max-width: 600px) {
@@ -195,13 +166,8 @@
         <h1>Supplier Management</h1>
 
         <div class="header-actions">
-            <a class="back-btn" href="/pages/dashboard.html">
-                ← Dashboard
-            </a>
-
-            <button type="button" class="logout-btn" id="logoutBtn">
-                Logout
-            </button>
+            <a class="back-btn" href="/pages/dashboard.html">← Dashboard</a>
+            <button type="button" class="logout-btn" id="logoutBtn">Logout</button>
         </div>
     </div>
 
@@ -215,7 +181,6 @@
             <input type="hidden" id="supplierId">
 
             <div class="form-grid">
-
                 <div class="field">
                     <label for="supplierName">Supplier Name *</label>
                     <input id="supplierName" maxlength="150" required>
@@ -242,7 +207,7 @@
                 </div>
 
                 <div class="field">
-                    <label for="status">Status</label>
+                    <label for="status">Supplier Status</label>
                     <select id="status">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
@@ -258,17 +223,10 @@
                     <label for="notes">Admin Notes</label>
                     <textarea id="notes" maxlength="5000"></textarea>
                 </div>
-
             </div>
 
-            <button type="submit" class="save-btn" id="saveBtn">
-                Save Supplier
-            </button>
-
-            <button type="button" class="cancel-btn"
-                id="cancelBtn" hidden>
-                Cancel Edit
-            </button>
+            <button type="submit" class="save-btn" id="saveBtn">Save Supplier</button>
+            <button type="button" class="cancel-btn" id="cancelBtn" hidden>Cancel Edit</button>
         </form>
     </div>
 
@@ -277,16 +235,14 @@
         <h2>Create Supplier Login Account</h2>
 
         <p class="help-text">
-            Admin can create a separate login account for an active supplier.
-            Give the username and password directly to the supplier securely.
+            Create a separate login account for an active supplier.
+            Give the login details directly to the supplier securely.
         </p>
 
         <div id="accountMessage" role="status" aria-live="polite"></div>
 
         <form id="accountForm">
-
             <div class="form-grid">
-
                 <div class="field full">
                     <label for="accountSupplier">Select Supplier *</label>
                     <select id="accountSupplier" required>
@@ -296,35 +252,60 @@
 
                 <div class="field">
                     <label for="accountUsername">Username *</label>
-                    <input
-                        id="accountUsername"
-                        type="text"
-                        minlength="3"
-                        maxlength="100"
-                        autocomplete="off"
-                        required
-                    >
+                    <input id="accountUsername" type="text"
+                        minlength="3" maxlength="100"
+                        autocomplete="off" required>
                 </div>
 
                 <div class="field">
                     <label for="accountPassword">Password *</label>
-                    <input
-                        id="accountPassword"
-                        type="password"
-                        minlength="10"
-                        maxlength="128"
-                        autocomplete="new-password"
-                        required
-                    >
+                    <input id="accountPassword" type="password"
+                        minlength="10" maxlength="128"
+                        autocomplete="new-password" required>
                 </div>
-
             </div>
 
-            <button type="submit" class="save-btn" id="createAccountBtn">
+            <button type="submit" class="create-btn" id="createAccountBtn">
                 Create Login Account
             </button>
-
         </form>
+    </div>
+
+    <!-- SUPPLIER LOGIN ACCOUNT MANAGEMENT -->
+    <div class="card">
+        <h2>All Supplier Login Accounts</h2>
+
+        <p class="help-text">
+            View usernames, supplier information and account status.
+            You can reset passwords and activate or deactivate login accounts.
+            Existing passwords are never displayed.
+        </p>
+
+        <div id="accountListMessage" role="status" aria-live="polite"></div>
+
+        <button type="button" class="refresh-btn" id="refreshAccountsBtn">
+            Refresh Login Accounts
+        </button>
+
+        <p id="accountLoading">Loading login accounts...</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Account ID</th>
+                        <th>Supplier ID</th>
+                        <th>Supplier Name</th>
+                        <th>Business</th>
+                        <th>Username</th>
+                        <th>Account Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="accountTable"></tbody>
+            </table>
+        </div>
     </div>
 
     <!-- ALL SUPPLIERS -->
@@ -350,7 +331,6 @@
                         <th>Actions</th>
                     </tr>
                 </thead>
-
                 <tbody id="supplierTable"></tbody>
             </table>
         </div>
@@ -370,7 +350,12 @@
     const accountSupplier = document.getElementById("accountSupplier");
     const createAccountBtn = document.getElementById("createAccountBtn");
 
+    const accountTable = document.getElementById("accountTable");
+    const accountLoading = document.getElementById("accountLoading");
+    const accountListMessage = document.getElementById("accountListMessage");
+
     let suppliers = [];
+    let supplierAccounts = [];
 
     function showMessage(text, success = true) {
         message.textContent = text;
@@ -380,6 +365,11 @@
     function showAccountMessage(text, success = true) {
         accountMessage.textContent = text;
         accountMessage.style.color = success ? "green" : "red";
+    }
+
+    function showAccountListMessage(text, success = true) {
+        accountListMessage.textContent = text;
+        accountListMessage.style.color = success ? "green" : "red";
     }
 
     async function apiRequest(url, options = {}) {
@@ -428,8 +418,7 @@
             });
 
         if (accountSupplier.options.length === 1) {
-            const option = accountSupplier.options[0];
-            option.textContent = "No active suppliers available";
+            placeholder.textContent = "No active suppliers available";
         }
     }
 
@@ -441,21 +430,16 @@
         try {
             const data = await apiRequest("/api/admin/suppliers");
 
-            suppliers = Array.isArray(data.suppliers)
-                ? data.suppliers
-                : [];
+            suppliers = Array.isArray(data.suppliers) ? data.suppliers : [];
 
             populateSupplierOptions();
-
             loading.hidden = true;
 
             if (suppliers.length === 0) {
                 const row = document.createElement("tr");
                 const cell = document.createElement("td");
-
                 cell.colSpan = 7;
                 cell.textContent = "No suppliers added yet.";
-
                 row.appendChild(cell);
                 table.appendChild(row);
                 return;
@@ -464,15 +448,13 @@
             suppliers.forEach(supplier => {
                 const row = document.createElement("tr");
 
-                const values = [
+                [
                     supplier.id,
                     supplier.supplier_name,
                     supplier.business_name || "-",
                     supplier.phone || "-",
                     supplier.district || "-"
-                ];
-
-                values.forEach(value => {
+                ].forEach(value => {
                     const cell = document.createElement("td");
                     cell.textContent = String(value ?? "-");
                     row.appendChild(cell);
@@ -484,7 +466,6 @@
                     supplier.status === "active"
                         ? "status-active"
                         : "status-inactive";
-
                 row.appendChild(statusCell);
 
                 const actionCell = document.createElement("td");
@@ -493,29 +474,194 @@
                 editButton.type = "button";
                 editButton.textContent = "Edit";
                 editButton.className = "edit-btn";
-
-                editButton.addEventListener("click", () => {
-                    editSupplier(supplier.id);
-                });
+                editButton.addEventListener("click", () => editSupplier(supplier.id));
 
                 const deleteButton = document.createElement("button");
                 deleteButton.type = "button";
                 deleteButton.textContent = "Delete";
                 deleteButton.className = "delete-btn";
-
-                deleteButton.addEventListener("click", () => {
-                    deleteSupplier(supplier.id);
-                });
+                deleteButton.addEventListener("click", () => deleteSupplier(supplier.id));
 
                 actionCell.append(editButton, deleteButton);
                 row.appendChild(actionCell);
-
                 table.appendChild(row);
             });
 
         } catch (error) {
             loading.hidden = false;
             loading.textContent = error.message;
+        }
+    }
+
+    // LOAD ALL SUPPLIER LOGIN ACCOUNTS
+    async function loadSupplierAccounts() {
+        accountLoading.hidden = false;
+        accountLoading.textContent = "Loading login accounts...";
+        accountTable.replaceChildren();
+
+        try {
+            const data = await apiRequest("/api/admin/supplier-users");
+
+            supplierAccounts = Array.isArray(data.users)
+                ? data.users
+                : Array.isArray(data.accounts)
+                    ? data.accounts
+                    : Array.isArray(data.supplierUsers)
+                        ? data.supplierUsers
+                        : [];
+
+            accountLoading.hidden = true;
+
+            if (supplierAccounts.length === 0) {
+                const row = document.createElement("tr");
+                const cell = document.createElement("td");
+                cell.colSpan = 8;
+                cell.textContent = "No supplier login accounts found.";
+                row.appendChild(cell);
+                accountTable.appendChild(row);
+                return;
+            }
+
+            supplierAccounts.forEach(account => {
+                const row = document.createElement("tr");
+
+                const created = account.created_at
+                    ? new Date(account.created_at).toLocaleString()
+                    : "-";
+
+                const values = [
+                    account.id,
+                    account.supplier_id,
+                    account.supplier_name || account.name || "-",
+                    account.business_name || account.supplier_business_name || "-",
+                    account.username,
+                    created
+                ];
+
+                const statusCell = document.createElement("td");
+                const statusBadge = document.createElement("span");
+                const isActive = account.is_active === true ||
+                    account.is_active === "true";
+
+                statusBadge.className = "account-status " +
+                    (isActive ? "active" : "inactive");
+                statusBadge.textContent = isActive ? "ACTIVE" : "INACTIVE";
+                statusCell.appendChild(statusBadge);
+
+                values.slice(0, 5).forEach(value => {
+                    const cell = document.createElement("td");
+                    cell.textContent = String(value ?? "-");
+                    row.appendChild(cell);
+                });
+
+                row.appendChild(statusCell);
+
+                const createdCell = document.createElement("td");
+                createdCell.textContent = created;
+                row.appendChild(createdCell);
+
+                const actionCell = document.createElement("td");
+
+                const resetButton = document.createElement("button");
+                resetButton.type = "button";
+                resetButton.textContent = "Reset Password";
+                resetButton.className = "reset-btn";
+                resetButton.addEventListener("click", () => resetAccountPassword(account));
+
+                const toggleButton = document.createElement("button");
+                toggleButton.type = "button";
+                toggleButton.textContent = isActive ? "Deactivate" : "Activate";
+                toggleButton.className = "toggle-btn";
+                toggleButton.addEventListener("click", () => toggleAccountStatus(account));
+
+                actionCell.append(resetButton, toggleButton);
+                row.appendChild(actionCell);
+
+                accountTable.appendChild(row);
+            });
+
+        } catch (error) {
+            accountLoading.hidden = false;
+            accountLoading.textContent = error.message;
+        }
+    }
+
+    // RESET PASSWORD
+    async function resetAccountPassword(account) {
+        const newPassword = prompt(
+            "Enter a new password for username: " + account.username +
+            "\nMinimum 10 characters. Do not reuse an old password."
+        );
+
+        if (newPassword === null) return;
+
+        if (newPassword.length < 10 || newPassword.length > 128) {
+            showAccountListMessage(
+                "Password must be between 10 and 128 characters.",
+                false
+            );
+            return;
+        }
+
+        const confirmed = confirm(
+            "Reset password for " + account.username + "?"
+        );
+
+        if (!confirmed) return;
+
+        try {
+            await apiRequest(
+                "/api/admin/supplier-users/" +
+                encodeURIComponent(account.id) + "/password",
+                {
+                    method: "PATCH",
+                    body: JSON.stringify({ new_password: newPassword })
+                }
+            );
+
+            showAccountListMessage(
+                "Password reset successfully for " + account.username + "."
+            );
+
+        } catch (error) {
+            showAccountListMessage(error.message, false);
+        }
+    }
+
+    // ACTIVATE / DEACTIVATE ACCOUNT
+    async function toggleAccountStatus(account) {
+        const isActive = account.is_active === true ||
+            account.is_active === "true";
+
+        const nextStatus = !isActive;
+        const action = nextStatus ? "activate" : "deactivate";
+
+        if (!confirm(
+            "Are you sure you want to " + action +
+            " the login account " + account.username + "?"
+        )) {
+            return;
+        }
+
+        try {
+            await apiRequest(
+                "/api/admin/supplier-users/" +
+                encodeURIComponent(account.id) + "/status",
+                {
+                    method: "PATCH",
+                    body: JSON.stringify({ is_active: nextStatus })
+                }
+            );
+
+            showAccountListMessage(
+                "Account " + account.username + " is now " +
+                (nextStatus ? "ACTIVE." : "INACTIVE.")
+            );
+
+            await loadSupplierAccounts();
+
+        } catch (error) {
+            showAccountListMessage(error.message, false);
         }
     }
 
@@ -554,11 +700,9 @@
                 })
             });
 
-            showAccountMessage(
-                "Supplier login account created successfully."
-            );
-
+            showAccountMessage("Supplier login account created successfully.");
             accountForm.reset();
+            await loadSupplierAccounts();
 
         } catch (error) {
             showAccountMessage(error.message, false);
@@ -567,6 +711,7 @@
         }
     });
 
+    // ADD / UPDATE SUPPLIER
     form.addEventListener("submit", async function(event) {
         event.preventDefault();
 
@@ -599,14 +744,12 @@
                         body: JSON.stringify(supplierData)
                     }
                 );
-
                 showMessage("Supplier updated successfully.");
             } else {
                 await apiRequest("/api/admin/suppliers", {
                     method: "POST",
                     body: JSON.stringify(supplierData)
                 });
-
                 showMessage("Supplier added successfully.");
             }
 
@@ -645,9 +788,7 @@
     }
 
     async function deleteSupplier(id) {
-        if (!confirm("Are you sure you want to delete this supplier?")) {
-            return;
-        }
+        if (!confirm("Are you sure you want to delete this supplier?")) return;
 
         try {
             await apiRequest(
@@ -657,6 +798,7 @@
 
             showMessage("Supplier deleted successfully.");
             await loadSuppliers();
+            await loadSupplierAccounts();
 
         } catch (error) {
             showMessage(error.message, false);
@@ -665,7 +807,6 @@
 
     function resetForm() {
         form.reset();
-
         document.getElementById("supplierId").value = "";
         document.getElementById("formTitle").textContent = "Add New Supplier";
         saveButton.textContent = "Save Supplier";
@@ -673,25 +814,22 @@
     }
 
     document.getElementById("cancelBtn").addEventListener("click", resetForm);
-
     document.getElementById("refreshBtn").addEventListener("click", loadSuppliers);
+    document.getElementById("refreshAccountsBtn").addEventListener("click", loadSupplierAccounts);
 
     document.getElementById("logoutBtn").addEventListener("click", async () => {
         if (!confirm("Are you sure you want to logout?")) return;
 
         try {
-            await apiRequest("/api/admin/logout", {
-                method: "POST"
-            });
-
+            await apiRequest("/api/admin/logout", { method: "POST" });
             window.location.href = "/pages/admin.html";
-
         } catch (error) {
             showMessage(error.message, false);
         }
     });
 
     loadSuppliers();
+    loadSupplierAccounts();
 </script>
 
 </body>
