@@ -265,18 +265,26 @@
             text-transform: capitalize;
         }
 
-        .status.pending, .status.sent {
+        .status.pending,
+        .status.sent,
+        .status.not_started,
+        .status.preparing,
+        .status.ready_for_dispatch,
+        .status.shipped {
             background: #fef3c7;
             color: #92400e;
         }
 
-        .status.approved, .status.accepted,
-        .status.admin_approved {
+        .status.approved,
+        .status.accepted,
+        .status.admin_approved,
+        .status.delivered {
             background: #dcfce7;
             color: #166534;
         }
 
-        .status.rejected, .status.admin_rejected {
+        .status.rejected,
+        .status.admin_rejected {
             background: #fee2e2;
             color: #991b1b;
         }
@@ -343,23 +351,73 @@
             font-size: 13px;
             color: #475569;
             line-height: 1.5;
+            overflow-wrap: anywhere;
         }
 
-        .response-area {
+        .response-area,
+        .delivery-area {
             margin-top: 15px;
             padding-top: 14px;
             border-top: 1px solid #e5e7eb;
         }
 
-        .response-area textarea {
+        .response-area textarea,
+        .delivery-area textarea {
             min-height: 75px;
-            margin-bottom: 10px;
+            margin: 9px 0 10px;
         }
 
         .order-actions {
             display: flex;
             gap: 9px;
             flex-wrap: wrap;
+        }
+
+        .customer-box {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 14px;
+        }
+
+        .customer-box h4 {
+            color: #087443;
+            margin-bottom: 12px;
+        }
+
+        .customer-box p {
+            font-size: 14px;
+            line-height: 1.7;
+            overflow-wrap: anywhere;
+        }
+
+        .delivery-area {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .delivery-area h4 {
+            color: #087443;
+            margin-bottom: 12px;
+        }
+
+        .delivery-area .form-group {
+            margin-bottom: 12px;
+        }
+
+        .delivery-info {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #475569;
+            line-height: 1.5;
+        }
+
+        .small-muted {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 7px;
         }
 
         footer {
@@ -370,7 +428,10 @@
         }
 
         @media (max-width: 700px) {
-            .stats, .info-grid, .form-grid, .order-details {
+            .stats,
+            .info-grid,
+            .form-grid,
+            .order-details {
                 grid-template-columns: 1fr;
             }
 
@@ -402,7 +463,7 @@
         <h1>Welcome, <span id="supplierName">Supplier</span>!</h1>
         <p>
             Welcome to your BAZAR GHOR Supplier Dashboard.
-            Manage your own products and monitor your business information here.
+            Manage your products, receive orders and update delivery progress.
         </p>
     </section>
 
@@ -423,28 +484,29 @@
         </div>
     </section>
 
-    <!-- MY ORDERS -->
+    <!-- SUPPLIER ORDERS -->
     <section class="section" id="myOrdersSection">
         <h2>My Received Orders</h2>
 
         <div class="note">
-            এখানে Admin তোমার কাছে যেসব অর্ডার পাঠাবে, শুধু সেগুলো দেখতে পাবে।
-            অর্ডার গ্রহণ করতে Accept এবং গ্রহণ করতে না পারলে Reject নির্বাচন করো।
+            Admin তোমার কাছে যে অর্ডার পাঠাবে, শুধু সেগুলো এখানে দেখতে পাবে।
+            অর্ডার নিতে চাইলে Accept এবং নিতে না পারলে Reject করো।
             Reject করার সময় কারণ লিখতে হবে।
+            Admin অনুমোদন দেওয়ার পর ডেলিভারির অগ্রগতি আপডেট করতে পারবে।
         </div>
-
-        <div id="ordersMessage" class="message error"></div>
 
         <div id="ordersContainer">
             <p class="empty">Loading orders...</p>
         </div>
 
-        <button type="button" class="secondary-btn"
+        <button type="button"
+                class="secondary-btn"
                 id="refreshOrdersBtn">
             Refresh Orders
         </button>
     </section>
 
+    <!-- SUPPLIER INFORMATION -->
     <section class="section">
         <h2>My Supplier Information</h2>
 
@@ -493,76 +555,107 @@
 
                 <div class="form-group">
                     <label for="productName">Product Name *</label>
-                    <input id="productName" type="text"
-                           maxlength="180" required>
+                    <input id="productName"
+                           type="text"
+                           maxlength="180"
+                           required>
                 </div>
 
                 <div class="form-group">
                     <label for="category">Category *</label>
-                    <input id="category" type="text"
-                           maxlength="100" required>
+                    <input id="category"
+                           type="text"
+                           maxlength="100"
+                           required>
                 </div>
 
                 <div class="form-group full">
                     <label for="description">Product Description</label>
-                    <textarea id="description" maxlength="10000"></textarea>
+                    <textarea id="description"
+                              maxlength="10000"></textarea>
                 </div>
 
                 <div class="form-group full">
                     <label for="imageUrl">Product Image URL</label>
-                    <input id="imageUrl" type="url"
+                    <input id="imageUrl"
+                           type="url"
                            placeholder="https://example.com/image.jpg">
                 </div>
 
                 <div class="form-group">
                     <label for="purchasePrice">Purchase Price (৳) *</label>
-                    <input id="purchasePrice" type="number"
-                           min="0" step="0.01" required>
+                    <input id="purchasePrice"
+                           type="number"
+                           min="0"
+                           step="0.01"
+                           required>
                 </div>
 
                 <div class="form-group">
                     <label for="proposedPrice">Proposed Selling Price (৳) *</label>
-                    <input id="proposedPrice" type="number"
-                           min="0.01" step="0.01" required>
+                    <input id="proposedPrice"
+                           type="number"
+                           min="0.01"
+                           step="0.01"
+                           required>
                 </div>
 
                 <div class="form-group">
                     <label for="deliveryCost">Delivery Cost (৳) *</label>
-                    <input id="deliveryCost" type="number"
-                           min="0" step="0.01" value="0" required>
+                    <input id="deliveryCost"
+                           type="number"
+                           min="0"
+                           step="0.01"
+                           value="0"
+                           required>
                 </div>
 
                 <div class="form-group">
                     <label for="otherCost">Other Cost (৳) *</label>
-                    <input id="otherCost" type="number"
-                           min="0" step="0.01" value="0" required>
+                    <input id="otherCost"
+                           type="number"
+                           min="0"
+                           step="0.01"
+                           value="0"
+                           required>
                 </div>
 
                 <div class="form-group">
                     <label for="stock">Available Stock *</label>
-                    <input id="stock" type="number"
-                           min="0" step="1" value="0" required>
+                    <input id="stock"
+                           type="number"
+                           min="0"
+                           step="1"
+                           value="0"
+                           required>
                 </div>
 
                 <div class="form-group">
                     <label for="sku">Supplier SKU</label>
-                    <input id="sku" type="text" maxlength="100">
+                    <input id="sku"
+                           type="text"
+                           maxlength="100">
                 </div>
 
                 <div class="form-group full">
                     <label for="notes">Additional Notes</label>
-                    <textarea id="notes" maxlength="5000"></textarea>
+                    <textarea id="notes"
+                              maxlength="5000"></textarea>
                 </div>
 
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="primary-btn" id="submitBtn">
+                <button type="submit"
+                        class="primary-btn"
+                        id="submitBtn">
                     Submit Product
                 </button>
 
-                <button type="button" class="secondary-btn"
-                        id="cancelEditBtn" style="display:none;">
+                <button type="button"
+                        class="secondary-btn"
+                        id="cancelEditBtn"
+                        style="display:none;">
                     Cancel Edit
                 </button>
             </div>
@@ -611,20 +704,50 @@
     let myProducts = [];
     let myOrders = [];
 
+    const DELIVERY_STEPS = [
+        {
+            value: "preparing",
+            label: "Preparing"
+        },
+        {
+            value: "ready_for_dispatch",
+            label: "Ready for Dispatch"
+        },
+        {
+            value: "shipped",
+            label: "Shipped"
+        },
+        {
+            value: "delivered",
+            label: "Delivered"
+        }
+    ];
+
     function showError(message) {
         successMessage.style.display = "none";
         errorMessage.textContent = message;
         errorMessage.style.display = "block";
+
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
     }
 
     function showSuccess(message) {
         errorMessage.style.display = "none";
         successMessage.textContent = message;
         successMessage.style.display = "block";
+
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
     }
 
     function setText(id, value, fallback = "Not provided") {
         const element = document.getElementById(id);
+
         if (!element) return;
 
         element.textContent =
@@ -635,7 +758,11 @@
 
     function money(value) {
         const number = Number(value);
-        if (!Number.isFinite(number)) return "৳ 0.00";
+
+        if (!Number.isFinite(number)) {
+            return "৳ 0.00";
+        }
+
         return "৳ " + number.toFixed(2);
     }
 
@@ -644,12 +771,28 @@
 
         const date = new Date(value);
 
-        if (Number.isNaN(date.getTime())) return "Not available";
+        if (Number.isNaN(date.getTime())) {
+            return "Not available";
+        }
 
         return date.toLocaleString("en-BD", {
             dateStyle: "medium",
             timeStyle: "short"
         });
+    }
+
+    function createElement(tag, className, text) {
+        const element = document.createElement(tag);
+
+        if (className) {
+            element.className = className;
+        }
+
+        if (text !== undefined && text !== null) {
+            element.textContent = String(text);
+        }
+
+        return element;
     }
 
     async function apiRequest(url, options = {}) {
@@ -712,12 +855,17 @@
         }
     }
 
-    // LOAD SUPPLIER ORDERS
-    async function loadOrders() {
-        const container = document.getElementById("ordersContainer");
+    // ==========================================
+    // SUPPLIER ORDERS
+    // ==========================================
 
-        container.innerHTML =
-            '<p class="empty">Loading orders...</p>';
+    async function loadOrders() {
+        const container =
+            document.getElementById("ordersContainer");
+
+        container.replaceChildren(
+            createElement("p", "empty", "Loading orders...")
+        );
 
         try {
             const result = await apiRequest(
@@ -730,9 +878,10 @@
 
             setText("totalOrders", myOrders.length, "0");
 
-            // Sales count only orders approved by Admin.
             const approvedSales = myOrders
-                .filter(order => order.status === "admin_approved")
+                .filter(order =>
+                    order.status === "admin_approved"
+                )
                 .reduce((total, order) => {
                     return total + Number(order.subtotal || 0);
                 }, 0);
@@ -744,164 +893,338 @@
         } catch (error) {
             console.error("Order loading error:", error);
 
-            container.innerHTML = "";
-
-            const message = document.createElement("p");
-            message.className = "empty";
-            message.textContent =
-                "Could not load orders: " + error.message;
-
-            container.appendChild(message);
+            container.replaceChildren(
+                createElement(
+                    "p",
+                    "empty",
+                    "Could not load orders: " + error.message
+                )
+            );
         }
     }
 
+    function addOrderDetail(container, label, value) {
+        const item = createElement("div", "order-detail");
+
+        item.appendChild(
+            createElement("span", "", label)
+        );
+
+        item.appendChild(
+            createElement(
+                "strong",
+                "",
+                value !== null && value !== undefined && value !== ""
+                    ? value
+                    : "Not available"
+            )
+        );
+
+        container.appendChild(item);
+    }
+
     function renderOrders() {
-        const container = document.getElementById("ordersContainer");
+        const container =
+            document.getElementById("ordersContainer");
+
         container.replaceChildren();
 
         if (!myOrders.length) {
-            const empty = document.createElement("p");
-            empty.className = "empty";
-            empty.textContent =
-                "No orders have been sent to you yet.";
+            container.appendChild(
+                createElement(
+                    "p",
+                    "empty",
+                    "No orders have been sent to you yet."
+                )
+            );
 
-            container.appendChild(empty);
             return;
         }
 
         myOrders.forEach(order => {
-            const card = document.createElement("div");
-            card.className = "order-card";
+            const card = createElement("div", "order-card");
 
-            const top = document.createElement("div");
-            top.className = "order-top";
+            const handoffId = order.handoff_id || order.id;
 
-            const heading = document.createElement("h3");
-            heading.textContent =
-                "Order: " + (order.order_number || ("#" + order.order_id));
+            const orderStatus =
+                order.handoff_status ||
+                order.status ||
+                "sent";
 
-            const status = document.createElement("span");
-            status.className =
-                "status " + (order.status || "sent");
-            status.textContent =
-                String(order.status || "sent").replaceAll("_", " ");
+            // Order heading and status
+            const top = createElement("div", "order-top");
+
+            const heading = createElement(
+                "h3",
+                "",
+                "Order: " +
+                (order.order_number || ("#" + order.order_id))
+            );
+
+            const status = createElement(
+                "span",
+                "status " + orderStatus,
+                orderStatus.replaceAll("_", " ")
+            );
 
             top.append(heading, status);
 
-            const details = document.createElement("div");
-            details.className = "order-details";
+            // Order product details
+            const details = createElement(
+                "div",
+                "order-details"
+            );
 
-            const fields = [
-                ["Product", order.product_name],
-                ["Quantity", order.quantity],
-                ["Unit Price", money(order.unit_price)],
-                ["Item Subtotal", money(order.subtotal)],
-                ["Sent At", formatDate(order.sent_at)]
-            ];
+            addOrderDetail(
+                details,
+                "Product",
+                order.product_name
+            );
 
-            fields.forEach(([label, value]) => {
-                const item = document.createElement("div");
-                item.className = "order-detail";
+            addOrderDetail(
+                details,
+                "Quantity",
+                order.quantity
+            );
 
-                const span = document.createElement("span");
-                span.textContent = label;
+            addOrderDetail(
+                details,
+                "Unit Price",
+                money(order.unit_price)
+            );
 
-                const strong = document.createElement("strong");
-                strong.textContent =
-                    value !== null && value !== undefined && value !== ""
-                        ? value
-                        : "Not available";
+            addOrderDetail(
+                details,
+                "Item Subtotal",
+                money(order.subtotal)
+            );
 
-                item.append(span, strong);
-                details.appendChild(item);
-            });
+            addOrderDetail(
+                details,
+                "Sent At",
+                formatDate(order.sent_at)
+            );
 
             card.append(top, details);
 
+            // Supplier response note
             if (order.supplier_response_note) {
-                const responseNote = document.createElement("p");
-                responseNote.className = "order-note";
-                responseNote.textContent =
-                    "Your previous response: " +
-                    order.supplier_response_note;
-
-                card.appendChild(responseNote);
+                card.appendChild(
+                    createElement(
+                        "p",
+                        "order-note",
+                        "Your response: " +
+                        order.supplier_response_note
+                    )
+                );
             }
 
+            // Admin note
             if (order.admin_note) {
-                const adminNote = document.createElement("p");
-                adminNote.className = "order-note";
-                adminNote.textContent =
-                    "Admin note: " + order.admin_note;
-
-                card.appendChild(adminNote);
+                card.appendChild(
+                    createElement(
+                        "p",
+                        "order-note",
+                        "Admin note: " + order.admin_note
+                    )
+                );
             }
 
-            // Only new orders can be accepted or rejected.
-            if (order.status === "sent") {
-                const responseArea = document.createElement("div");
-                responseArea.className = "response-area";
+            // New order: Accept or Reject
+            if (orderStatus === "sent") {
+                renderOrderResponse(card, order, handoffId);
+            }
 
-                const noteLabel = document.createElement("label");
-                noteLabel.textContent =
-                    "Response Note (required for rejection)";
+            // Accepted: waiting for Admin approval
+            else if (orderStatus === "accepted") {
+                card.appendChild(
+                    createElement(
+                        "p",
+                        "order-note",
+                        "You accepted this order. Waiting for Admin's review."
+                    )
+                );
 
-                const noteInput = document.createElement("textarea");
-                noteInput.placeholder =
-                    "Write a note for Admin (optional for acceptance)...";
-                noteInput.maxLength = 2000;
+                renderCustomerInformation(card, order);
+            }
 
-                const actions = document.createElement("div");
-                actions.className = "order-actions";
+            // Rejected
+            else if (
+                orderStatus === "rejected" ||
+                orderStatus === "admin_rejected"
+            ) {
+                card.appendChild(
+                    createElement(
+                        "p",
+                        "order-note",
+                        "This order was rejected. You do not need to take further action."
+                    )
+                );
+            }
 
-                const acceptButton = document.createElement("button");
-                acceptButton.type = "button";
-                acceptButton.className = "accept-btn";
-                acceptButton.textContent = "Accept Order";
+            // Admin approved: customer info and delivery progress
+            else if (orderStatus === "admin_approved") {
+                card.appendChild(
+                    createElement(
+                        "p",
+                        "order-note",
+                        "Admin approved this order. Please complete delivery and update its progress."
+                    )
+                );
 
-                const rejectButton = document.createElement("button");
-                rejectButton.type = "button";
-                rejectButton.className = "reject-btn";
-                rejectButton.textContent = "Reject Order";
+                renderCustomerInformation(card, order);
+                renderDeliveryProgress(card, order, handoffId);
+            }
 
-                acceptButton.addEventListener("click", () => {
-                    respondToOrder(
-                        order.id,
-                        "accepted",
-                        noteInput.value,
-                        acceptButton,
-                        rejectButton
-                    );
-                });
-
-                rejectButton.addEventListener("click", () => {
-                    respondToOrder(
-                        order.id,
-                        "rejected",
-                        noteInput.value,
-                        acceptButton,
-                        rejectButton
-                    );
-                });
-
-                actions.append(acceptButton, rejectButton);
-                responseArea.append(noteLabel, noteInput, actions);
-                card.appendChild(responseArea);
-            } else {
-                const info = document.createElement("p");
-                info.className = "order-note";
-                info.textContent =
-                    "You have already responded to this order. " +
-                    "Wait for Admin's review.";
-
-                card.appendChild(info);
+            else {
+                card.appendChild(
+                    createElement(
+                        "p",
+                        "order-note",
+                        "Current order status: " +
+                        orderStatus.replaceAll("_", " ")
+                    )
+                );
             }
 
             container.appendChild(card);
         });
     }
 
-    // ACCEPT OR REJECT ORDER
+    // ==========================================
+    // CUSTOMER INFORMATION
+    // ==========================================
+
+    function renderCustomerInformation(card, order) {
+        const customerBox =
+            createElement("div", "customer-box");
+
+        customerBox.appendChild(
+            createElement("h4", "", "Customer Information")
+        );
+
+        const customerName =
+            order.customer_name || order.name;
+
+        const customerPhone =
+            order.customer_phone || order.phone;
+
+        const deliveryAddress =
+            order.delivery_address;
+
+        customerBox.appendChild(
+            createElement(
+                "p",
+                "",
+                "Customer Name: " +
+                (customerName || "Not available")
+            )
+        );
+
+        customerBox.appendChild(
+            createElement(
+                "p",
+                "",
+                "Phone Number: " +
+                (customerPhone || "Not available")
+            )
+        );
+
+        customerBox.appendChild(
+            createElement(
+                "p",
+                "",
+                "Delivery Address: " +
+                (deliveryAddress || "Not available")
+            )
+        );
+
+        if (customerPhone) {
+            const phoneLink = document.createElement("a");
+
+            phoneLink.href =
+                "tel:" + String(customerPhone).replace(/[^\d+]/g, "");
+
+            phoneLink.textContent = "Call Customer";
+
+            phoneLink.style.display = "inline-block";
+            phoneLink.style.marginTop = "10px";
+            phoneLink.style.color = "#087443";
+            phoneLink.style.fontWeight = "bold";
+
+            customerBox.appendChild(phoneLink);
+        }
+
+        card.appendChild(customerBox);
+    }
+
+    // ==========================================
+    // ACCEPT / REJECT ORDER
+    // ==========================================
+
+    function renderOrderResponse(card, order, handoffId) {
+        const responseArea =
+            createElement("div", "response-area");
+
+        const noteLabel =
+            createElement(
+                "label",
+                "",
+                "Response Note (required for rejection)"
+            );
+
+        const noteInput =
+            document.createElement("textarea");
+
+        noteInput.placeholder =
+            "Write a note for Admin. Rejection reason is required.";
+
+        noteInput.maxLength = 2000;
+
+        const actions =
+            createElement("div", "order-actions");
+
+        const acceptButton =
+            createElement("button", "accept-btn", "Accept Order");
+
+        acceptButton.type = "button";
+
+        const rejectButton =
+            createElement("button", "reject-btn", "Reject Order");
+
+        rejectButton.type = "button";
+
+        acceptButton.addEventListener("click", () => {
+            respondToOrder(
+                handoffId,
+                "accepted",
+                noteInput.value,
+                acceptButton,
+                rejectButton
+            );
+        });
+
+        rejectButton.addEventListener("click", () => {
+            respondToOrder(
+                handoffId,
+                "rejected",
+                noteInput.value,
+                acceptButton,
+                rejectButton
+            );
+        });
+
+        actions.append(acceptButton, rejectButton);
+
+        responseArea.append(
+            noteLabel,
+            noteInput,
+            actions
+        );
+
+        card.appendChild(responseArea);
+    }
+
     async function respondToOrder(
         handoffId,
         decision,
@@ -909,14 +1232,22 @@
         acceptButton,
         rejectButton
     ) {
-        if (decision === "rejected" && !note.trim()) {
-            showError("Please write a reason before rejecting the order.");
+        if (!handoffId) {
+            showError("Order handoff ID is missing. Please refresh.");
             return;
         }
 
-        const confirmation = decision === "accepted"
-            ? "Are you sure you want to accept this order?"
-            : "Are you sure you want to reject this order?";
+        if (decision === "rejected" && !note.trim()) {
+            showError(
+                "Please write a reason before rejecting the order."
+            );
+            return;
+        }
+
+        const confirmation =
+            decision === "accepted"
+                ? "Are you sure you want to accept this order?"
+                : "Are you sure you want to reject this order?";
 
         if (!confirm(confirmation)) return;
 
@@ -942,18 +1273,230 @@
 
             showSuccess(
                 result.message ||
-                (decision === "accepted"
-                    ? "Order accepted successfully."
-                    : "Order rejected successfully.")
+                (
+                    decision === "accepted"
+                        ? "Order accepted successfully."
+                        : "Order rejected successfully."
+                )
             );
 
             await loadOrders();
 
         } catch (error) {
-            showError(error.message || "Could not submit your response.");
+            showError(
+                error.message ||
+                "Could not submit your response."
+            );
 
             acceptButton.disabled = false;
             rejectButton.disabled = false;
+        }
+    }
+
+    // ==========================================
+    // DELIVERY PROGRESS
+    // ==========================================
+
+    function renderDeliveryProgress(card, order, handoffId) {
+        const deliveryArea =
+            createElement("div", "delivery-area");
+
+        deliveryArea.appendChild(
+            createElement("h4", "", "Delivery Progress")
+        );
+
+        const currentStatus =
+            order.delivery_status || "not_started";
+
+        const statusLabel =
+            createElement(
+                "p",
+                "delivery-info",
+                "Current status: " +
+                currentStatus.replaceAll("_", " ")
+            );
+
+        deliveryArea.appendChild(statusLabel);
+
+        if (order.delivery_note) {
+            deliveryArea.appendChild(
+                createElement(
+                    "p",
+                    "delivery-info",
+                    "Last update note: " + order.delivery_note
+                )
+            );
+        }
+
+        if (order.delivery_updated_at) {
+            deliveryArea.appendChild(
+                createElement(
+                    "p",
+                    "small-muted",
+                    "Last updated: " +
+                    formatDate(order.delivery_updated_at)
+                )
+            );
+        }
+
+        if (currentStatus === "delivered") {
+            deliveryArea.appendChild(
+                createElement(
+                    "p",
+                    "delivery-info",
+                    "Delivery marked as completed."
+                )
+            );
+
+            card.appendChild(deliveryArea);
+            return;
+        }
+
+        const formGroup =
+            createElement("div", "form-group");
+
+        const selectLabel =
+            createElement(
+                "label",
+                "",
+                "Update Delivery Status"
+            );
+
+        const select =
+            document.createElement("select");
+
+        select.required = true;
+
+        DELIVERY_STEPS.forEach(step => {
+            const option =
+                document.createElement("option");
+
+            option.value = step.value;
+            option.textContent = step.label;
+
+            select.appendChild(option);
+        });
+
+        // Select the next allowed status
+        const currentIndex = DELIVERY_STEPS.findIndex(
+            step => step.value === currentStatus
+        );
+
+        const nextIndex = Math.min(
+            currentIndex + 1,
+            DELIVERY_STEPS.length - 1
+        );
+
+        select.value =
+            currentIndex === -1
+                ? DELIVERY_STEPS[0].value
+                : DELIVERY_STEPS[nextIndex].value;
+
+        const noteLabel =
+            createElement(
+                "label",
+                "",
+                "Delivery Update Note"
+            );
+
+        const noteInput =
+            document.createElement("textarea");
+
+        noteInput.maxLength = 2000;
+        noteInput.placeholder =
+            "Write an optional delivery update for Admin...";
+
+        const updateButton =
+            createElement(
+                "button",
+                "primary-btn",
+                "Update Delivery"
+            );
+
+        updateButton.type = "button";
+
+        updateButton.addEventListener("click", () => {
+            updateDeliveryProgress(
+                handoffId,
+                select.value,
+                noteInput.value,
+                updateButton
+            );
+        });
+
+        formGroup.append(
+            selectLabel,
+            select,
+            noteLabel,
+            noteInput,
+            updateButton
+        );
+
+        deliveryArea.appendChild(formGroup);
+        card.appendChild(deliveryArea);
+    }
+
+    async function updateDeliveryProgress(
+        handoffId,
+        deliveryStatus,
+        note,
+        button
+    ) {
+        if (!handoffId) {
+            showError("Order handoff ID is missing.");
+            return;
+        }
+
+        const validStatus = DELIVERY_STEPS.some(
+            step => step.value === deliveryStatus
+        );
+
+        if (!validStatus) {
+            showError("Please select a valid delivery status.");
+            return;
+        }
+
+        if (!confirm(
+            "Are you sure you want to update the delivery status?"
+        )) {
+            return;
+        }
+
+        button.disabled = true;
+        button.textContent = "Updating...";
+
+        try {
+            const result = await apiRequest(
+                "/api/admin/supplier/orders/" +
+                encodeURIComponent(handoffId) +
+                "/delivery",
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        delivery_status: deliveryStatus,
+                        delivery_note: note.trim()
+                    })
+                }
+            );
+
+            showSuccess(
+                result.message ||
+                "Delivery progress updated successfully."
+            );
+
+            await loadOrders();
+
+        } catch (error) {
+            showError(
+                error.message ||
+                "Could not update delivery progress."
+            );
+
+            button.disabled = false;
+            button.textContent = "Update Delivery";
         }
     }
 
@@ -968,12 +1511,19 @@
             this.textContent = "Refresh Orders";
         });
 
+    // ==========================================
+    // SUPPLIER PRODUCTS
+    // ==========================================
+
     async function loadProducts() {
-        const tbody = document.getElementById("productsTable");
+        const tbody =
+            document.getElementById("productsTable");
 
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" class="empty">Loading products...</td>
+                <td colspan="7" class="empty">
+                    Loading products...
+                </td>
             </tr>
         `;
 
@@ -1004,7 +1554,9 @@
     }
 
     function renderProducts() {
-        const tbody = document.getElementById("productsTable");
+        const tbody =
+            document.getElementById("productsTable");
+
         tbody.replaceChildren();
 
         if (!myProducts.length) {
@@ -1013,55 +1565,81 @@
 
             cell.colSpan = 7;
             cell.className = "empty";
-            cell.textContent = "You have not added any products yet.";
+            cell.textContent =
+                "You have not added any products yet.";
 
             row.appendChild(cell);
             tbody.appendChild(row);
+
             return;
         }
 
         myProducts.forEach(product => {
             const row = document.createElement("tr");
 
-            const name = document.createElement("td");
-            name.textContent = product.product_name || "Unnamed";
+            const name = createElement(
+                "td",
+                "",
+                product.product_name || "Unnamed"
+            );
 
-            const purchase = document.createElement("td");
-            purchase.textContent = money(product.purchase_price);
+            const purchase = createElement(
+                "td",
+                "",
+                money(product.purchase_price)
+            );
 
-            const proposed = document.createElement("td");
-            proposed.textContent = money(product.proposed_selling_price);
+            const proposed = createElement(
+                "td",
+                "",
+                money(product.proposed_selling_price)
+            );
 
-            const stock = document.createElement("td");
-            stock.textContent = product.supplier_stock_quantity;
+            const stock = createElement(
+                "td",
+                "",
+                product.supplier_stock_quantity ?? 0
+            );
 
-            const statusCell = document.createElement("td");
-            const status = document.createElement("span");
+            const statusCell =
+                document.createElement("td");
 
-            status.className =
-                "status " + (product.approval_status || "pending");
+            const status = createElement(
+                "span",
+                "status " + (product.approval_status || "pending"),
+                product.approval_status || "pending"
+            );
 
-            status.textContent = product.approval_status || "pending";
             statusCell.appendChild(status);
 
-            const note = document.createElement("td");
-            note.textContent = product.admin_approval_note || "No note";
+            const note = createElement(
+                "td",
+                "",
+                product.admin_approval_note || "No note"
+            );
 
-            const action = document.createElement("td");
+            const action =
+                document.createElement("td");
 
-            const editButton = document.createElement("button");
+            const editButton = createElement(
+                "button",
+                "edit-btn",
+                "Edit"
+            );
+
             editButton.type = "button";
-            editButton.className = "edit-btn";
-            editButton.textContent = "Edit";
 
             editButton.addEventListener("click", () => {
                 editProduct(product.id);
             });
 
-            const deleteButton = document.createElement("button");
+            const deleteButton = createElement(
+                "button",
+                "delete-btn",
+                "Delete"
+            );
+
             deleteButton.type = "button";
-            deleteButton.className = "delete-btn";
-            deleteButton.textContent = "Delete";
 
             deleteButton.addEventListener("click", () => {
                 deleteProduct(product.id, deleteButton);
@@ -1108,7 +1686,9 @@
             const result = await apiRequest(
                 "/api/admin/supplier/my-products/" +
                 encodeURIComponent(id),
-                { method: "DELETE" }
+                {
+                    method: "DELETE"
+                }
             );
 
             myProducts = myProducts.filter(
@@ -1123,22 +1703,32 @@
             }
 
             setText("totalProducts", myProducts.length, "0");
+
             renderProducts();
 
             showSuccess(
-                result.message || "Product deleted successfully."
+                result.message ||
+                "Product deleted successfully."
             );
 
         } catch (error) {
-            showError(error.message || "Could not delete product.");
+            showError(
+                error.message ||
+                "Could not delete product."
+            );
 
             button.disabled = false;
             button.textContent = "Delete";
         }
     }
 
+    // ==========================================
+    // PRODUCT FORM
+    // ==========================================
+
     function resetForm() {
         document.getElementById("productForm").reset();
+
         document.getElementById("editingProductId").value = "";
 
         document.getElementById("formTitle").textContent =
@@ -1147,7 +1737,8 @@
         document.getElementById("submitBtn").textContent =
             "Submit Product";
 
-        document.getElementById("cancelEditBtn").style.display = "none";
+        document.getElementById("cancelEditBtn").style.display =
+            "none";
 
         document.getElementById("deliveryCost").value = "0";
         document.getElementById("otherCost").value = "0";
@@ -1164,27 +1755,39 @@
             return;
         }
 
-        document.getElementById("editingProductId").value = product.id;
+        document.getElementById("editingProductId").value =
+            product.id;
+
         document.getElementById("productName").value =
             product.product_name || "";
+
         document.getElementById("category").value =
             product.category || "";
+
         document.getElementById("description").value =
             product.description || "";
+
         document.getElementById("imageUrl").value =
             product.image_url || "";
+
         document.getElementById("purchasePrice").value =
             product.purchase_price ?? 0;
+
         document.getElementById("proposedPrice").value =
             product.proposed_selling_price ?? 0;
+
         document.getElementById("deliveryCost").value =
             product.delivery_cost ?? 0;
+
         document.getElementById("otherCost").value =
             product.other_cost ?? 0;
+
         document.getElementById("stock").value =
             product.supplier_stock_quantity ?? 0;
+
         document.getElementById("sku").value =
             product.supplier_sku || "";
+
         document.getElementById("notes").value =
             product.notes || "";
 
@@ -1210,29 +1813,42 @@
         .addEventListener("submit", async function(event) {
             event.preventDefault();
 
-            const submitButton = document.getElementById("submitBtn");
+            const submitButton =
+                document.getElementById("submitBtn");
 
             const editingId =
                 document.getElementById("editingProductId").value;
 
             const data = {
                 name: document.getElementById("productName").value.trim(),
+
                 category: document.getElementById("category").value.trim(),
+
                 description: document.getElementById("description").value.trim(),
+
                 image_url: document.getElementById("imageUrl").value.trim(),
+
                 purchase_price: document.getElementById("purchasePrice").value,
+
                 proposed_selling_price: document.getElementById("proposedPrice").value,
+
                 delivery_cost: document.getElementById("deliveryCost").value,
+
                 other_cost: document.getElementById("otherCost").value,
+
                 supplier_stock_quantity: Number(
                     document.getElementById("stock").value
                 ),
+
                 supplier_sku: document.getElementById("sku").value.trim(),
+
                 notes: document.getElementById("notes").value.trim()
             };
 
             if (!data.name || !data.category) {
-                showError("Please enter product name and category.");
+                showError(
+                    "Please enter product name and category."
+                );
                 return;
             }
 
@@ -1240,7 +1856,33 @@
                 data.image_url &&
                 !/^https?:\/\//i.test(data.image_url)
             ) {
-                showError("Image URL must start with http:// or https://");
+                showError(
+                    "Image URL must start with http:// or https://"
+                );
+                return;
+            }
+
+            if (
+                !Number.isFinite(Number(data.purchase_price)) ||
+                Number(data.purchase_price) < 0
+            ) {
+                showError("Please enter a valid purchase price.");
+                return;
+            }
+
+            if (
+                !Number.isFinite(Number(data.proposed_selling_price)) ||
+                Number(data.proposed_selling_price) <= 0
+            ) {
+                showError("Please enter a valid proposed selling price.");
+                return;
+            }
+
+            if (
+                !Number.isInteger(data.supplier_stock_quantity) ||
+                data.supplier_stock_quantity < 0
+            ) {
+                showError("Stock must be a whole number of 0 or more.");
                 return;
             }
 
@@ -1264,14 +1906,20 @@
                 });
 
                 resetForm();
+
                 await loadProducts();
 
                 showSuccess(
-                    result.message || "Product submitted successfully."
+                    result.message ||
+                    "Product submitted successfully."
                 );
 
             } catch (error) {
-                showError(error.message || "Could not submit product.");
+                showError(
+                    error.message ||
+                    "Could not submit product."
+                );
+
             } finally {
                 submitButton.disabled = false;
 
@@ -1282,24 +1930,38 @@
             }
         });
 
+    // ==========================================
     // SUPPLIER LOGOUT
+    // ==========================================
+
     document.getElementById("logoutBtn")
         .addEventListener("click", async function() {
             this.disabled = true;
+            this.textContent = "Logging out...";
 
             try {
-                await apiRequest("/api/supplier/logout", {
-                    method: "POST"
-                });
+                await apiRequest(
+                    "/api/supplier/logout",
+                    {
+                        method: "POST"
+                    }
+                );
 
-                window.location.replace("/pages/supplier-login.html");
+                window.location.replace(
+                    "/pages/supplier-login.html"
+                );
 
             } catch (error) {
-                showError(error.message || "Logout failed.");
+                showError(
+                    error.message || "Logout failed."
+                );
+
                 this.disabled = false;
+                this.textContent = "Logout";
             }
         });
 
+    // Start dashboard
     loadDashboard();
 </script>
 

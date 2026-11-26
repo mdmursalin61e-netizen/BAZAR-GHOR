@@ -25,6 +25,12 @@ if (!JWT_SECRET || JWT_SECRET.length < 32) {
 // Dummy hash: used so login takes the same time even if the email does not exist
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync("dummy-password-for-timing", 10);
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidId(value) {
+    return typeof value === "string" && /^\d+$/.test(value) && Number(value) > 0;
+}
+
 // =====================================
 // PUBLIC DATA CACHE
 // =====================================
@@ -418,7 +424,7 @@ app.post(
             if (
                 !cleanEmail ||
                 cleanEmail.length > 255 ||
-                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)
+                !EMAIL_REGEX.test(cleanEmail)
             ) {
                 return res.status(400).json({
                     success: false,
@@ -472,10 +478,11 @@ app.post(
 
 // =====================================
 // PUBLIC CONTACT MESSAGE API
+// (/api/contact is kept as an alias because index.html uses it)
 // =====================================
 
 app.post(
-    "/api/messages",
+    ["/api/messages", "/api/contact"],
     contactLimiter,
     async (req, res) => {
         try {
@@ -522,7 +529,7 @@ app.post(
                 cleanEmail &&
                 (
                     cleanEmail.length > 255 ||
-                    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)
+                    !EMAIL_REGEX.test(cleanEmail)
                 )
             ) {
                 return res.status(400).json({
@@ -724,49 +731,9 @@ app.get("/api/admin/dashboard-stats", requireAdmin, async (req, res) => {
 });
 
 // =====================================
-// PUBLIC PRODUCTS
-// =====================================
-
-app.get("/api/products", async (req, res) => {
-    try {
-        let products = getPublicCache("products");
-
-        if (!products) {
-            products = await sql`
-                SELECT
-                    id,
-                    name,
-                    description,
-                    price,
-                    stock_quantity,
-                    image_url
-                FROM products
-                WHERE is_active = TRUE
-                ORDER BY id DESC
-            `;
-
-            setPublicCache("products", products);
-        }
-
-        setPublicCacheHeaders(res);
-
-        return res.json({
-            success: true,
-            products
-        });
-
-    } catch (error) {
-        console.error("Public products error:", error);
-
-        return res.status(500).json({
-            success: false,
-            message: "Could not load products."
-        });
-    }
-});
-
-// =====================================
-// PUBLIC PRODUCTS
+// PUBLIC PRODUCTS (with discount support)
+// FIX: the old duplicate /api/products route (without discount) was
+// registered first and hid this one. Only this version exists now.
 // =====================================
 
 app.get("/api/products", async (req, res) => {
@@ -783,7 +750,7 @@ app.get("/api/products", async (req, res) => {
                         WHEN p.discount_enabled = TRUE
                              AND p.discount_percent > 0
                         THEN ROUND(
-                            p.price * (1 - p.discount_percent / 100),
+                            p.price * (1 - p.discount_percent / 100.0),
                             2
                         )
                         ELSE p.price
@@ -821,7 +788,6 @@ app.get("/api/products", async (req, res) => {
         });
     }
 });
-
 
 // =====================================
 // PUBLIC SERVICES
@@ -865,6 +831,10 @@ app.get("/api/services", async (req, res) => {
 
 // =====================================
 // CUSTOMER ORDER API
+// Accepts both field name styles:
+//   name / delivery_address / payment_reference
+//   customer_name / address / transaction_id
+// FIX: order total now uses the DISCOUNTED price (same as shown in shop).
 // =====================================
 
 app.post(
@@ -872,15 +842,15 @@ app.post(
     orderLimiter,
     async (req, res) => {
         try {
-            const {
-                name,
-                email,
-                phone,
-                delivery_address,
-                payment_method,
-                payment_reference,
-                items
-            } = req.body || {};
+            const body = req.body || {};
+
+            const name = body.name ?? body.customer_name ?? body.customerName;
+            const email = body.email;
+            const phone = body.phone;
+            const delivery_address = body.delivery_address ?? body.address;
+            const payment_method = body.payment_method;
+            const payment_reference = body.payment_reference ?? body.transaction_id;
+            const items = body.items;
 
             const cleanName =
                 typeof name === "string" ? name.trim() : "";
@@ -933,7 +903,7 @@ app.post(
                 cleanEmail &&
                 (
                     cleanEmail.length > 255 ||
-                    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)
+                    !EMAIL_REGEX.test(cleanEmail)
                 )
             ) {
                 return res.status(400).json({
@@ -1027,7 +997,7 @@ app.post(
             }
 
             const orderNumber =
-                "ESG-" +
+                "BG-" +
                 Date.now() +
                 "-" +
                 crypto.randomBytes(3).toString("hex").toUpperCase();
@@ -1047,9 +1017,31 @@ app.post(
                     SELECT
                         p.id,
                         p.name,
-                        p.price,
+                        (
+                            CASE
+                                WHEN p.discount_enabled = TRUE
+                                     AND p.discount_percent > 0
+                                THEN ROUND(
+                                    p.price * (1 - p.discount_percent / 100.0),
+                                    2
+                                )
+                                ELSE p.price
+                            END
+                        )::NUMERIC(12, 2) AS price,
                         i.quantity,
-                        (p.price * i.quantity)::NUMERIC(12, 2) AS subtotal
+                        (
+                            (
+                                CASE
+                                    WHEN p.discount_enabled = TRUE
+                                         AND p.discount_percent > 0
+                                    THEN ROUND(
+                                        p.price * (1 - p.discount_percent / 100.0),
+                                        2
+                                    )
+                                    ELSE p.price
+                                END
+                            ) * i.quantity
+                        )::NUMERIC(12, 2) AS subtotal
                     FROM input_items i
                     INNER JOIN products p
                         ON p.id = i.product_id
@@ -1453,7 +1445,7 @@ app.put("/api/admin/suppliers/:id", requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid supplier ID."
@@ -1570,7 +1562,7 @@ app.delete("/api/admin/suppliers/:id", requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (!/^\d+$/.test(id) || Number(id) <= 0) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid supplier ID."
@@ -1793,7 +1785,7 @@ app.put("/api/admin/products/:id", requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
-        if (!/^\d+$/.test(id) || Number(id) <= 0) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid product ID."
@@ -1952,7 +1944,7 @@ app.delete("/api/admin/products/:id", requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
-        if (!/^\d+$/.test(id) || Number(id) <= 0) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid product ID."
@@ -2010,7 +2002,6 @@ app.delete("/api/admin/products/:id", requireAdmin, async (req, res) => {
         });
     }
 });
-
 
 // =====================================
 // ADMIN SERVICES MANAGEMENT
@@ -2120,7 +2111,7 @@ app.put("/api/admin/services/:id", requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid service ID."
@@ -2207,7 +2198,7 @@ app.delete("/api/admin/services/:id", requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid service ID."
@@ -2300,7 +2291,7 @@ app.get("/api/admin/orders/:id/items", requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid order ID."
@@ -2345,7 +2336,7 @@ app.put("/api/admin/orders/:id/status", requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid order ID."
@@ -2475,7 +2466,7 @@ app.patch("/api/admin/orders/:id/archive", requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid order ID."
@@ -2520,7 +2511,7 @@ app.patch("/api/admin/orders/:id/restore", requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid order ID."
@@ -2565,7 +2556,7 @@ app.delete("/api/admin/orders/:id", requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid order ID."
@@ -2587,19 +2578,23 @@ app.delete("/api/admin/orders/:id", requireAdmin, async (req, res) => {
             });
         }
 
-        await sql`
-            DELETE FROM order_items
-            WHERE order_id = ${id}
+        // Single statement: items and order are deleted together (all or nothing)
+        const deleted = await sql`
+            WITH deleted_items AS (
+                DELETE FROM order_items
+                WHERE order_id = ${id}
+                RETURNING id
+            ),
+            deleted_order AS (
+                DELETE FROM orders
+                WHERE id = ${id}
+                  AND is_archived = TRUE
+                RETURNING id
+            )
+            SELECT id FROM deleted_order
         `;
 
-        const deletedOrder = await sql`
-            DELETE FROM orders
-            WHERE id = ${id}
-              AND is_archived = TRUE
-            RETURNING id
-        `;
-
-        if (deletedOrder.length === 0) {
+        if (deleted.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "Order not found."
@@ -2649,7 +2644,7 @@ app.get("/api/admin/customers", requireAdmin, async (req, res) => {
     }
 });
 
-// EXPORT CUSTOMERS CSV
+// EXPORT CUSTOMERS CSV (must stay above /customers/:id)
 app.get("/api/admin/customers/export.csv", requireAdmin, async (req, res) => {
     try {
         const showArchived = req.query.archived === "true";
@@ -2710,7 +2705,7 @@ app.get("/api/admin/customers/:id", requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid customer ID."
@@ -2748,7 +2743,7 @@ app.put("/api/admin/customers/:id", requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid customer ID."
@@ -2777,7 +2772,7 @@ app.put("/api/admin/customers/:id", requireAdmin, async (req, res) => {
         }
 
         if (emailInput.length > 255 ||
-            (emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput))) {
+            (emailInput && !EMAIL_REGEX.test(emailInput))) {
             return res.status(400).json({
                 success: false,
                 message: "Please enter a valid email address."
@@ -2846,7 +2841,7 @@ app.get("/api/admin/customers/:id/orders", requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid customer ID."
@@ -2892,7 +2887,7 @@ app.patch("/api/admin/customers/:id/archive", requireAdmin, async (req, res) => 
     try {
         const { id } = req.params;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid customer ID."
@@ -2932,7 +2927,7 @@ app.patch("/api/admin/customers/:id/restore", requireAdmin, async (req, res) => 
     try {
         const { id } = req.params;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid customer ID."
@@ -2972,7 +2967,7 @@ app.delete("/api/admin/customers/:id", requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid customer ID."
@@ -3086,7 +3081,7 @@ app.get("/api/admin/messages/:id", requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid message ID."
@@ -3140,7 +3135,7 @@ app.patch("/api/admin/messages/:id/status", requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid message ID."
@@ -3207,7 +3202,7 @@ app.delete("/api/admin/messages/:id", requireAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
-        if (!/^\d+$/.test(id)) {
+        if (!isValidId(id)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid message ID."

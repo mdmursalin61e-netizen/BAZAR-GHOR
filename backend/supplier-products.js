@@ -8,10 +8,16 @@ function createSupplierProductsRouter({
     const express = require("express");
     const router = express.Router();
 
-    // Deleted product markers
     const DELETED_BY_ADMIN = "Deleted by Admin";
     const DELETED_BY_SUPPLIER = "Deleted by Supplier";
     const LEGACY_DELETED_NOTE = "Deactivated by Admin";
+
+    const DELIVERY_STATUSES = [
+        "preparing",
+        "ready_for_dispatch",
+        "shipped",
+        "delivered"
+    ];
 
     function validId(value) {
         return /^\d+$/.test(String(value)) && Number(value) > 0;
@@ -68,9 +74,7 @@ function createSupplierProductsRouter({
         );
 
         if (!validId(body.supplier_id) || !validId(body.product_id)) {
-            return {
-                error: "Please select a valid supplier and product."
-            };
+            return { error: "Please select a valid supplier and product." };
         }
 
         if (
@@ -78,15 +82,11 @@ function createSupplierProductsRouter({
             deliveryCost === null ||
             otherCost === null
         ) {
-            return {
-                error: "Please enter valid cost amounts."
-            };
+            return { error: "Please enter valid cost amounts." };
         }
 
         if (stock === null) {
-            return {
-                error: "Please enter a valid supplier stock quantity."
-            };
+            return { error: "Please enter a valid supplier stock quantity." };
         }
 
         return {
@@ -127,21 +127,15 @@ function createSupplierProductsRouter({
         }
 
         if (description.length > 10000) {
-            return {
-                error: "Description is too long."
-            };
+            return { error: "Description is too long." };
         }
 
         if (!category || category.length > 100) {
-            return {
-                error: "Please enter a valid product category."
-            };
+            return { error: "Please enter a valid product category." };
         }
 
         if (proposedPrice === null || proposedPrice <= 0) {
-            return {
-                error: "Please enter a valid proposed selling price."
-            };
+            return { error: "Please enter a valid proposed selling price." };
         }
 
         if (
@@ -149,21 +143,15 @@ function createSupplierProductsRouter({
             deliveryCost === null ||
             otherCost === null
         ) {
-            return {
-                error: "Please enter valid cost amounts."
-            };
+            return { error: "Please enter valid cost amounts." };
         }
 
         if (stock === null) {
-            return {
-                error: "Please enter a valid stock quantity."
-            };
+            return { error: "Please enter a valid stock quantity." };
         }
 
         if (sku.length > 100 || notes.length > 5000) {
-            return {
-                error: "SKU or notes are too long."
-            };
+            return { error: "SKU or notes are too long." };
         }
 
         if (imageUrl) {
@@ -171,14 +159,10 @@ function createSupplierProductsRouter({
                 const parsed = new URL(imageUrl);
 
                 if (!["http:", "https:"].includes(parsed.protocol)) {
-                    return {
-                        error: "Image URL must use HTTP or HTTPS."
-                    };
+                    return { error: "Image URL must use HTTP or HTTPS." };
                 }
             } catch {
-                return {
-                    error: "Please enter a valid image URL."
-                };
+                return { error: "Please enter a valid image URL." };
             }
         }
 
@@ -230,10 +214,8 @@ function createSupplierProductsRouter({
                     ${LEGACY_DELETED_NOTE}
                 )
                 ORDER BY
-                    CASE
-                        WHEN sp.approval_status = 'pending' THEN 0
-                        ELSE 1
-                    END,
+                    CASE WHEN sp.approval_status = 'pending'
+                    THEN 0 ELSE 1 END,
                     sp.id DESC
             `;
 
@@ -271,8 +253,7 @@ function createSupplierProductsRouter({
             const d = validation.data;
 
             const suppliers = await sql`
-                SELECT id
-                FROM suppliers
+                SELECT id FROM suppliers
                 WHERE id = ${d.supplierId}
                 AND status = 'active'
                 LIMIT 1
@@ -286,8 +267,7 @@ function createSupplierProductsRouter({
             }
 
             const products = await sql`
-                SELECT id, price
-                FROM products
+                SELECT id, price FROM products
                 WHERE id = ${d.productId}
                 LIMIT 1
             `;
@@ -311,24 +291,15 @@ function createSupplierProductsRouter({
 
             const result = await sql`
                 INSERT INTO supplier_products (
-                    supplier_id,
-                    product_id,
-                    supplier_cost,
-                    selling_price,
-                    delivery_cost,
-                    other_cost,
-                    stock_available,
-                    sku
+                    supplier_id, product_id, supplier_cost,
+                    selling_price, delivery_cost, other_cost,
+                    stock_available, sku
                 )
                 VALUES (
-                    ${d.supplierId},
-                    ${d.productId},
-                    ${d.purchasePrice},
-                    ${finalPrice},
-                    ${d.deliveryCost},
-                    ${d.otherCost},
-                    ${d.stock},
-                    ${d.sku || null}
+                    ${d.supplierId}, ${d.productId},
+                    ${d.purchasePrice}, ${finalPrice},
+                    ${d.deliveryCost}, ${d.otherCost},
+                    ${d.stock}, ${d.sku || null}
                 )
                 RETURNING id
             `;
@@ -382,8 +353,7 @@ function createSupplierProductsRouter({
             const d = validation.data;
 
             const suppliers = await sql`
-                SELECT id
-                FROM suppliers
+                SELECT id FROM suppliers
                 WHERE id = ${d.supplierId}
                 AND status = 'active'
                 LIMIT 1
@@ -397,8 +367,7 @@ function createSupplierProductsRouter({
             }
 
             const products = await sql`
-                SELECT id, price
-                FROM products
+                SELECT id, price FROM products
                 WHERE id = ${d.productId}
                 LIMIT 1
             `;
@@ -485,7 +454,6 @@ function createSupplierProductsRouter({
             }
 
             const status = req.body.approval_status;
-
             const note = String(
                 req.body.admin_approval_note || ""
             ).trim().slice(0, 3000);
@@ -572,11 +540,8 @@ function createSupplierProductsRouter({
                         ${LEGACY_DELETED_NOTE}
                     )
                     RETURNING
-                        id,
-                        product_id,
-                        stock_available,
-                        selling_price,
-                        approval_status
+                        id, product_id, stock_available,
+                        selling_price, approval_status
                 ),
                 updated_product AS (
                     UPDATE products p
@@ -873,12 +838,8 @@ function createSupplierProductsRouter({
             const result = await sql`
                 WITH new_product AS (
                     INSERT INTO products (
-                        name,
-                        description,
-                        price,
-                        stock_quantity,
-                        image_url,
-                        is_active
+                        name, description, price,
+                        stock_quantity, image_url, is_active
                     )
                     VALUES (
                         ${d.name},
@@ -892,17 +853,10 @@ function createSupplierProductsRouter({
                 ),
                 new_supplier_product AS (
                     INSERT INTO supplier_products (
-                        supplier_id,
-                        product_id,
-                        supplier_cost,
-                        selling_price,
-                        delivery_cost,
-                        other_cost,
-                        stock_available,
-                        sku,
-                        proposed_selling_price,
-                        approval_status,
-                        bazar_ghor_profit_percentage
+                        supplier_id, product_id, supplier_cost,
+                        selling_price, delivery_cost, other_cost,
+                        stock_available, sku, proposed_selling_price,
+                        approval_status, bazar_ghor_profit_percentage
                     )
                     SELECT
                         ${req.supplier.id},
@@ -1043,7 +997,6 @@ function createSupplierProductsRouter({
 
     // =========================================================
     // ADMIN: GET APPROVED SUPPLIERS FOR AN ORDER ITEM
-    // Actual URL: GET /api/admin/orders/:orderId/items/:itemId/supplier-options
     // =========================================================
 
     router.get(
@@ -1126,8 +1079,6 @@ function createSupplierProductsRouter({
 
     // =========================================================
     // ADMIN: SEND ONE ORDER ITEM TO A SELECTED SUPPLIER
-    // Actual URL: POST /api/admin/orders/:orderId/items/:itemId/handoff
-    // Body: { "supplier_product_id": 123 }
     // =========================================================
 
     router.post(
@@ -1170,9 +1121,7 @@ function createSupplierProductsRouter({
                 }
 
                 if (
-                    ["cancelled"].includes(
-                        String(orderItems[0].order_status).toLowerCase()
-                    )
+                    String(orderItems[0].order_status).toLowerCase() === "cancelled"
                 ) {
                     return res.status(400).json({
                         success: false,
@@ -1273,7 +1222,7 @@ function createSupplierProductsRouter({
 
     // =========================================================
     // ADMIN: VIEW ALL SUPPLIER ORDER HANDOFFS
-    // Actual URL: GET /api/admin/supplier-order-handoffs
+    // Requires migration 003_supplier_delivery_progress.sql
     // =========================================================
 
     router.get(
@@ -1294,6 +1243,9 @@ function createSupplierProductsRouter({
                         h.sent_at,
                         h.responded_at,
                         h.reviewed_at,
+                        h.delivery_status,
+                        h.delivery_note,
+                        h.delivery_updated_at,
                         o.order_number,
                         o.status AS order_status,
                         oi.product_name,
@@ -1328,8 +1280,7 @@ function createSupplierProductsRouter({
 
     // =========================================================
     // SUPPLIER: VIEW ONLY ORDERS ASSIGNED TO THIS SUPPLIER
-    // Actual URL: GET /api/admin/supplier/orders
-    // Customer phone and address are intentionally not returned.
+    // Customer details are revealed only after supplier accepts.
     // =========================================================
 
     router.get(
@@ -1339,22 +1290,49 @@ function createSupplierProductsRouter({
             try {
                 const records = await sql`
                     SELECT
+                        h.id AS id,
                         h.id AS handoff_id,
                         h.order_id,
                         h.order_item_id,
+                        h.status AS status,
                         h.status AS handoff_status,
                         h.supplier_response_note,
                         h.sent_at,
                         h.responded_at,
+                        h.reviewed_at,
+                        h.delivery_status,
+                        h.delivery_note,
+                        h.delivery_updated_at,
                         o.order_number,
                         o.created_at AS order_created_at,
                         oi.product_name,
                         oi.quantity,
                         oi.unit_price,
-                        oi.subtotal
+                        oi.subtotal,
+
+                        CASE
+                            WHEN h.status IN ('accepted', 'admin_approved')
+                            THEN c.name
+                            ELSE NULL
+                        END AS customer_name,
+
+                        CASE
+                            WHEN h.status IN ('accepted', 'admin_approved')
+                            THEN c.phone
+                            ELSE NULL
+                        END AS customer_phone,
+
+                        CASE
+                            WHEN h.status IN ('accepted', 'admin_approved')
+                            THEN o.delivery_address
+                            ELSE NULL
+                        END AS delivery_address
+
                     FROM supplier_order_handoffs h
                     JOIN orders o ON o.id = h.order_id
                     JOIN order_items oi ON oi.id = h.order_item_id
+                    LEFT JOIN customers c ON c.id = o.customer_id
+
                     WHERE h.supplier_id = ${req.supplier.id}
                     ORDER BY h.sent_at DESC, h.id DESC
                 `;
@@ -1378,8 +1356,6 @@ function createSupplierProductsRouter({
 
     // =========================================================
     // SUPPLIER: ACCEPT OR REJECT AN ASSIGNED ORDER ITEM
-    // Actual URL: PATCH /api/admin/supplier/orders/:handoffId/response
-    // Body: { "decision": "accepted" | "rejected", "note": "..." }
     // =========================================================
 
     router.patch(
@@ -1428,7 +1404,8 @@ function createSupplierProductsRouter({
                     WHERE id = ${handoffId}
                     AND supplier_id = ${req.supplier.id}
                     AND status = 'sent'
-                    RETURNING id, status, supplier_response_note, responded_at
+                    RETURNING
+                        id, status, supplier_response_note, responded_at
                 `;
 
                 if (!result.length) {
@@ -1457,7 +1434,7 @@ function createSupplierProductsRouter({
                 return res.json({
                     success: true,
                     message: decision === "accepted"
-                        ? "Order accepted successfully. Admin will review your response."
+                        ? "Order accepted. Customer delivery details are now available."
                         : "Order rejected. Admin has been notified.",
                     handoff: result[0]
                 });
@@ -1474,8 +1451,6 @@ function createSupplierProductsRouter({
 
     // =========================================================
     // ADMIN: FINAL REVIEW OF SUPPLIER RESPONSE
-    // Actual URL: PATCH /api/admin/supplier-order-handoffs/:id/review
-    // Body: { "decision": "approved" | "rejected", "note": "..." }
     // =========================================================
 
     router.patch(
@@ -1547,6 +1522,122 @@ function createSupplierProductsRouter({
                 return res.status(500).json({
                     success: false,
                     message: "Could not review supplier response."
+                });
+            }
+        }
+    );
+
+    // =========================================================
+    // SUPPLIER: UPDATE DELIVERY PROGRESS
+    // Only Admin-approved supplier orders can be updated.
+    // Requires migration 003_supplier_delivery_progress.sql
+    // =========================================================
+
+    router.patch(
+        "/supplier/orders/:handoffId/delivery",
+        requireSupplier,
+        async (req, res) => {
+            try {
+                const { handoffId } = req.params;
+
+                if (!validId(handoffId)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Invalid order reference."
+                    });
+                }
+
+                const deliveryStatus = String(
+                    req.body?.delivery_status || ""
+                ).trim().toLowerCase();
+
+                const deliveryNote = String(
+                    req.body?.delivery_note || ""
+                ).trim().slice(0, 2000);
+
+                if (!DELIVERY_STATUSES.includes(deliveryStatus)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Please select a valid delivery status."
+                    });
+                }
+
+                const result = await sql`
+                    UPDATE supplier_order_handoffs
+                    SET
+                        delivery_status = ${deliveryStatus},
+                        delivery_note = ${deliveryNote || null},
+                        delivery_updated_at = NOW(),
+                        updated_at = NOW()
+                    WHERE id = ${handoffId}
+                    AND supplier_id = ${req.supplier.id}
+                    AND status = 'admin_approved'
+                    AND (
+                        CASE delivery_status
+                            WHEN 'not_started' THEN 0
+                            WHEN 'preparing' THEN 1
+                            WHEN 'ready_for_dispatch' THEN 2
+                            WHEN 'shipped' THEN 3
+                            WHEN 'delivered' THEN 4
+                            ELSE -1
+                        END
+                    ) <= (
+                        CASE ${deliveryStatus}
+                            WHEN 'preparing' THEN 1
+                            WHEN 'ready_for_dispatch' THEN 2
+                            WHEN 'shipped' THEN 3
+                            WHEN 'delivered' THEN 4
+                            ELSE -1
+                        END
+                    )
+                    RETURNING
+                        id,
+                        status,
+                        delivery_status,
+                        delivery_note,
+                        delivery_updated_at
+                `;
+
+                if (!result.length) {
+                    const existing = await sql`
+                        SELECT id, status, delivery_status
+                        FROM supplier_order_handoffs
+                        WHERE id = ${handoffId}
+                        AND supplier_id = ${req.supplier.id}
+                        LIMIT 1
+                    `;
+
+                    if (!existing.length) {
+                        return res.status(404).json({
+                            success: false,
+                            message: "Order not found in your supplier account."
+                        });
+                    }
+
+                    if (existing[0].status !== "admin_approved") {
+                        return res.status(403).json({
+                            success: false,
+                            message: "Admin must approve this supplier order before delivery updates."
+                        });
+                    }
+
+                    return res.status(400).json({
+                        success: false,
+                        message: "Delivery progress cannot move backwards."
+                    });
+                }
+
+                return res.json({
+                    success: true,
+                    message: "Delivery progress updated successfully.",
+                    handoff: result[0]
+                });
+            } catch (error) {
+                console.error("Supplier delivery update error:", error);
+
+                return res.status(500).json({
+                    success: false,
+                    message: "Could not update delivery progress."
                 });
             }
         }
