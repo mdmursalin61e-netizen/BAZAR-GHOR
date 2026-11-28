@@ -475,21 +475,35 @@ app.use(
 );
 
 // =====================================
-// STATIC ASSETS AND UPLOADED IMAGES
+// STATIC ASSETS, PAGES AND UPLOADED IMAGES
 // =====================================
 
 app.use("/assets", express.static(path.join(__dirname, "..", "assets"), {
-    maxAge: "1d", etag: true, lastModified: true
+    maxAge: "1d",
+    etag: true,
+    lastModified: true
+}));
+
+// Public HTML pages
+app.use("/pages", express.static(path.join(__dirname, "..", "pages"), {
+    index: false,
+    etag: true,
+    lastModified: true
 }));
 
 app.use("/uploads", express.static(uploadDirectory, {
-    dotfiles: "deny", index: false, maxAge: "7d", etag: true, lastModified: true
+    dotfiles: "deny",
+    index: false,
+    maxAge: "7d",
+    etag: true,
+    lastModified: true
 }));
 
 app.get("/", (req, res) => {
     res.setHeader("Cache-Control", "no-cache");
     res.sendFile(path.join(__dirname, "..", "index.html"));
 });
+
 
 // =====================================
 // HEALTH CHECK
@@ -1507,8 +1521,131 @@ app.post("/api/contact", contactLimiter, optionalCustomer, async (req, res) => {
 });
 
 // =====================================
+// ADMIN MESSAGES API ROUTES
+// =====================================
+
+// 1. GET ALL MESSAGES
+app.get("/api/admin/messages", requireAdmin, async (req, res) => {
+    try {
+        const rows = await sql`
+            SELECT *
+            FROM messages
+            ORDER BY created_at DESC
+        `;
+
+        return res.json({
+            success: true,
+            messages: rows
+        });
+    } catch (error) {
+        console.error("Get messages error:", error);
+        return bad(res, "Could not load messages.", 500);
+    }
+});
+
+
+// 2. GET SINGLE MESSAGE
+app.get("/api/admin/messages/:id", requireAdmin, async (req, res) => {
+    try {
+        const id = String(req.params.id);
+
+        if (!isValidId(id)) {
+            return bad(res, "Invalid message ID.", 400);
+        }
+
+        const rows = await sql`
+            SELECT *
+            FROM messages
+            WHERE id = ${Number(id)}
+            LIMIT 1
+        `;
+
+        if (!rows.length) {
+            return bad(res, "Message not found.", 404);
+        }
+
+        return res.json({
+            success: true,
+            message: rows[0]
+        });
+    } catch (error) {
+        console.error("Get single message error:", error);
+        return bad(res, "Could not load message.", 500);
+    }
+});
+
+
+// 3. UPDATE MESSAGE STATUS
+app.patch("/api/admin/messages/:id/status", requireAdmin, async (req, res) => {
+    try {
+        const id = String(req.params.id);
+        const status = str(req.body?.status).toLowerCase();
+
+        if (!isValidId(id)) {
+            return bad(res, "Invalid message ID.", 400);
+        }
+
+        if (!["read", "unread"].includes(status)) {
+            return bad(res, "Status must be read or unread.", 400);
+        }
+
+        const rows = await sql`
+            UPDATE messages
+            SET status = ${status}
+            WHERE id = ${Number(id)}
+            RETURNING *
+        `;
+
+        if (!rows.length) {
+            return bad(res, "Message not found.", 404);
+        }
+
+        return res.json({
+            success: true,
+            message: "Message status updated.",
+            data: rows[0]
+        });
+    } catch (error) {
+        console.error("Update message status error:", error);
+        return bad(res, "Could not update message status.", 500);
+    }
+});
+
+
+// 4. DELETE MESSAGE
+app.delete("/api/admin/messages/:id", requireAdmin, async (req, res) => {
+    try {
+        const id = String(req.params.id);
+
+        if (!isValidId(id)) {
+            return bad(res, "Invalid message ID.", 400);
+        }
+
+        const rows = await sql`
+            DELETE FROM messages
+            WHERE id = ${Number(id)}
+            RETURNING id
+        `;
+
+        if (!rows.length) {
+            return bad(res, "Message not found.", 404);
+        }
+
+        return res.json({
+            success: true,
+            message: "Message deleted successfully."
+        });
+    } catch (error) {
+        console.error("Delete message error:", error);
+        return bad(res, "Could not delete message.", 500);
+    }
+});
+
+
+// =====================================
 // SUPPLIER ORDER PROGRESS & PRODUCT LINKS ROUTES
 // =====================================
+
 
 app.get("/api/supplier/orders", supplierAuth.requireSupplier, async (req, res) => {
     try {
@@ -1750,6 +1887,36 @@ app.post("/api/admin/logout", (req, res) => {
 
 app.get("/api/admin/me", requireAdmin, (req, res) => {
     return res.json({ success: true, admin: req.admin });
+});
+// =====================================
+// ADMIN DASHBOARD STATISTICS
+// =====================================
+
+app.get("/api/admin/dashboard-stats", requireAdmin, async (req, res) => {
+    try {
+        const rows = await sql`
+            SELECT
+                (SELECT COUNT(*)::int FROM products) AS total_products,
+                (SELECT COUNT(*)::int FROM orders) AS total_orders,
+                (SELECT COUNT(*)::int FROM customers) AS total_customers,
+                (SELECT COUNT(*)::int FROM messages) AS total_messages
+        `;
+
+        const stats = rows[0];
+
+        return res.json({
+            success: true,
+            statistics: {
+                totalProducts: stats.total_products,
+                totalOrders: stats.total_orders,
+                totalCustomers: stats.total_customers,
+                totalMessages: stats.total_messages
+            }
+        });
+    } catch (error) {
+        console.error("Dashboard statistics error:", error);
+        return bad(res, "Could not load dashboard statistics.", 500);
+    }
 });
 
 // =====================================

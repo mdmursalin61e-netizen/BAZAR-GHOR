@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -109,12 +110,16 @@
       font-size: 13px;
     }
 
-    .refresh-btn {
+    .refresh-btn, .view-btn {
       background: #2563eb;
     }
 
-    .refresh-btn:hover {
-      background: #1d4ed8;
+    .status-btn {
+      background: #08916b;
+    }
+
+    .delete-btn {
+      background: #dc2626;
     }
 
     .table-box {
@@ -172,18 +177,6 @@
       flex-wrap: wrap;
     }
 
-    .view-btn {
-      background: #2563eb;
-    }
-
-    .status-btn {
-      background: #08916b;
-    }
-
-    .delete-btn {
-      background: #dc2626;
-    }
-
     .action-buttons button:hover {
       opacity: 0.85;
     }
@@ -198,7 +191,6 @@
     #notice {
       margin-bottom: 15px;
       font-size: 14px;
-      color: #374151;
     }
 
     .empty {
@@ -206,8 +198,6 @@
       padding: 35px;
       color: #6b7280;
     }
-
-    /* Modal */
 
     .modal {
       display: none;
@@ -326,7 +316,7 @@
     </div>
   </div>
 
-  <div id="notice"></div>
+  <div id="notice" role="status" aria-live="polite"></div>
 
   <div class="table-box">
     <table>
@@ -354,8 +344,6 @@
 
 </div>
 
-<!-- Message Details Modal -->
-
 <div class="modal" id="messageModal">
   <div class="modal-content">
 
@@ -370,297 +358,325 @@
 </div>
 
 <script>
-  let messages = [];
+"use strict";
 
-  const table = document.getElementById("messagesTable");
-  const notice = document.getElementById("notice");
+let messages = [];
 
-  function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, function(char) {
-      return {
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-      }[char];
-    });
-  }
+const table = document.getElementById("messagesTable");
+const notice = document.getElementById("notice");
 
-  function showNotice(message, isError = false) {
-    notice.textContent = message;
-    notice.style.color = isError ? "#dc2626" : "#15803d";
-  }
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, function(char) {
+    return {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[char];
+  });
+}
 
-  async function apiRequest(url, options = {}) {
-    const response = await fetch(url, {
-      credentials: "include",
-      cache: "no-store",
-      ...options,
-      headers: {
-        ...(options.headers || {})
-      }
-    });
+function showNotice(message, isError = false) {
+  notice.textContent = message;
+  notice.style.color = isError ? "#dc2626" : "#15803d";
+}
 
-    if (response.status === 401 || response.status === 403) {
-      window.location.href = "/pages/admin.html";
-      throw new Error("Please login first.");
-    }
-
-    const data = await response.json();
-
-    if (!response.ok || data.success === false) {
-      throw new Error(data.message || "Request failed.");
-    }
-
-    return data;
-  }
-
-  async function loadMessages() {
-    table.innerHTML = `
-      <tr>
-        <td colspan="9" class="empty">Loading messages...</td>
-      </tr>
-    `;
-
-    try {
-      const data = await apiRequest("/api/admin/messages");
-
-      messages = Array.isArray(data)
-        ? data
-        : (data.messages || data.data || []);
-
-      renderMessages();
-      showNotice("Messages loaded successfully.");
-
-    } catch (error) {
-      table.innerHTML = `
-        <tr>
-          <td colspan="9" class="empty">
-            ${escapeHtml(error.message)}
-          </td>
-        </tr>
-      `;
-      showNotice(error.message, true);
-    }
-  }
-
-  function renderMessages() {
-    const search = document
-      .getElementById("searchInput")
-      .value.toLowerCase()
-      .trim();
-
-    const filtered = messages.filter(message => {
-      const text = [
-        message.id,
-        message.name,
-        message.phone,
-        message.email,
-        message.subject,
-        message.message,
-        message.status
-      ].join(" ").toLowerCase();
-
-      return text.includes(search);
-    });
-
-    if (filtered.length === 0) {
-      table.innerHTML = `
-        <tr>
-          <td colspan="9" class="empty">No messages found.</td>
-        </tr>
-      `;
-      return;
-    }
-
-    table.innerHTML = filtered.map(message => {
-      const isRead = String(message.status).toLowerCase() === "read";
-
-      const statusClass = isRead ? "read" : "unread";
-      const statusText = isRead ? "Read" : "Unread";
-      const nextStatus = isRead ? "unread" : "read";
-      const nextLabel = isRead ? "Unread" : "Read";
-
-      const date = message.created_at
-        ? new Date(message.created_at).toLocaleString()
-        : "N/A";
-
-      return `
-        <tr>
-          <td>${escapeHtml(message.id)}</td>
-          <td>${escapeHtml(message.name)}</td>
-          <td>${escapeHtml(message.phone)}</td>
-          <td>${escapeHtml(message.email)}</td>
-          <td>${escapeHtml(message.subject)}</td>
-
-          <td>
-            <div class="message-preview">
-              ${escapeHtml(message.message)}
-            </div>
-          </td>
-
-          <td>
-            <span class="status ${statusClass}">
-              ${statusText}
-            </span>
-          </td>
-
-          <td>${escapeHtml(date)}</td>
-
-          <td>
-            <div class="action-buttons">
-              <button
-                type="button"
-                class="btn view-btn"
-                onclick="viewMessage(${Number(message.id)})">
-                View
-              </button>
-
-              <button
-                type="button"
-                class="btn status-btn"
-                onclick="updateStatus(${Number(message.id)}, '${nextStatus}')">
-                ${nextLabel}
-              </button>
-
-              <button
-                type="button"
-                class="btn delete-btn"
-                onclick="deleteMessage(${Number(message.id)})">
-                Delete
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join("");
-  }
-
-  async function viewMessage(id) {
-    try {
-      const data = await apiRequest(`/api/admin/messages/${id}`);
-
-      const message = data.message || data;
-
-      if (!message || !message.id) {
-        throw new Error("Message not found.");
-      }
-
-      const date = message.created_at
-        ? new Date(message.created_at).toLocaleString()
-        : "N/A";
-
-      document.getElementById("messageDetails").innerHTML = `
-        <div class="detail-row">
-          <strong>Message ID</strong>
-          <p>${escapeHtml(message.id)}</p>
-        </div>
-
-        <div class="detail-row">
-          <strong>Name</strong>
-          <p>${escapeHtml(message.name)}</p>
-        </div>
-
-        <div class="detail-row">
-          <strong>Phone</strong>
-          <p>${escapeHtml(message.phone)}</p>
-        </div>
-
-        <div class="detail-row">
-          <strong>Email</strong>
-          <p>${escapeHtml(message.email)}</p>
-        </div>
-
-        <div class="detail-row">
-          <strong>Subject</strong>
-          <p>${escapeHtml(message.subject)}</p>
-        </div>
-
-        <div class="detail-row">
-          <strong>Message</strong>
-          <p>${escapeHtml(message.message)}</p>
-        </div>
-
-        <div class="detail-row">
-          <strong>Status</strong>
-          <p>${escapeHtml(message.status)}</p>
-        </div>
-
-        <div class="detail-row">
-          <strong>Date</strong>
-          <p>${escapeHtml(date)}</p>
-        </div>
-      `;
-
-      document.getElementById("messageModal").style.display = "flex";
-
-    } catch (error) {
-      showNotice(error.message, true);
-    }
-  }
-
-  function closeModal() {
-    document.getElementById("messageModal").style.display = "none";
-  }
-
-  async function updateStatus(id, status) {
-    try {
-      await apiRequest(`/api/admin/messages/${id}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ status })
-      });
-
-      showNotice("Message status updated successfully.");
-      await loadMessages();
-
-    } catch (error) {
-      showNotice(error.message, true);
-    }
-  }
-
-  async function deleteMessage(id) {
-    const confirmed = confirm(
-      "Are you sure you want to permanently delete this message?"
-    );
-
-    if (!confirmed) return;
-
-    try {
-      await apiRequest(`/api/admin/messages/${id}`, {
-        method: "DELETE"
-      });
-
-      showNotice("Message deleted successfully.");
-      await loadMessages();
-
-    } catch (error) {
-      showNotice(error.message, true);
-    }
-  }
-
-  async function logout() {
-    try {
-      await apiRequest("/api/admin/logout", {
-        method: "POST"
-      });
-    } catch (error) {
-      // Continue to the login page if the session has already expired.
-    }
-
-    window.location.href = "/pages/admin.html";
-  }
-
-  document.getElementById("messageModal").addEventListener("click", function(event) {
-    if (event.target === this) {
-      closeModal();
+async function apiRequest(url, options = {}) {
+  const response = await fetch(url, {
+    credentials: "include",
+    cache: "no-store",
+    ...options,
+    headers: {
+      ...(options.headers || {})
     }
   });
 
-  loadMessages();
+  if (response.status === 401 || response.status === 403) {
+    window.location.href = "/pages/admin.html";
+    throw new Error("Please login first.");
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      `Server returned a non-JSON response (${response.status}). Please check the API route.`
+    );
+  }
+
+  const data = await response.json();
+
+  if (!response.ok || data.success === false) {
+    throw new Error(data.message || "Request failed.");
+  }
+
+  return data;
+}
+
+async function loadMessages() {
+  table.innerHTML = `
+    <tr>
+      <td colspan="9" class="empty">Loading messages...</td>
+    </tr>
+  `;
+
+  try {
+    const data = await apiRequest("/api/admin/messages");
+
+    messages = Array.isArray(data)
+      ? data
+      : (data.messages || data.data || []);
+
+    if (!Array.isArray(messages)) {
+      throw new Error("Invalid messages data received from server.");
+    }
+
+    renderMessages();
+    showNotice(`Messages loaded successfully. Total: ${messages.length}`);
+
+  } catch (error) {
+    table.innerHTML = `
+      <tr>
+        <td colspan="9" class="empty">
+          ${escapeHtml(error.message)}
+        </td>
+      </tr>
+    `;
+
+    showNotice(error.message, true);
+  }
+}
+
+function renderMessages() {
+  const search = document
+    .getElementById("searchInput")
+    .value.toLowerCase()
+    .trim();
+
+  const filtered = messages.filter(message => {
+    const text = [
+      message.id,
+      message.name,
+      message.phone,
+      message.email,
+      message.subject,
+      message.message,
+      message.status
+    ].join(" ").toLowerCase();
+
+    return text.includes(search);
+  });
+
+  if (filtered.length === 0) {
+    table.innerHTML = `
+      <tr>
+        <td colspan="9" class="empty">No messages found.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  table.innerHTML = filtered.map(message => {
+    const isRead = String(message.status).toLowerCase() === "read";
+
+    const statusClass = isRead ? "read" : "unread";
+    const statusText = isRead ? "Read" : "Unread";
+    const nextStatus = isRead ? "unread" : "read";
+    const nextLabel = isRead ? "Unread" : "Read";
+
+    const id = Number(message.id);
+
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return "";
+    }
+
+    const date = message.created_at
+      ? new Date(message.created_at).toLocaleString()
+      : "N/A";
+
+    return `
+      <tr>
+        <td>${escapeHtml(message.id)}</td>
+        <td>${escapeHtml(message.name)}</td>
+        <td>${escapeHtml(message.phone)}</td>
+        <td>${escapeHtml(message.email)}</td>
+        <td>${escapeHtml(message.subject)}</td>
+
+        <td>
+          <div class="message-preview">
+            ${escapeHtml(message.message)}
+          </div>
+        </td>
+
+        <td>
+          <span class="status ${statusClass}">
+            ${statusText}
+          </span>
+        </td>
+
+        <td>${escapeHtml(date)}</td>
+
+        <td>
+          <div class="action-buttons">
+
+            <button
+              type="button"
+              class="btn view-btn"
+              onclick="viewMessage(${id})">
+              View
+            </button>
+
+            <button
+              type="button"
+              class="btn status-btn"
+              onclick="updateStatus(${id}, '${nextStatus}')">
+              ${nextLabel}
+            </button>
+
+            <button
+              type="button"
+              class="btn delete-btn"
+              onclick="deleteMessage(${id})">
+              Delete
+            </button>
+
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function viewMessage(id) {
+  try {
+    const data = await apiRequest(`/api/admin/messages/${id}`);
+
+    const message = data.message || data;
+
+    if (!message || !message.id) {
+      throw new Error("Message not found.");
+    }
+
+    const date = message.created_at
+      ? new Date(message.created_at).toLocaleString()
+      : "N/A";
+
+    document.getElementById("messageDetails").innerHTML = `
+      <div class="detail-row">
+        <strong>Message ID</strong>
+        <p>${escapeHtml(message.id)}</p>
+      </div>
+
+      <div class="detail-row">
+        <strong>Name</strong>
+        <p>${escapeHtml(message.name)}</p>
+      </div>
+
+      <div class="detail-row">
+        <strong>Phone</strong>
+        <p>${escapeHtml(message.phone)}</p>
+      </div>
+
+      <div class="detail-row">
+        <strong>Email</strong>
+        <p>${escapeHtml(message.email)}</p>
+      </div>
+
+      <div class="detail-row">
+        <strong>Subject</strong>
+        <p>${escapeHtml(message.subject)}</p>
+      </div>
+
+      <div class="detail-row">
+        <strong>Message</strong>
+        <p>${escapeHtml(message.message)}</p>
+      </div>
+
+      <div class="detail-row">
+        <strong>Status</strong>
+        <p>${escapeHtml(message.status)}</p>
+      </div>
+
+      <div class="detail-row">
+        <strong>Date</strong>
+        <p>${escapeHtml(date)}</p>
+      </div>
+    `;
+
+    document.getElementById("messageModal").style.display = "flex";
+
+  } catch (error) {
+    showNotice(error.message, true);
+  }
+}
+
+function closeModal() {
+  document.getElementById("messageModal").style.display = "none";
+}
+
+async function updateStatus(id, status) {
+  if (!["read", "unread"].includes(status)) {
+    showNotice("Invalid message status.", true);
+    return;
+  }
+
+  try {
+    await apiRequest(`/api/admin/messages/${id}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ status })
+    });
+
+    showNotice("Message status updated successfully.");
+    await loadMessages();
+
+  } catch (error) {
+    showNotice(error.message, true);
+  }
+}
+
+async function deleteMessage(id) {
+  const confirmed = confirm(
+    "Are you sure you want to permanently delete this message?"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await apiRequest(`/api/admin/messages/${id}`, {
+      method: "DELETE"
+    });
+
+    showNotice("Message deleted successfully.");
+    await loadMessages();
+
+  } catch (error) {
+    showNotice(error.message, true);
+  }
+}
+
+async function logout() {
+  try {
+    await apiRequest("/api/admin/logout", {
+      method: "POST"
+    });
+  } catch (error) {
+    // Continue to login page if the session has expired.
+  }
+
+  window.location.href = "/pages/admin.html";
+}
+
+document.getElementById("messageModal").addEventListener("click", function(event) {
+  if (event.target === this) {
+    closeModal();
+  }
+});
+
+loadMessages();
 </script>
 
 </body>
