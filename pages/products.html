@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -31,11 +30,35 @@
             padding: 22px;
             border-radius: 12px;
             margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         header h1 {
             font-size: 25px;
-            margin-bottom: 7px;
+            margin-bottom: 5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            color: #e2e8f0;
+            text-decoration: none;
+            background: #1f2937;
+            padding: 8px 13px;
+            border-radius: 7px;
+            font-size: 13px;
+        }
+
+        .nav-links a:hover {
+            background: #374151;
         }
 
         .panel {
@@ -149,18 +172,130 @@
             line-height: 1.5;
         }
 
+        /* PRODUCT IMAGE GALLERY PREVIEW */
+
         .preview-area {
-            margin-top: 10px;
+            margin-top: 12px;
             display: none;
         }
 
-        .preview-area img {
-            width: 130px;
-            height: 130px;
-            object-fit: cover;
+        .image-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .image-preview-item {
+            position: relative;
             border: 1px solid #cbd5e1;
-            border-radius: 8px;
+            border-radius: 9px;
+            padding: 7px;
             background: #f8fafc;
+            min-width: 0;
+        }
+
+        .image-preview-item img {
+            width: 100%;
+            height: 115px;
+            object-fit: cover;
+            border-radius: 6px;
+            display: block;
+        }
+
+        .image-preview-item small {
+            display: block;
+            margin-top: 7px;
+            color: #475569;
+            font-size: 11px;
+            overflow-wrap: anywhere;
+        }
+
+        .remove-image-btn {
+            width: 100%;
+            margin-top: 7px;
+            padding: 7px;
+            background: #dc2626;
+            font-size: 12px;
+        }
+
+        .primary-image-label {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1d4ed8;
+            padding: 4px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: 6px;
+        }
+
+        /* PRODUCT LINKS MANAGER (MAX 25) */
+
+        .links-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 9px;
+            padding: 15px;
+            background: #f8fafc;
+        }
+
+        .links-add-row {
+            display: grid;
+            grid-template-columns: 1.2fr 2fr 1fr auto;
+            gap: 10px;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        .links-list {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .link-row-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 10px 12px;
+            border-radius: 7px;
+            flex-wrap: wrap;
+        }
+
+        .link-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .link-meta a {
+            color: #2563eb;
+            font-size: 13px;
+            word-break: break-all;
+        }
+
+        .badge-public {
+            background: #dcfce7;
+            color: #166534;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .badge-private {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
         }
 
         .table-wrap {
@@ -247,6 +382,12 @@
             line-height: 1.6;
         }
 
+        @media(max-width: 768px) {
+            .links-add-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @media(max-width: 650px) {
             body {
                 padding: 12px;
@@ -263,6 +404,10 @@
             .full {
                 grid-column: auto;
             }
+
+            .image-preview-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
     </style>
 </head>
@@ -272,8 +417,15 @@
 <div class="container">
 
     <header>
-        <h1>BAZAR GHOR</h1>
-        <p>Products & Supplier Products Management</p>
+        <div>
+            <h1>BAZAR GHOR</h1>
+            <p>Products, Gallery (Max 4), Links (Max 25) &amp; Supplier Products Management</p>
+        </div>
+        <div class="nav-links">
+            <a href="/pages/dashboard.html">Dashboard</a>
+            <a href="/pages/orders.html">Orders &amp; Delivery</a>
+            <a href="../index.html">Storefront</a>
+        </div>
     </header>
 
     <!-- PRODUCT FORM -->
@@ -294,6 +446,13 @@
                 </div>
 
                 <div class="field">
+                    <label for="category">Category</label>
+                    <input type="text" id="category"
+                        maxlength="100"
+                        placeholder="e.g. Electronics, Fashion, Grocery">
+                </div>
+
+                <div class="field">
                     <label for="price">Original Selling Price (৳) *</label>
                     <input type="number" id="price"
                         min="0" max="9999999999.99"
@@ -303,8 +462,6 @@
                         This is the product's original price before discount.
                     </p>
                 </div>
-
-                <!-- DISCOUNT SETTINGS -->
 
                 <div class="field">
                     <label for="discountPercent">Discount Percentage (%)</label>
@@ -328,12 +485,6 @@
                     </p>
                 </div>
 
-                <div class="field full">
-                    <div class="discount-preview" id="discountPreview">
-                        Enter a product price and discount to see the final price.
-                    </div>
-                </div>
-
                 <div class="field">
                     <label for="stock">Own Stock Quantity</label>
                     <input type="number" id="stock"
@@ -343,37 +494,76 @@
                     </p>
                 </div>
 
-                <!-- LOCAL IMAGE UPLOAD -->
-
                 <div class="field full">
-                    <label for="imageFile">Choose Product Image</label>
-
-                    <input type="file" id="imageFile"
-                        accept="image/jpeg,image/png,image/webp,image/gif">
-
-                    <p class="hint">
-                        Supported: JPG, PNG, WEBP, GIF.
-                        Maximum size: 5 MB.
-                    </p>
-
-                    <div class="preview-area" id="previewArea">
-                        <img id="imagePreview" src=""
-                            alt="Product image preview">
+                    <div class="discount-preview" id="discountPreview">
+                        Enter a product price and discount to see the final price.
                     </div>
                 </div>
 
-                <!-- IMAGE URL -->
+                <!-- MULTIPLE IMAGE UPLOAD -->
 
                 <div class="field full">
-                    <label for="image">Or Image URL (Optional)</label>
 
-                    <input type="url" id="image"
-                        placeholder="https://example.com/image.jpg">
+                    <label for="imageFile">Choose Product Images (Maximum 4)</label>
+
+                    <input type="file" id="imageFile"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        multiple>
 
                     <p class="hint">
-                        If you select a local image, the uploaded image
-                        will be used instead of this URL.
+                        You can select up to 4 images.
+                        Supported: JPG, PNG, WEBP, GIF.
+                        Maximum size: 5 MB per image.
                     </p>
+
+                    <div class="preview-area" id="previewArea">
+
+                        <strong>Product Image Gallery Preview</strong>
+
+                        <div class="image-preview-grid" id="imagePreviewGrid"></div>
+
+                    </div>
+
+                </div>
+
+                <!-- OPTIONAL IMAGE URL -->
+
+                <div class="field full">
+
+                    <label for="image">Add Image URL to Gallery (Optional, Max 4 total)</label>
+
+                    <div class="actions">
+                        <input type="url" id="image"
+                            placeholder="https://example.com/image.jpg"
+                            style="flex: 1; min-width: 220px;">
+                        <button type="button" id="addImageUrlBtn">Add URL</button>
+                    </div>
+
+                    <p class="hint">
+                        You can add image URLs here or upload files. Maximum total images: 4.
+                    </p>
+
+                </div>
+
+                <!-- PRODUCT LINKS MANAGEMENT (MAX 25, PUBLIC/PRIVATE) -->
+
+                <div class="field full">
+                    <label>Product Links (YouTube, Facebook, Website — Max 25 Links)</label>
+                    <div class="links-box">
+                        <p class="hint" id="linksCounterHint">
+                            Added Links: 0 / 25. Customers only see links marked as Public.
+                        </p>
+                        <div class="links-add-row">
+                            <input type="text" id="linkTitle" maxlength="120" placeholder="Link Name (e.g. YouTube Review)">
+                            <input type="url" id="linkUrl" maxlength="1000" placeholder="https://youtube.com/... or https://...">
+                            <select id="linkVisibility">
+                                <option value="public">Public (Visible to Customer)</option>
+                                <option value="private">Private (Admin Only)</option>
+                            </select>
+                            <button type="button" id="addLinkBtn">+ Add Link</button>
+                        </div>
+                        <div class="links-list" id="productLinksList"></div>
+                    </div>
                 </div>
 
                 <div class="field full">
@@ -423,13 +613,14 @@
                         <th>Discount</th>
                         <th>Final Price</th>
                         <th>Own Stock</th>
+                        <th>Links</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
 
                 <tbody id="productList">
                     <tr>
-                        <td colspan="7">Loading products...</td>
+                        <td colspan="8">Loading products...</td>
                     </tr>
                 </tbody>
             </table>
@@ -624,24 +815,43 @@
 
     const imageFile = document.getElementById("imageFile");
     const imageInput = document.getElementById("image");
-    const imagePreview = document.getElementById("imagePreview");
+    const addImageUrlBtn = document.getElementById("addImageUrlBtn");
     const previewArea = document.getElementById("previewArea");
+    const imagePreviewGrid = document.getElementById("imagePreviewGrid");
+
+    const linkTitleInput = document.getElementById("linkTitle");
+    const linkUrlInput = document.getElementById("linkUrl");
+    const linkVisibilityInput = document.getElementById("linkVisibility");
+    const addLinkBtn = document.getElementById("addLinkBtn");
+    const productLinksList = document.getElementById("productLinksList");
+    const linksCounterHint = document.getElementById("linksCounterHint");
 
     const saveBtn = document.getElementById("saveBtn");
     const cancelBtn = document.getElementById("cancelBtn");
 
-    const discountPercentInput =
-        document.getElementById("discountPercent");
-
-    const discountEnabledInput =
-        document.getElementById("discountEnabled");
-
-    const discountPreview =
-        document.getElementById("discountPreview");
+    const discountPercentInput = document.getElementById("discountPercent");
+    const discountEnabledInput = document.getElementById("discountEnabled");
+    const discountPreview = document.getElementById("discountPreview");
 
     let editingId = null;
     let products = [];
-    let temporaryPreviewURL = null;
+
+    // Each item: { url, file, previewUrl }
+    let productImages = [];
+
+    // Each item: { title, url, visibility }
+    let productLinks = [];
+
+    const MAX_PRODUCT_IMAGES = 4;
+    const MAX_PRODUCT_LINKS = 25;
+    const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
+    const ALLOWED_IMAGE_TYPES = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif"
+    ];
 
     // SUPPLIER PRODUCT ELEMENTS
 
@@ -659,8 +869,6 @@
     let supplierProducts = [];
     let editingSupplierProductId = null;
 
-    // MESSAGE
-
     function showMessage(text, success = false) {
         message.textContent = text;
         message.style.color = success ? "green" : "red";
@@ -671,10 +879,7 @@
         supplierMessage.style.color = success ? "green" : "red";
     }
 
-    // API REQUEST
-
     async function api(url, options = {}) {
-
         const headers = {
             ...(options.headers || {})
         };
@@ -684,7 +889,7 @@
         }
 
         const response = await fetch(url, {
-            credentials: "same-origin",
+            credentials: "include",
             cache: "no-store",
             ...options,
             headers
@@ -705,10 +910,7 @@
         return data;
     }
 
-    // HTML ESCAPE
-
     function escapeHTML(value) {
-
         return String(value ?? "").replace(/[&<>"']/g, char => ({
             "&": "&amp;",
             "<": "&lt;",
@@ -716,20 +918,14 @@
             '"': "&quot;",
             "'": "&#039;"
         })[char]);
-
     }
-
-    // MONEY FORMAT
 
     function money(value) {
         const number = Number(value);
         return Number.isFinite(number) ? number.toFixed(2) : "0.00";
     }
 
-    // DISCOUNT CALCULATION
-
     function calculateDiscountedPrice(price, discountPercent, enabled) {
-
         const originalPrice = Number(price);
         const percent = Number(discountPercent);
 
@@ -747,10 +943,7 @@
         ) / 100;
     }
 
-    // DISCOUNT PREVIEW
-
     function updateDiscountPreview() {
-
         const priceValue = document.getElementById("price").value;
         const discountValue = discountPercentInput.value;
         const enabled = discountEnabledInput.value === "true";
@@ -772,20 +965,12 @@
             return;
         }
 
-        const finalPrice = calculateDiscountedPrice(
-            price,
-            percent,
-            enabled
-        );
-
+        const finalPrice = calculateDiscountedPrice(price, percent, enabled);
         const savings = price - finalPrice;
 
         if (!enabled || percent === 0) {
-
             discountPreview.textContent =
-                "Discount is disabled. Current selling price: ৳" +
-                money(price);
-
+                "Discount is disabled. Current selling price: ৳" + money(price);
             return;
         }
 
@@ -794,49 +979,28 @@
             " | Discount: " + percent + "%" +
             " | You Save: ৳" + money(savings) +
             " | Final Price: ৳" + money(finalPrice);
-
     }
 
-    document.getElementById("price").addEventListener(
-        "input",
-        updateDiscountPreview
-    );
-
-    discountPercentInput.addEventListener(
-        "input",
-        updateDiscountPreview
-    );
-
-    discountEnabledInput.addEventListener(
-        "change",
-        updateDiscountPreview
-    );
-
-    // SAFE IMAGE URL
+    document.getElementById("price").addEventListener("input", updateDiscountPreview);
+    discountPercentInput.addEventListener("input", updateDiscountPreview);
+    discountEnabledInput.addEventListener("change", updateDiscountPreview);
 
     function safeImageUrl(value) {
-
         if (typeof value !== "string" || !value.trim()) {
             return "";
         }
 
         const url = value.trim();
 
-        if (/^\/uploads\/[a-f0-9]{40}\.(jpg|png|webp|gif)$/i.test(url)) {
+        if (url.startsWith("/uploads/") || url.startsWith("/assets/")) {
             return url;
         }
 
         try {
-
             const parsed = new URL(url);
-
-            if (
-                parsed.protocol === "https:" ||
-                parsed.protocol === "http:"
-            ) {
+            if (parsed.protocol === "https:" || parsed.protocol === "http:") {
                 return url;
             }
-
         } catch {
             return "";
         }
@@ -844,1075 +1008,654 @@
         return "";
     }
 
-    // LOAD PRODUCTS
+    function safeExternalUrl(value) {
+        const clean = String(value || "").trim();
+        if (!clean) return "";
+        try {
+            const parsed = new URL(clean);
+            if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+                return clean;
+            }
+        } catch {
+            return "";
+        }
+        return "";
+    }
+
+    function getProductImages(product) {
+        let images = [];
+
+        if (Array.isArray(product.image_urls)) {
+            images = product.image_urls;
+        } else if (typeof product.image_urls === "string") {
+            try {
+                const parsed = JSON.parse(product.image_urls);
+                if (Array.isArray(parsed)) images = parsed;
+            } catch {
+                images = [];
+            }
+        }
+
+        if (images.length === 0 && product.image_url) {
+            images = [product.image_url];
+        }
+
+        const cleanImages = [];
+        images.forEach(image => {
+            const safeUrl = safeImageUrl(image);
+            if (safeUrl && !cleanImages.includes(safeUrl)) {
+                cleanImages.push(safeUrl);
+            }
+        });
+
+        return cleanImages.slice(0, MAX_PRODUCT_IMAGES);
+    }
+
+    function revokeImagePreviewURLs() {
+        productImages.forEach(item => {
+            if (item.previewUrl) {
+                URL.revokeObjectURL(item.previewUrl);
+            }
+        });
+    }
+
+    function renderImagePreviews() {
+        imagePreviewGrid.innerHTML = "";
+
+        if (productImages.length === 0) {
+            previewArea.style.display = "none";
+            return;
+        }
+
+        previewArea.style.display = "block";
+
+        productImages.forEach((item, index) => {
+            const imgSrc = item.previewUrl || item.url;
+            const card = document.createElement("div");
+            card.className = "image-preview-item";
+
+            const image = document.createElement("img");
+            image.src = imgSrc;
+            image.alt = "Product image " + (index + 1);
+
+            const label = document.createElement("small");
+            label.textContent = item.file ? item.file.name : "Saved image";
+
+            const primaryLabel = document.createElement("span");
+            primaryLabel.className = "primary-image-label";
+            primaryLabel.textContent = index === 0 ? "Main Image" : "Gallery Image";
+
+            const removeButton = document.createElement("button");
+            removeButton.type = "button";
+            removeButton.className = "remove-image-btn";
+            removeButton.textContent = "Remove";
+            removeButton.dataset.removeImage = String(index);
+
+            card.appendChild(image);
+            card.appendChild(label);
+            card.appendChild(primaryLabel);
+            card.appendChild(removeButton);
+
+            imagePreviewGrid.appendChild(card);
+        });
+    }
+
+    imagePreviewGrid.addEventListener("click", event => {
+        const button = event.target.closest("[data-remove-image]");
+        if (!button) return;
+        const index = Number(button.dataset.removeImage);
+        if (!Number.isInteger(index) || index < 0) return;
+
+        const item = productImages[index];
+        if (!item) return;
+
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+        productImages.splice(index, 1);
+        renderImagePreviews();
+        showMessage("Image removed from this product.", true);
+    });
+
+    function clearProductImages() {
+        revokeImagePreviewURLs();
+        productImages = [];
+        imageFile.value = "";
+        imageInput.value = "";
+        renderImagePreviews();
+    }
+
+    addImageUrlBtn.addEventListener("click", () => {
+        const rawUrl = safeImageUrl(imageInput.value);
+        if (!rawUrl) {
+            showMessage("Please enter a valid HTTP/HTTPS image URL.");
+            return;
+        }
+        if (productImages.length >= MAX_PRODUCT_IMAGES) {
+            showMessage("Maximum 4 product images are allowed.");
+            return;
+        }
+        if (productImages.some(img => (img.url || img.previewUrl) === rawUrl)) {
+            showMessage("This image is already added.");
+            return;
+        }
+        productImages.push({ url: rawUrl, file: null, previewUrl: "" });
+        imageInput.value = "";
+        renderImagePreviews();
+        showMessage("Image URL added to gallery.", true);
+    });
+
+    imageFile.addEventListener("change", () => {
+        const selectedFiles = Array.from(imageFile.files || []);
+        if (selectedFiles.length === 0) return;
+
+        const remainingSlots = MAX_PRODUCT_IMAGES - productImages.length;
+        if (remainingSlots <= 0) {
+            imageFile.value = "";
+            showMessage("Maximum 4 product images are allowed.");
+            return;
+        }
+
+        if (selectedFiles.length > remainingSlots) {
+            imageFile.value = "";
+            showMessage("You can add only " + remainingSlots + " more image(s). Maximum total is 4.");
+            return;
+        }
+
+        for (const file of selectedFiles) {
+            if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+                imageFile.value = "";
+                showMessage("Invalid image type. Use JPG, PNG, WEBP or GIF.");
+                return;
+            }
+            if (file.size > MAX_IMAGE_SIZE) {
+                imageFile.value = "";
+                showMessage(file.name + " is larger than 5 MB.");
+                return;
+            }
+        }
+
+        selectedFiles.forEach(file => {
+            productImages.push({
+                url: "",
+                file,
+                previewUrl: URL.createObjectURL(file)
+            });
+        });
+
+        imageFile.value = "";
+        renderImagePreviews();
+        showMessage(selectedFiles.length + " image(s) selected successfully.", true);
+    });
+
+    // PRODUCT LINKS RENDER & ADD/REMOVE (MAX 25)
+
+    function renderProductLinks() {
+        linksCounterHint.textContent =
+            `Added Links: ${productLinks.length} / ${MAX_PRODUCT_LINKS}. Customers only see links marked as Public.`;
+
+        if (productLinks.length === 0) {
+            productLinksList.innerHTML = `<p class="hint">No links added yet.</p>`;
+            return;
+        }
+
+        productLinksList.innerHTML = productLinks.map((lk, idx) => {
+            const isPub = (lk.visibility || "public") === "public";
+            return `
+                <div class="link-row-item">
+                    <div class="link-meta">
+                        <div>
+                            <strong>${escapeHTML(lk.title || "Link")}</strong>
+                            <span class="${isPub ? "badge-public" : "badge-private"}">
+                                ${isPub ? "Public" : "Private"}
+                            </span>
+                        </div>
+                        <a href="${escapeHTML(lk.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(lk.url)}</a>
+                    </div>
+                    <div class="actions">
+                        <button type="button" class="edit" data-toggle-link="${idx}">
+                            ${isPub ? "Make Private" : "Make Public"}
+                        </button>
+                        <button type="button" class="delete" data-remove-link="${idx}">Remove</button>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    addLinkBtn.addEventListener("click", () => {
+        if (productLinks.length >= MAX_PRODUCT_LINKS) {
+            showMessage(`Maximum ${MAX_PRODUCT_LINKS} links are allowed per product.`);
+            return;
+        }
+
+        const title = linkTitleInput.value.trim() || "Link";
+        const url = safeExternalUrl(linkUrlInput.value);
+        const visibility = linkVisibilityInput.value === "private" ? "private" : "public";
+
+        if (!url) {
+            showMessage("Please enter a valid link URL (http:// or https://).");
+            return;
+        }
+
+        productLinks.push({ title, url, visibility });
+        linkTitleInput.value = "";
+        linkUrlInput.value = "";
+        renderProductLinks();
+        showMessage("Link added to product.", true);
+    });
+
+    productLinksList.addEventListener("click", event => {
+        const toggleBtn = event.target.closest("[data-toggle-link]");
+        if (toggleBtn) {
+            const idx = Number(toggleBtn.dataset.toggleLink);
+            if (productLinks[idx]) {
+                productLinks[idx].visibility = productLinks[idx].visibility === "private" ? "public" : "private";
+                renderProductLinks();
+            }
+            return;
+        }
+
+        const removeBtn = event.target.closest("[data-remove-link]");
+        if (removeBtn) {
+            const idx = Number(removeBtn.dataset.removeLink);
+            if (Number.isInteger(idx) && idx >= 0 && idx < productLinks.length) {
+                productLinks.splice(idx, 1);
+                renderProductLinks();
+            }
+        }
+    });
+
+    async function uploadImagesToServer(files) {
+        const formData = new FormData();
+        files.forEach(file => formData.append("images", file));
+
+        const result = await api("/api/admin/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        const urls = Array.isArray(result.urls)
+            ? result.urls.map(safeImageUrl).filter(Boolean)
+            : [];
+
+        if (urls.length !== files.length) {
+            throw new Error("Image upload did not return valid image URLs.");
+        }
+
+        return urls;
+    }
+
+    async function uploadNewProductImages() {
+        const newImages = productImages.filter(item => item.file);
+        if (!newImages.length) return [];
+
+        saveBtn.textContent = `Uploading ${newImages.length} image(s)...`;
+        return uploadImagesToServer(newImages.map(i => i.file));
+    }
 
     async function loadProducts() {
-
         productList.innerHTML = `
-            <tr><td colspan="7">Loading products...</td></tr>
+            <tr><td colspan="8">Loading products...</td></tr>
         `;
 
         try {
-
             const data = await api("/api/admin/products");
-
             products = data.products || [];
-
             renderProducts();
             populateProductSelect();
-
         } catch (error) {
-
             productList.innerHTML = `
-                <tr><td colspan="7">${escapeHTML(error.message)}</td></tr>
+                <tr><td colspan="8">${escapeHTML(error.message)}</td></tr>
             `;
-
             supplierProductIdInput.innerHTML =
                 '<option value="">Could not load products</option>';
-
         }
     }
-
-    // RENDER PRODUCTS
 
     function renderProducts() {
-
         if (products.length === 0) {
-
             productList.innerHTML = `
-                <tr><td colspan="7">No products found.</td></tr>
+                <tr><td colspan="8">No products found.</td></tr>
             `;
-
             return;
         }
 
-        productList.innerHTML = products.map(product => {
-
-            const imageUrl = safeImageUrl(product.image_url);
-
-            const originalPrice = Number(product.price) || 0;
-            const discountPercent = Number(product.discount_percent) || 0;
-            const discountEnabled = product.discount_enabled === true;
-
-            const finalPrice = calculateDiscountedPrice(
-                originalPrice,
-                discountPercent,
-                discountEnabled
-            );
-
-            const hasDiscount =
-                discountEnabled && discountPercent > 0;
+        productList.innerHTML = products.map(p => {
+            const gallery = getProductImages(p);
+            const mainImg = gallery[0] || "";
+            const originalPrice = Number(p.price || 0);
+            const discountEnabled = Boolean(p.discount_enabled);
+            const discountPercent = Number(p.discount_percent || 0);
+            const finalPrice = calculateDiscountedPrice(originalPrice, discountPercent, discountEnabled);
+            const linkCount = Array.isArray(p.links) ? p.links.length : 0;
 
             return `
                 <tr>
-
                     <td>
-                        ${
-                            imageUrl
-                                ? `<img class="product-image"
-                                    src="${escapeHTML(imageUrl)}"
-                                    alt="Product" loading="lazy">`
-                                : "No image"
+                        ${mainImg
+                            ? `<img class="product-image" src="${escapeHTML(mainImg)}" alt="${escapeHTML(p.name)}">`
+                            : `<div class="product-image"></div>`
                         }
+                        <div class="hint">${gallery.length}/4 imgs</div>
                     </td>
-
-                    <td>${escapeHTML(product.name)}</td>
-
+                    <td>
+                        <strong>${escapeHTML(p.name)}</strong><br>
+                        <small class="hint">${escapeHTML(p.category || "Uncategorized")}</small>
+                    </td>
                     <td>৳${money(originalPrice)}</td>
-
                     <td>
-                        ${
-                            hasDiscount
-                                ? `<span class="discount-badge">
-                                    ${escapeHTML(discountPercent)}% OFF
-                                   </span>`
-                                : `<span class="no-discount">No discount</span>`
+                        ${discountEnabled && discountPercent > 0
+                            ? `<span class="discount-badge">-${discountPercent}%</span>`
+                            : `<span class="no-discount">None</span>`
                         }
-                        <br>
-                        <small class="${
-                            hasDiscount ? "status-active" : "status-inactive"
-                        }">
-                            ${hasDiscount ? "Enabled" : "Disabled"}
-                        </small>
                     </td>
-
-                    <td class="discount-price">
-                        ৳${money(finalPrice)}
-                    </td>
-
-                    <td>${escapeHTML(product.stock_quantity)}</td>
-
+                    <td class="discount-price">৳${money(finalPrice)}</td>
+                    <td>${Number(p.stock_quantity || 0)}</td>
+                    <td>${linkCount} / ${MAX_PRODUCT_LINKS}</td>
                     <td>
                         <div class="actions">
-
-                            <button class="edit"
-                                data-action="edit"
-                                data-id="${escapeHTML(product.id)}">
-                                Edit
-                            </button>
-
-                            <button class="delete"
-                                data-action="delete"
-                                data-id="${escapeHTML(product.id)}">
-                                Delete
-                            </button>
-
+                            <button type="button" class="edit" onclick="startEditProduct(${p.id})">Edit</button>
+                            <button type="button" class="delete" onclick="deleteProduct(${p.id})">Delete</button>
                         </div>
                     </td>
-
                 </tr>
             `;
-
         }).join("");
-
     }
 
-    // IMAGE PREVIEW
-
-    function clearPreview() {
-
-        if (temporaryPreviewURL) {
-            URL.revokeObjectURL(temporaryPreviewURL);
-            temporaryPreviewURL = null;
-        }
-
-        imagePreview.removeAttribute("src");
-        previewArea.style.display = "none";
-
-    }
-
-    imageFile.addEventListener("change", () => {
-
-        clearPreview();
-
-        const file = imageFile.files[0];
-
-        if (!file) return;
-
-        const allowedTypes = [
-            "image/jpeg",
-            "image/png",
-            "image/webp",
-            "image/gif"
-        ];
-
-        if (!allowedTypes.includes(file.type)) {
-
-            showMessage("Please select a JPG, PNG, WEBP or GIF image.");
-            imageFile.value = "";
-            return;
-
-        }
-
-        if (file.size > 5 * 1024 * 1024) {
-
-            showMessage("Image must be 5MB or smaller.");
-            imageFile.value = "";
-            return;
-
-        }
-
-        temporaryPreviewURL = URL.createObjectURL(file);
-
-        imagePreview.src = temporaryPreviewURL;
-        previewArea.style.display = "block";
-
-        showMessage("Image selected successfully.", true);
-
-    });
-
-    // UPLOAD IMAGE TO SERVER
-
-    async function uploadImage(file) {
-
-        const formData = new FormData();
-
-        formData.append("image", file);
-
-        const result = await api(
-            "/api/admin/products/upload-image",
-            {
-                method: "POST",
-                body: formData
-            }
-        );
-
-        if (!result.image_url) {
-            throw new Error("Image upload did not return an image URL.");
-        }
-
-        return result.image_url;
-
-    }
-
-    // SAVE OR UPDATE PRODUCT
-
-    form.addEventListener("submit", async event => {
-
-        event.preventDefault();
-
-        if (saveBtn.disabled) return;
-
-        const name = document.getElementById("name").value.trim();
-        const price = document.getElementById("price").value;
-        const stock = document.getElementById("stock").value;
-
-        const description =
-            document.getElementById("description").value.trim();
-
-        const discountPercent = discountPercentInput.value;
-        const discountEnabled =
-            discountEnabledInput.value === "true";
-
-        const selectedFile = imageFile.files[0];
-
-        if (!name) {
-            showMessage("Please enter product name.");
-            return;
-        }
-
-        if (
-            price === "" ||
-            !Number.isFinite(Number(price)) ||
-            Number(price) < 0 ||
-            Number(price) > 9999999999.99
-        ) {
-            showMessage("Please enter a valid product price.");
-            return;
-        }
-
-        if (
-            stock === "" ||
-            !Number.isSafeInteger(Number(stock)) ||
-            Number(stock) < 0
-        ) {
-            showMessage("Please enter a valid stock quantity.");
-            return;
-        }
-
-        if (
-            discountPercent === "" ||
-            !Number.isFinite(Number(discountPercent)) ||
-            Number(discountPercent) < 0 ||
-            Number(discountPercent) > 99.99
-        ) {
-            showMessage("Discount must be between 0 and 99.99 percent.");
-            return;
-        }
-
-        if (selectedFile) {
-
-            const allowedTypes = [
-                "image/jpeg",
-                "image/png",
-                "image/webp",
-                "image/gif"
-            ];
-
-            if (!allowedTypes.includes(selectedFile.type)) {
-                showMessage("Please select a valid image.");
-                return;
-            }
-
-            if (selectedFile.size > 5 * 1024 * 1024) {
-                showMessage("Image must be 5MB or smaller.");
-                return;
-            }
-
-        }
-
-        saveBtn.disabled = true;
-        saveBtn.textContent = selectedFile
-            ? "Uploading Image..."
-            : "Saving...";
-
-        try {
-
-            let finalImageURL = imageInput.value.trim();
-
-            if (selectedFile) {
-                finalImageURL = await uploadImage(selectedFile);
-            }
-
-            const product = {
-                name,
-                price: Number(price),
-                stock_quantity: Number(stock),
-                image_url: finalImageURL,
-                description,
-                discount_percent: Number(discountPercent),
-                discount_enabled: discountEnabled
-            };
-
-            const url = editingId
-                ? `/api/admin/products/${encodeURIComponent(editingId)}`
-                : "/api/admin/products";
-
-            const result = await api(url, {
-                method: editingId ? "PUT" : "POST",
-                body: JSON.stringify(product)
-            });
-
-            showMessage(
-                result.message ||
-                (editingId
-                    ? "Product updated successfully!"
-                    : "Product added successfully!"),
-                true
-            );
-
-            resetForm();
-            await loadProducts();
-
-        } catch (error) {
-
-            showMessage(error.message);
-
-        } finally {
-
-            saveBtn.disabled = false;
-
-            saveBtn.textContent = editingId
-                ? "Update Product"
-                : "Save Product";
-
-        }
-
-    });
-
-    // EDIT PRODUCT
-
-    function editProduct(id) {
-
-        const product = products.find(
-            item => String(item.id) === String(id)
-        );
-
-        if (!product) return;
-
-        editingId = product.id;
-
-        document.getElementById("name").value =
-            product.name || "";
-
-        document.getElementById("price").value =
-            product.price ?? "";
-
-        document.getElementById("stock").value =
-            product.stock_quantity ?? 0;
-
-        discountPercentInput.value =
-            product.discount_percent ?? 0;
-
-        discountEnabledInput.value =
-            product.discount_enabled === true ? "true" : "false";
-
-        imageInput.value = safeImageUrl(product.image_url);
-
-        document.getElementById("description").value =
-            product.description || "";
-
-        imageFile.value = "";
-        clearPreview();
-
-        const existingImage = safeImageUrl(product.image_url);
-
-        if (existingImage) {
-            imagePreview.src = existingImage;
-            previewArea.style.display = "block";
-        }
-
-        document.getElementById("formTitle").textContent =
-            "Edit Product";
-
+    window.startEditProduct = function(id) {
+        const prod = products.find(item => Number(item.id) === Number(id));
+        if (!prod) return;
+
+        editingId = prod.id;
+        document.getElementById("formTitle").textContent = "Edit Product #" + prod.id;
+        document.getElementById("name").value = prod.name || "";
+        document.getElementById("category").value = prod.category || "";
+        document.getElementById("price").value = Number(prod.price || 0);
+        document.getElementById("discountPercent").value = Number(prod.discount_percent || 0);
+        document.getElementById("discountEnabled").value = prod.discount_enabled ? "true" : "false";
+        document.getElementById("stock").value = Number(prod.stock_quantity || 0);
+        document.getElementById("description").value = prod.description || "";
+
+        revokeImagePreviewURLs();
+        productImages = getProductImages(prod).map(url => ({ url, file: null, previewUrl: "" }));
+        renderImagePreviews();
+
+        productLinks = Array.isArray(prod.links)
+            ? prod.links.slice(0, MAX_PRODUCT_LINKS).map(lk => ({
+                title: lk.title || "Link",
+                url: lk.url,
+                visibility: lk.visibility === "private" ? "private" : "public"
+            }))
+            : [];
+        renderProductLinks();
+
+        updateDiscountPreview();
         saveBtn.textContent = "Update Product";
         cancelBtn.style.display = "inline-block";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
 
-        updateDiscountPreview();
-
-        showMessage("Editing product: " + product.name, true);
-
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-        });
-
-    }
-
-    // DELETE PRODUCT
-
-    async function deleteProduct(id) {
-
-        const confirmed = confirm(
-            "Are you sure you want to delete this product?"
-        );
-
-        if (!confirmed) return;
-
-        try {
-
-            const result = await api(
-                `/api/admin/products/${encodeURIComponent(id)}`,
-                { method: "DELETE" }
-            );
-
-            showMessage(
-                result.message || "Product deleted successfully!",
-                true
-            );
-
-            await loadProducts();
-            await loadSupplierProducts();
-
-            if (String(editingId) === String(id)) {
-                resetForm();
-            }
-
-        } catch (error) {
-
-            showMessage(error.message);
-
-        }
-
-    }
-
-    // PRODUCT TABLE BUTTON EVENTS
-
-    productList.addEventListener("click", event => {
-
-        const button = event.target.closest("button[data-action]");
-
-        if (!button) return;
-
-        const id = button.dataset.id;
-        const action = button.dataset.action;
-
-        if (action === "edit") editProduct(id);
-        if (action === "delete") deleteProduct(id);
-
-    });
-
-    // RESET PRODUCT FORM
-
-    function resetForm() {
-
-        form.reset();
-
+    cancelBtn.addEventListener("click", () => {
         editingId = null;
-
-        clearPreview();
-
-        discountPercentInput.value = 0;
-        discountEnabledInput.value = "false";
-
-        document.getElementById("formTitle").textContent =
-            "Add New Product";
-
+        form.reset();
+        document.getElementById("formTitle").textContent = "Add New Product";
         saveBtn.textContent = "Save Product";
         cancelBtn.style.display = "none";
-
+        clearProductImages();
+        productLinks = [];
+        renderProductLinks();
         updateDiscountPreview();
-
-    }
-
-    cancelBtn.addEventListener("click", resetForm);
-
-    // LOAD SUPPLIERS
-
-    async function loadSuppliers() {
-
-        supplierIdInput.innerHTML =
-            '<option value="">Loading suppliers...</option>';
-
-        try {
-
-            const data = await api("/api/admin/suppliers");
-
-            suppliers = data.suppliers || [];
-
-            populateSupplierSelect();
-
-        } catch (error) {
-
-            supplierIdInput.innerHTML =
-                '<option value="">Could not load suppliers</option>';
-
-            showSupplierMessage(error.message);
-
-        }
-
-    }
-
-    // POPULATE SUPPLIER SELECT
-
-    function populateSupplierSelect(selectedId = "") {
-
-        const activeSuppliers = suppliers.filter(
-            supplier => supplier.status === "active"
-        );
-
-        supplierIdInput.innerHTML =
-            '<option value="">Select a supplier</option>';
-
-        activeSuppliers.forEach(supplier => {
-
-            const option = document.createElement("option");
-
-            option.value = supplier.id;
-
-            option.textContent =
-                supplier.supplier_name +
-                (supplier.business_name
-                    ? " - " + supplier.business_name
-                    : "");
-
-            supplierIdInput.appendChild(option);
-
-        });
-
-        if (selectedId) {
-            supplierIdInput.value = String(selectedId);
-        }
-
-    }
-
-    // POPULATE PRODUCT SELECT
-
-    function populateProductSelect(selectedId = "") {
-
-        supplierProductIdInput.innerHTML =
-            '<option value="">Select an existing product</option>';
-
-        products.forEach(product => {
-
-            const option = document.createElement("option");
-
-            option.value = product.id;
-
-            const discountedPrice = calculateDiscountedPrice(
-                product.price,
-                product.discount_percent,
-                product.discount_enabled === true
-            );
-
-            option.textContent =
-                product.name + " - ৳" + money(discountedPrice);
-
-            supplierProductIdInput.appendChild(option);
-
-        });
-
-        if (selectedId) {
-            supplierProductIdInput.value = String(selectedId);
-        }
-
-        updateProfitPreview();
-
-    }
-
-    // PROFIT PREVIEW
-
-    function updateProfitPreview() {
-
-        const productId = supplierProductIdInput.value;
-
-        const product = products.find(
-            item => String(item.id) === String(productId)
-        );
-
-        const purchase = Number(
-            document.getElementById("purchasePrice").value
-        );
-
-        const delivery = Number(
-            document.getElementById("deliveryCost").value
-        );
-
-        const other = Number(
-            document.getElementById("otherCost").value
-        );
-
-        const preview = document.getElementById("profitPreview");
-
-        if (!product) {
-            preview.textContent =
-                "Select a product to calculate estimated profit.";
-            return;
-        }
-
-        if (
-            !Number.isFinite(purchase) ||
-            !Number.isFinite(delivery) ||
-            !Number.isFinite(other)
-        ) {
-            preview.textContent = "Enter valid cost amounts.";
-            return;
-        }
-
-        const sellingPrice = calculateDiscountedPrice(
-            product.price,
-            product.discount_percent,
-            product.discount_enabled === true
-        );
-
-        const profit = sellingPrice - purchase - delivery - other;
-
-        preview.textContent =
-            "Current Selling Price: ৳" + money(sellingPrice) +
-            " | Estimated Profit: ৳" + money(profit);
-
-        preview.style.color = profit >= 0 ? "#15803d" : "#dc2626";
-
-    }
-
-    [
-        "supplierProductId",
-        "purchasePrice",
-        "deliveryCost",
-        "otherCost"
-    ].forEach(id => {
-
-        document.getElementById(id).addEventListener(
-            "input",
-            updateProfitPreview
-        );
-
-        document.getElementById(id).addEventListener(
-            "change",
-            updateProfitPreview
-        );
-
+        showMessage("");
     });
 
-    // LOAD SUPPLIER PRODUCTS
+    window.deleteProduct = async function(id) {
+        if (!confirm("Are you sure you want to delete this product?")) return;
+        try {
+            await api(`/api/admin/products/${id}`, { method: "DELETE" });
+            showMessage("Product deleted.", true);
+            await loadProducts();
+        } catch (error) {
+            showMessage(error.message);
+        }
+    };
 
-    async function loadSupplierProducts() {
-
-        supplierList.innerHTML =
-            '<tr><td colspan="9">Loading supplier products...</td></tr>';
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+        saveBtn.disabled = true;
 
         try {
+            const typedUrl = safeImageUrl(imageInput.value);
+            if (typedUrl && productImages.length < MAX_PRODUCT_IMAGES && !productImages.some(i => (i.url || i.previewUrl) === typedUrl)) {
+                productImages.push({ url: typedUrl, file: null, previewUrl: "" });
+                imageInput.value = "";
+            }
 
-            const data = await api("/api/admin/supplier-products");
+            const uploadedUrls = await uploadNewProductImages();
+            let uploadIdx = 0;
+            const finalGallery = [];
 
-            supplierProducts = data.supplier_products || [];
+            for (const item of productImages) {
+                if (item.file) {
+                    const u = uploadedUrls[uploadIdx++];
+                    if (u && !finalGallery.includes(u)) finalGallery.push(u);
+                } else if (item.url) {
+                    if (!finalGallery.includes(item.url)) finalGallery.push(item.url);
+                }
+            }
 
-            renderSupplierProducts();
+            if (finalGallery.length > MAX_PRODUCT_IMAGES) {
+                throw new Error(`Maximum ${MAX_PRODUCT_IMAGES} images allowed.`);
+            }
 
+            const payload = {
+                name: document.getElementById("name").value.trim(),
+                category: document.getElementById("category").value.trim(),
+                price: Number(document.getElementById("price").value),
+                discount_percent: Number(document.getElementById("discountPercent").value || 0),
+                discount_enabled: document.getElementById("discountEnabled").value === "true",
+                stock_quantity: Number(document.getElementById("stock").value || 0),
+                image_url: finalGallery[0] || "",
+                image_urls: finalGallery,
+                links: productLinks.slice(0, MAX_PRODUCT_LINKS),
+                description: document.getElementById("description").value.trim(),
+                is_active: true
+            };
+
+            if (editingId) {
+                await api(`/api/admin/products/${editingId}`, {
+                    method: "PUT",
+                    body: JSON.stringify(payload)
+                });
+                showMessage("Product updated successfully!", true);
+            } else {
+                await api("/api/admin/products", {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+                showMessage("Product saved successfully!", true);
+            }
+
+            cancelBtn.click();
+            await loadProducts();
         } catch (error) {
-
-            supplierList.innerHTML = `
-                <tr>
-                    <td colspan="9">${escapeHTML(error.message)}</td>
-                </tr>
-            `;
-
+            showMessage(error.message);
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = editingId ? "Update Product" : "Save Product";
         }
+    });
 
+    // SUPPLIER PRODUCT SECTION
+
+    function populateProductSelect() {
+        if (!products.length) {
+            supplierProductIdInput.innerHTML = '<option value="">No products available</option>';
+            return;
+        }
+        supplierProductIdInput.innerHTML =
+            '<option value="">Select Product</option>' +
+            products.map(p => `<option value="${p.id}">${escapeHTML(p.name)} (৳${money(p.price)})</option>`).join("");
     }
 
-    // RENDER SUPPLIER PRODUCTS
+    async function loadSuppliers() {
+        try {
+            const data = await api("/api/admin/suppliers");
+            suppliers = data.suppliers || [];
+            supplierIdInput.innerHTML =
+                '<option value="">Select Supplier</option>' +
+                suppliers.map(s => `<option value="${s.id}">${escapeHTML(s.supplier_name || s.business_name || ("Supplier #" + s.id))}</option>`).join("");
+        } catch {
+            supplierIdInput.innerHTML = '<option value="">Could not load suppliers</option>';
+        }
+    }
+
+    function updateProfitPreview() {
+        const selectedProd = products.find(p => Number(p.id) === Number(supplierProductIdInput.value));
+        const sellingPrice = selectedProd ? Number(selectedProd.price || 0) : 0;
+        const purchase = Number(document.getElementById("purchasePrice").value || 0);
+        const delivery = Number(document.getElementById("deliveryCost").value || 0);
+        const other = Number(document.getElementById("otherCost").value || 0);
+        const profit = sellingPrice - purchase - delivery - other;
+
+        document.getElementById("profitPreview").textContent =
+            `Selling: ৳${money(sellingPrice)} − Cost: ৳${money(purchase)} − Extra: ৳${money(delivery + other)} = Estimated Profit: ৳${money(profit)}`;
+    }
+
+    ["supplierProductId", "purchasePrice", "deliveryCost", "otherCost"].forEach(id => {
+        document.getElementById(id).addEventListener("input", updateProfitPreview);
+        document.getElementById(id).addEventListener("change", updateProfitPreview);
+    });
+
+    async function loadSupplierProducts() {
+        supplierList.innerHTML = `<tr><td colspan="9">Loading supplier products...</td></tr>`;
+        try {
+            const data = await api("/api/admin/supplier-products");
+            supplierProducts = data.supplier_products || [];
+            renderSupplierProducts();
+        } catch (error) {
+            supplierList.innerHTML = `<tr><td colspan="9">${escapeHTML(error.message)}</td></tr>`;
+        }
+    }
 
     function renderSupplierProducts() {
-
-        if (supplierProducts.length === 0) {
-
-            supplierList.innerHTML = `
-                <tr>
-                    <td colspan="9">No supplier products found.</td>
-                </tr>
-            `;
-
+        if (!supplierProducts.length) {
+            supplierList.innerHTML = `<tr><td colspan="9">No supplier products found.</td></tr>`;
             return;
         }
 
-        supplierList.innerHTML = supplierProducts.map(item => {
-
-            const extraCosts =
-                Number(item.delivery_cost) + Number(item.other_cost);
-
-            const estimatedProfit =
-                Number(item.selling_price) -
-                Number(item.purchase_price) -
-                extraCosts;
-
-            const active =
-                item.is_active && item.is_available;
+        supplierList.innerHTML = supplierProducts.map(sp => {
+            const sell = Number(sp.selling_price || sp.public_selling_price || 0);
+            const buy = Number(sp.purchase_price ?? sp.supplier_cost ?? 0);
+            const extra = Number(sp.delivery_cost || 0) + Number(sp.other_cost || 0);
+            const estProfit = sell - buy - extra;
 
             return `
                 <tr>
-
-                    <td>${escapeHTML(item.product_name)}</td>
-
-                    <td>
-                        ${escapeHTML(item.supplier_name)}
-                        ${
-                            item.business_name
-                                ? "<br><small>" +
-                                    escapeHTML(item.business_name) +
-                                  "</small>"
-                                : ""
-                        }
-                    </td>
-
-                    <td>৳${money(item.selling_price)}</td>
-
-                    <td>৳${money(item.purchase_price)}</td>
-
-                    <td>৳${money(extraCosts)}</td>
-
-                    <td class="${estimatedProfit >= 0 ? "profit" : "status-inactive"}">
-                        ৳${money(estimatedProfit)}
-                    </td>
-
-                    <td>${escapeHTML(item.supplier_stock_quantity)}</td>
-
-                    <td class="${active ? "status-active" : "status-inactive"}">
-                        ${active ? "Active" : "Inactive"}
-                    </td>
-
+                    <td>${escapeHTML(sp.product_name || ("Product #" + sp.product_id))}</td>
+                    <td>${escapeHTML(sp.supplier_name || sp.business_name || ("Supplier #" + sp.supplier_id))}</td>
+                    <td>৳${money(sell)}</td>
+                    <td>৳${money(buy)}</td>
+                    <td>৳${money(extra)}</td>
+                    <td class="profit">৳${money(estProfit)}</td>
+                    <td>${Number(sp.supplier_stock_quantity ?? sp.stock_available ?? 0)}</td>
+                    <td>${escapeHTML(sp.approval_status || "pending")}</td>
                     <td>
                         <div class="actions">
-
-                            <button class="edit"
-                                data-supplier-action="edit"
-                                data-id="${escapeHTML(item.id)}">
-                                Edit
-                            </button>
-
-                            <button class="delete"
-                                data-supplier-action="deactivate"
-                                data-id="${escapeHTML(item.id)}">
-                                Deactivate
-                            </button>
-
+                            <button type="button" class="edit" onclick="startEditSupplierProduct(${sp.id})">Edit</button>
+                            <button type="button" class="delete" onclick="deleteSupplierProduct(${sp.id})">Delete</button>
                         </div>
                     </td>
-
                 </tr>
             `;
-
         }).join("");
-
     }
 
-    // SUPPLIER PRODUCT FORM SUBMIT
+    window.startEditSupplierProduct = function(id) {
+        const sp = supplierProducts.find(item => Number(item.id) === Number(id));
+        if (!sp) return;
 
-    supplierForm.addEventListener("submit", async event => {
-
-        event.preventDefault();
-
-        if (supplierSaveBtn.disabled) return;
-
-        const supplierId = supplierIdInput.value;
-        const productId = supplierProductIdInput.value;
-
-        const purchasePrice =
-            document.getElementById("purchasePrice").value;
-
-        const deliveryCost =
-            document.getElementById("deliveryCost").value;
-
-        const otherCost =
-            document.getElementById("otherCost").value;
-
-        const stock =
-            document.getElementById("supplierStock").value;
-
-        const validMoney = value =>
-            value !== "" &&
-            Number.isFinite(Number(value)) &&
-            Number(value) >= 0 &&
-            Number(value) <= 9999999999.99;
-
-        if (!supplierId || !productId) {
-            showSupplierMessage("Please select a supplier and product.");
-            return;
-        }
-
-        if (
-            !validMoney(purchasePrice) ||
-            !validMoney(deliveryCost) ||
-            !validMoney(otherCost)
-        ) {
-            showSupplierMessage("Please enter valid cost amounts.");
-            return;
-        }
-
-        if (
-            stock === "" ||
-            !Number.isSafeInteger(Number(stock)) ||
-            Number(stock) < 0
-        ) {
-            showSupplierMessage("Please enter a valid supplier stock quantity.");
-            return;
-        }
-
-        const payload = {
-
-            supplier_id: supplierId,
-            product_id: productId,
-
-            purchase_price: Number(purchasePrice),
-            delivery_cost: Number(deliveryCost),
-            other_cost: Number(otherCost),
-
-            supplier_stock_quantity: Number(stock),
-
-            supplier_sku:
-                document.getElementById("supplierSku").value.trim(),
-
-            category:
-                document.getElementById("supplierCategory").value.trim(),
-
-            is_available:
-                supplierAvailableValue(),
-
-            is_active:
-                supplierActiveValue(),
-
-            notes:
-                document.getElementById("supplierNotes").value.trim()
-
-        };
-
-        supplierSaveBtn.disabled = true;
-        supplierSaveBtn.textContent = "Saving...";
-
-        try {
-
-            const url = editingSupplierProductId
-                ? `/api/admin/supplier-products/${encodeURIComponent(editingSupplierProductId)}`
-                : "/api/admin/supplier-products";
-
-            const result = await api(url, {
-
-                method: editingSupplierProductId ? "PUT" : "POST",
-
-                body: JSON.stringify(payload)
-
-            });
-
-            showSupplierMessage(
-                result.message || "Supplier product saved successfully.",
-                true
-            );
-
-            resetSupplierProductForm();
-
-            await loadSupplierProducts();
-
-        } catch (error) {
-
-            showSupplierMessage(error.message);
-
-        } finally {
-
-            supplierSaveBtn.disabled = false;
-
-            supplierSaveBtn.textContent = editingSupplierProductId
-                ? "Update Supplier Product"
-                : "Save Supplier Product";
-
-        }
-
-    });
-
-    function supplierAvailableValue() {
-        return document.getElementById("supplierAvailable").value === "true";
-    }
-
-    function supplierActiveValue() {
-        return document.getElementById("supplierActive").value === "true";
-    }
-
-    // EDIT SUPPLIER PRODUCT
-
-    function editSupplierProduct(id) {
-
-        const item = supplierProducts.find(
-            product => String(product.id) === String(id)
-        );
-
-        if (!item) return;
-
-        if (item.supplier_status !== "active") {
-            showSupplierMessage(
-                "This supplier is inactive. Activate the supplier first."
-            );
-            return;
-        }
-
-        editingSupplierProductId = item.id;
-
-        populateSupplierSelect(item.supplier_id);
-        populateProductSelect(item.product_id);
-
-        document.getElementById("purchasePrice").value =
-            item.purchase_price ?? 0;
-
-        document.getElementById("deliveryCost").value =
-            item.delivery_cost ?? 0;
-
-        document.getElementById("otherCost").value =
-            item.other_cost ?? 0;
-
-        document.getElementById("supplierStock").value =
-            item.supplier_stock_quantity ?? 0;
-
-        document.getElementById("supplierSku").value =
-            item.supplier_sku || "";
-
-        document.getElementById("supplierCategory").value =
-            item.category || "";
-
-        document.getElementById("supplierAvailable").value =
-            String(item.is_available);
-
-        document.getElementById("supplierActive").value =
-            String(item.is_active);
-
-        document.getElementById("supplierNotes").value =
-            item.notes || "";
-
-        document.getElementById("supplierFormTitle").textContent =
-            "Edit Supplier Product";
-
+        editingSupplierProductId = sp.id;
+        document.getElementById("supplierFormTitle").textContent = "Edit Supplier Product #" + sp.id;
+        supplierIdInput.value = sp.supplier_id;
+        supplierProductIdInput.value = sp.product_id;
+        document.getElementById("purchasePrice").value = Number(sp.purchase_price ?? sp.supplier_cost ?? 0);
+        document.getElementById("deliveryCost").value = Number(sp.delivery_cost || 0);
+        document.getElementById("otherCost").value = Number(sp.other_cost || 0);
+        document.getElementById("supplierStock").value = Number(sp.supplier_stock_quantity ?? sp.stock_available ?? 0);
+        document.getElementById("supplierSku").value = sp.supplier_sku || sp.sku || "";
+        document.getElementById("supplierCategory").value = sp.category || "";
         supplierSaveBtn.textContent = "Update Supplier Product";
-
         supplierCancelBtn.style.display = "inline-block";
-
         updateProfitPreview();
+    };
 
-        showSupplierMessage(
-            "Editing supplier product: " + item.product_name,
-            true
-        );
-
-        document.getElementById("supplierFormTitle").scrollIntoView({
-            behavior: "smooth",
-            block: "start"
-        });
-
-    }
-
-    // DEACTIVATE SUPPLIER PRODUCT
-
-    async function deactivateSupplierProduct(id) {
-
-        const confirmed = confirm(
-            "Are you sure you want to deactivate this supplier product?"
-        );
-
-        if (!confirmed) return;
-
-        try {
-
-            const result = await api(
-                `/api/admin/supplier-products/${encodeURIComponent(id)}`,
-                { method: "DELETE" }
-            );
-
-            showSupplierMessage(
-                result.message || "Supplier product deactivated successfully.",
-                true
-            );
-
-            await loadSupplierProducts();
-
-            if (String(editingSupplierProductId) === String(id)) {
-                resetSupplierProductForm();
-            }
-
-        } catch (error) {
-
-            showSupplierMessage(error.message);
-
-        }
-
-    }
-
-    // SUPPLIER PRODUCT TABLE EVENTS
-
-    supplierList.addEventListener("click", event => {
-
-        const button = event.target.closest(
-            "button[data-supplier-action]"
-        );
-
-        if (!button) return;
-
-        const id = button.dataset.id;
-        const action = button.dataset.supplierAction;
-
-        if (action === "edit") {
-            editSupplierProduct(id);
-        }
-
-        if (action === "deactivate") {
-            deactivateSupplierProduct(id);
-        }
-
+    supplierCancelBtn.addEventListener("click", () => {
+        editingSupplierProductId = null;
+        supplierProductForm.reset();
+        document.getElementById("supplierFormTitle").textContent = "Add Supplier Product";
+        supplierSaveBtn.textContent = "Save Supplier Product";
+        supplierCancelBtn.style.display = "none";
+        updateProfitPreview();
+        showSupplierMessage("");
     });
 
-    // RESET SUPPLIER PRODUCT FORM
+    window.deleteSupplierProduct = async function(id) {
+        if (!confirm("Remove this supplier product connection?")) return;
+        try {
+            await api(`/api/admin/supplier-products/${id}`, { method: "DELETE" });
+            showSupplierMessage("Supplier product removed.", true);
+            await loadSupplierProducts();
+        } catch (error) {
+            showSupplierMessage(error.message);
+        }
+    };
 
-    function resetSupplierProductForm() {
-
-        supplierForm.reset();
-
-        editingSupplierProductId = null;
-
-        document.getElementById("supplierFormTitle").textContent =
-            "Add Supplier Product";
-
-        supplierSaveBtn.textContent = "Save Supplier Product";
-
-        supplierCancelBtn.style.display = "none";
-
-        populateSupplierSelect();
-        populateProductSelect();
-
-        updateProfitPreview();
-
-    }
-
-    supplierCancelBtn.addEventListener(
-        "click",
-        resetSupplierProductForm
-    );
-
-    // INITIAL LOAD
-
-    async function initializePage() {
+    supplierProductForm.addEventListener("submit", async event => {
+        event.preventDefault();
+        supplierSaveBtn.disabled = true;
 
         try {
+            const payload = {
+                supplier_id: Number(supplierIdInput.value),
+                product_id: Number(supplierProductIdInput.value),
+                purchase_price: Number(document.getElementById("purchasePrice").value),
+                delivery_cost: Number(document.getElementById("deliveryCost").value),
+                other_cost: Number(document.getElementById("otherCost").value),
+                supplier_stock_quantity: Number(document.getElementById("supplierStock").value),
+                supplier_sku: document.getElementById("supplierSku").value.trim(),
+                category: document.getElementById("supplierCategory").value.trim(),
+                notes: document.getElementById("supplierNotes").value.trim()
+            };
 
-            await api("/api/admin/me");
-
-            await loadProducts();
-            await loadSuppliers();
-            await loadSupplierProducts();
-
-            updateDiscountPreview();
-
-        } catch (error) {
-
-            if (
-                error.message.toLowerCase().includes("unauthorized") ||
-                error.message.toLowerCase().includes("admin")
-            ) {
-                window.location.href = "/pages/admin.html";
-                return;
+            if (editingSupplierProductId) {
+                await api(`/api/admin/supplier-products/${editingSupplierProductId}`, {
+                    method: "PUT",
+                    body: JSON.stringify(payload)
+                });
+                showSupplierMessage("Supplier product updated!", true);
+            } else {
+                await api("/api/admin/supplier-products", {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+                showSupplierMessage("Supplier product saved!", true);
             }
 
-            showMessage(error.message);
-
+            supplierCancelBtn.click();
+            await loadSupplierProducts();
+        } catch (error) {
+            showSupplierMessage(error.message);
+        } finally {
+            supplierSaveBtn.disabled = false;
         }
+    });
 
-    }
-
-    initializePage();
+    (async function init() {
+        renderProductLinks();
+        updateDiscountPreview();
+        await Promise.all([loadProducts(), loadSuppliers(), loadSupplierProducts()]);
+        updateProfitPreview();
+    })();
 
 </script>
 

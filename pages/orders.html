@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,6 +35,23 @@ body {
     color: #b9c5d9;
     font-size: 13px;
     margin-top: 5px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.nav-btn {
+    background: #243b6b;
+    color: white;
+    text-decoration: none;
+    padding: 10px 14px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: bold;
 }
 
 .container {
@@ -95,6 +111,7 @@ button:disabled {
     border: 1px solid #d5dbe6;
     border-radius: 7px;
     outline: none;
+    background: white;
 }
 
 .tabs {
@@ -142,11 +159,15 @@ th {
     white-space: nowrap;
 }
 
-select, .admin-note-input {
+select, .admin-note-input, .delivery-input {
     padding: 8px;
     border: 1px solid #d5dbe6;
     border-radius: 6px;
     background: white;
+    font-size: 13px;
+}
+
+select, .admin-note-input {
     max-width: 180px;
 }
 
@@ -155,6 +176,7 @@ select, .admin-note-input {
     margin-bottom: 15px;
     border-radius: 7px;
     display: none;
+    font-weight: bold;
 }
 
 .empty {
@@ -195,7 +217,7 @@ select, .admin-note-input {
 .modal-content {
     background: white;
     width: 100%;
-    max-width: 1000px;
+    max-width: 1050px;
     margin: 30px auto;
     border-radius: 13px;
     padding: 25px;
@@ -241,6 +263,42 @@ select, .admin-note-input {
 .detail-card strong { font-size: 14px; }
 
 .address-card { grid-column: 1 / -1; }
+
+.section-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.section-card h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    color: #101c35;
+}
+
+.approval-row, .delivery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.timeline-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.timeline-item {
+    background: white;
+    border-left: 4px solid #2457d6;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+}
 
 .items-table {
     width: 100%;
@@ -304,8 +362,6 @@ select, .admin-note-input {
     color: #991b1b;
 }
 
-/* SUPPLIER DELIVERY PROGRESS */
-
 .delivery-panel {
     margin-top: 12px;
     padding: 12px;
@@ -354,12 +410,12 @@ select, .admin-note-input {
     overflow-wrap: anywhere;
 }
 
-@media(max-width: 600px) {
+@media(max-width: 650px) {
     .container { padding: 15px; }
     .header { padding: 18px; }
     .top h1 { font-size: 22px; }
     .modal-content { padding: 16px; }
-    .detail-grid { grid-template-columns: 1fr; }
+    .detail-grid, .approval-row, .delivery-grid { grid-template-columns: 1fr; }
     .address-card { grid-column: auto; }
 }
 </style>
@@ -370,9 +426,13 @@ select, .admin-note-input {
 <header class="header">
     <div>
         <h2>BAZAR GHOR</h2>
-        <p>Bangladesh | Admin Panel</p>
+        <p>Bangladesh | Admin Orders, Approvals, Delivery &amp; Tracking</p>
     </div>
-    <button class="logout" onclick="logout()">Logout</button>
+    <div class="header-actions">
+        <a class="nav-btn" href="/pages/dashboard.html">Dashboard</a>
+        <a class="nav-btn" href="/pages/products.html">Products</a>
+        <button class="logout" onclick="logout()">Logout</button>
+    </div>
 </header>
 
 <main class="container">
@@ -380,7 +440,7 @@ select, .admin-note-input {
     <div class="top">
         <div>
             <h1>Orders Management</h1>
-            <p>View, save, archive, restore and manage customer orders.</p>
+            <p>Approve orders, manage delivery &amp; GPS/courier tracking, assign suppliers, archive or restore orders.</p>
         </div>
 
         <button class="refresh" onclick="loadOrders()">
@@ -417,9 +477,10 @@ select, .admin-note-input {
                     <th>Customer</th>
                     <th>Phone</th>
                     <th>Total</th>
+                    <th>Approval</th>
                     <th>Order Status</th>
                     <th>Payment Status</th>
-                    <th>Payment Method</th>
+                    <th>Delivery / Courier</th>
                     <th>Date</th>
                     <th>Actions</th>
                 </tr>
@@ -427,7 +488,7 @@ select, .admin-note-input {
 
             <tbody id="ordersTable">
                 <tr>
-                    <td colspan="10" class="empty">Loading orders...</td>
+                    <td colspan="11" class="empty">Loading orders...</td>
                 </tr>
             </tbody>
         </table>
@@ -438,7 +499,7 @@ select, .admin-note-input {
 <div class="modal" id="detailsModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Order Details & Supplier Handover</h2>
+            <h2>Order Details, Approval, Delivery &amp; Supplier Handover</h2>
             <button class="close-btn" onclick="closeDetails()">✕</button>
         </div>
 
@@ -492,13 +553,19 @@ function makeOptions(current, choices) {
 }
 
 async function requestJSON(url, options = {}) {
+    const headers = {
+        ...(options.headers || {})
+    };
+
+    if (!(options.body instanceof FormData) && !headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json";
+    }
+
     const response = await fetch(url, {
-        credentials: "same-origin",
+        credentials: "include",
         cache: "no-store",
         ...options,
-        headers: {
-            ...(options.headers || {})
-        }
+        headers
     });
 
     let data;
@@ -516,16 +583,19 @@ async function requestJSON(url, options = {}) {
     return data;
 }
 
+async function logout() {
+    try {
+        await requestJSON("/api/admin/logout", { method: "POST" });
+    } finally {
+        window.location.replace("/pages/admin.html");
+    }
+}
+
 function switchTab(archived) {
     showingArchived = archived;
 
-    document.getElementById("activeTab").classList.toggle(
-        "active", !archived
-    );
-
-    document.getElementById("archivedTab").classList.toggle(
-        "active", archived
-    );
+    document.getElementById("activeTab").classList.toggle("active", !archived);
+    document.getElementById("archivedTab").classList.toggle("active", archived);
 
     loadOrders();
 }
@@ -534,7 +604,7 @@ async function loadOrders() {
     const table = document.getElementById("ordersTable");
 
     table.innerHTML = `
-        <tr><td colspan="10" class="empty">Loading orders...</td></tr>
+        <tr><td colspan="11" class="empty">Loading orders...</td></tr>
     `;
 
     try {
@@ -549,7 +619,7 @@ async function loadOrders() {
     } catch (error) {
         table.innerHTML = `
             <tr>
-                <td colspan="10" class="empty">
+                <td colspan="11" class="empty">
                     ${escapeHTML(error.message)}
                 </td>
             </tr>
@@ -563,7 +633,7 @@ function renderOrders(orders) {
     if (!orders.length) {
         table.innerHTML = `
             <tr>
-                <td colspan="10" class="empty">
+                <td colspan="11" class="empty">
                     ${showingArchived
                         ? "No archived orders found."
                         : "No active orders found."}
@@ -575,11 +645,16 @@ function renderOrders(orders) {
 
     table.innerHTML = orders.map(order => {
         const id = Number(order.id);
+        const approvalVal = order.approval_status || "pending";
+        const deliveryVal = order.delivery_status || order.supplier_progress || "pending";
+        const courierInfo = order.tracking_code
+            ? `${order.courier_name || "Courier"} (${order.tracking_code})`
+            : (order.courier_name || "-");
 
         const activeActions = `
             <button class="details-btn"
                 onclick="viewDetails(${id})">
-                View Details / Supplier
+                Details / Approve / Track
             </button>
 
             <button class="save"
@@ -634,6 +709,18 @@ function renderOrders(orders) {
                 <td>
                     ${
                         showingArchived
+                        ? escapeHTML(approvalVal)
+                        : `<select id="approval-${id}">
+                            ${makeOptions(approvalVal, [
+                                "pending", "approved", "rejected"
+                            ])}
+                           </select>`
+                    }
+                </td>
+
+                <td>
+                    ${
+                        showingArchived
                         ? escapeHTML(order.status || "-")
                         : `<select id="status-${id}">
                             ${makeOptions(order.status, [
@@ -657,9 +744,10 @@ function renderOrders(orders) {
                     }
                 </td>
 
-                <td>${escapeHTML(
-                    (order.payment_method || "-").toUpperCase()
-                )}</td>
+                <td>
+                    <div><strong>${escapeHTML(deliveryVal)}</strong></div>
+                    <div class="muted">${escapeHTML(courierInfo)}</div>
+                </td>
 
                 <td>${escapeHTML(formatDate(order.created_at))}</td>
 
@@ -673,7 +761,6 @@ function renderOrders(orders) {
     }).join("");
 }
 
-// LOAD ALL SUPPLIER HANDOFF RECORDS
 async function loadSupplierHandoffs() {
     const data = await requestJSON(
         "/api/admin/supplier-order-handoffs"
@@ -686,7 +773,15 @@ async function loadSupplierHandoffs() {
     return supplierHandoffs;
 }
 
-// OPEN ORDER DETAILS
+async function loadOrderTrackingTimeline(orderId) {
+    try {
+        const data = await requestJSON(`/api/orders/${encodeURIComponent(orderId)}/tracking`);
+        return Array.isArray(data.events) ? data.events : [];
+    } catch {
+        return [];
+    }
+}
+
 async function viewDetails(id) {
     const modal = document.getElementById("detailsModal");
     const content = document.getElementById("detailsContent");
@@ -704,9 +799,10 @@ async function viewDetails(id) {
     content.innerHTML = "Loading order details...";
 
     try {
-        const [itemsData] = await Promise.all([
+        const [itemsData, , events] = await Promise.all([
             requestJSON(`/api/admin/orders/${id}/items`),
-            loadSupplierHandoffs()
+            loadSupplierHandoffs(),
+            loadOrderTrackingTimeline(id)
         ]);
 
         const items = Array.isArray(itemsData.items)
@@ -735,6 +831,17 @@ async function viewDetails(id) {
                     </td>
                 </tr>
             `;
+
+        const timelineHtml = events.length
+            ? events.map(ev => `
+                <div class="timeline-item">
+                    <strong>${escapeHTML(ev.event_type || "update")}</strong>:
+                    ${escapeHTML(ev.new_value || ev.status || "")}
+                    ${ev.note ? `— ${escapeHTML(ev.note)}` : ""}
+                    <div class="muted">${escapeHTML(formatDate(ev.created_at))}</div>
+                </div>
+            `).join("")
+            : `<p class="muted">Order created (${escapeHTML(formatDate(order.created_at))}) · Status: ${escapeHTML(order.status || "pending")}</p>`;
 
         content.innerHTML = `
             <div class="detail-grid">
@@ -788,8 +895,8 @@ async function viewDetails(id) {
                 </div>
 
                 <div class="detail-card">
-                    <p>Order Status</p>
-                    <strong>${escapeHTML(order.status || "-")}</strong>
+                    <p>Approval / Order Status</p>
+                    <strong>${escapeHTML((order.approval_status || "pending") + " / " + (order.status || "-"))}</strong>
                 </div>
 
                 <div class="detail-card">
@@ -798,7 +905,59 @@ async function viewDetails(id) {
                 </div>
             </div>
 
-            <h3>Ordered Products & Supplier Assignment</h3>
+            <div class="section-card">
+                <h3>Admin Order Approval</h3>
+                <div class="approval-row">
+                    <select id="modal-approval-status" style="max-width:none;">
+                        ${makeOptions(order.approval_status || "pending", ["pending", "approved", "rejected"])}
+                    </select>
+                    <input type="text" id="modal-approval-note" class="delivery-input"
+                        placeholder="Approval / rejection note"
+                        value="${escapeHTML(order.approval_note || "")}">
+                </div>
+                <div style="margin-top:10px;">
+                    <button type="button" class="save" onclick="saveOrderApproval(${order.id})">
+                        Save Approval Decision
+                    </button>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h3>Delivery Management, GPS &amp; Courier Sync</h3>
+                <div class="delivery-grid">
+                    <select id="modal-delivery-status" style="max-width:none;">
+                        ${makeOptions(order.delivery_status || "pending", [
+                            "pending", "processing", "preparing",
+                            "ready_for_dispatch", "shipped", "in_transit",
+                            "delivered", "cancelled"
+                        ])}
+                    </select>
+                    <input type="text" id="modal-courier-name" class="delivery-input"
+                        placeholder="Courier name (e.g. Steadfast, Pathao, RedX)"
+                        value="${escapeHTML(order.courier_name || "")}">
+                    <input type="text" id="modal-tracking-code" class="delivery-input"
+                        placeholder="Courier tracking code"
+                        value="${escapeHTML(order.tracking_code || "")}">
+                    <input type="text" id="modal-gps-location" class="delivery-input"
+                        placeholder="GPS / Current location (e.g. Dhaka Hub or 22.89, 89.90)"
+                        value="${escapeHTML(order.gps_location || order.current_location || "")}">
+                </div>
+                <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="details-btn" onclick="saveDeliveryAndCourier(${order.id})">
+                        Save Delivery &amp; GPS
+                    </button>
+                    <button type="button" class="save" onclick="syncCourierTracking(${order.id})">
+                        Sync Courier API
+                    </button>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h3>Customer Order Tracking Timeline</h3>
+                <div class="timeline-list">${timelineHtml}</div>
+            </div>
+
+            <h3>Ordered Products &amp; Supplier Assignment</h3>
 
             <p class="muted" style="margin-top:8px;">
                 প্রতিটি পণ্যের জন্য Admin একজন Supplier নির্বাচন করে পাঠাতে পারবেন।
@@ -835,7 +994,62 @@ async function viewDetails(id) {
     }
 }
 
-// LOAD AVAILABLE SUPPLIERS FOR ONE ORDER ITEM
+async function saveOrderApproval(orderId) {
+    const approvalStatus = document.getElementById("modal-approval-status")?.value;
+    const approvalNote = document.getElementById("modal-approval-note")?.value || "";
+    try {
+        const data = await requestJSON(`/api/admin/orders/${orderId}/approval`, {
+            method: "PATCH",
+            body: JSON.stringify({
+                approval_status: approvalStatus,
+                approval_note: approvalNote.trim()
+            })
+        });
+        showMessage(data.message || "Order approval updated.", true);
+        await loadOrders();
+        await viewDetails(orderId);
+    } catch (error) {
+        showMessage(error.message);
+    }
+}
+
+async function saveDeliveryAndCourier(orderId) {
+    const deliveryStatus = document.getElementById("modal-delivery-status")?.value;
+    const courierName = document.getElementById("modal-courier-name")?.value || "";
+    const trackingCode = document.getElementById("modal-tracking-code")?.value || "";
+    const gpsLocation = document.getElementById("modal-gps-location")?.value || "";
+
+    try {
+        const data = await requestJSON(`/api/admin/orders/${orderId}/delivery`, {
+            method: "PATCH",
+            body: JSON.stringify({
+                delivery_status: deliveryStatus,
+                courier_name: courierName.trim(),
+                tracking_code: trackingCode.trim(),
+                gps_location: gpsLocation.trim()
+            })
+        });
+        showMessage(data.message || "Delivery & GPS updated.", true);
+        await loadOrders();
+        await viewDetails(orderId);
+    } catch (error) {
+        showMessage(error.message);
+    }
+}
+
+async function syncCourierTracking(orderId) {
+    try {
+        const data = await requestJSON(`/api/admin/orders/${orderId}/courier-sync`, {
+            method: "POST"
+        });
+        showMessage(data.message || "Courier tracking synced.", true);
+        await loadOrders();
+        await viewDetails(orderId);
+    } catch (error) {
+        showMessage(error.message);
+    }
+}
+
 async function loadSupplierOptions(orderId, item) {
     const box = document.getElementById(
         `supplier-box-${Number(item.id)}`
@@ -925,7 +1139,6 @@ async function loadSupplierOptions(orderId, item) {
     }
 }
 
-// DISPLAY DELIVERY PROGRESS INFORMATION
 function renderDeliveryProgress(box, handoff) {
     const panel = document.createElement("div");
     panel.className = "delivery-panel";
@@ -968,7 +1181,6 @@ function renderDeliveryProgress(box, handoff) {
     box.appendChild(panel);
 }
 
-// DISPLAY EXISTING HANDOFF AND SUPPLIER RESPONSE
 function renderExistingHandoff(box, handoff) {
     box.replaceChildren();
 
@@ -1007,7 +1219,6 @@ function renderExistingHandoff(box, handoff) {
         box.appendChild(note);
     }
 
-    // SHOW DELIVERY PROGRESS AFTER ADMIN APPROVAL
     if (handoff.status === "admin_approved") {
         renderDeliveryProgress(box, handoff);
     }
@@ -1069,7 +1280,6 @@ function renderExistingHandoff(box, handoff) {
     }
 }
 
-// SEND ORDER ITEM TO SELECTED SUPPLIER
 async function sendToSupplier(orderId, itemId, supplierProductId, button) {
     if (!supplierProductId) {
         showMessage("Please select a Supplier first.");
@@ -1091,9 +1301,6 @@ async function sendToSupplier(orderId, itemId, supplierProductId, button) {
             `/items/${encodeURIComponent(itemId)}/handoff`,
             {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
                 body: JSON.stringify({
                     supplier_product_id: Number(supplierProductId)
                 })
@@ -1114,7 +1321,6 @@ async function sendToSupplier(orderId, itemId, supplierProductId, button) {
     }
 }
 
-// ADMIN FINAL REVIEW OF SUPPLIER RESPONSE
 async function reviewHandoff(handoffId, decision, note, button) {
     const actionText = decision === "approved"
         ? "approve"
@@ -1135,9 +1341,6 @@ async function reviewHandoff(handoffId, decision, note, button) {
             `${encodeURIComponent(handoffId)}/review`,
             {
                 method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json"
-                },
                 body: JSON.stringify({
                     decision,
                     note: String(note || "").trim()
@@ -1192,18 +1395,17 @@ document.getElementById("detailsModal").addEventListener("click", event => {
 async function updateOrder(id) {
     const statusElement = document.getElementById(`status-${id}`);
     const paymentElement = document.getElementById(`payment-${id}`);
+    const approvalElement = document.getElementById(`approval-${id}`);
 
     if (!statusElement || !paymentElement) return;
 
     try {
         const data = await requestJSON(`/api/admin/orders/${id}/status`, {
             method: "PUT",
-            headers: {
-                "Content-Type": "application/json"
-            },
             body: JSON.stringify({
                 status: statusElement.value,
-                payment_status: paymentElement.value
+                payment_status: paymentElement.value,
+                approval_status: approvalElement ? approvalElement.value : undefined
             })
         });
 
@@ -1292,30 +1494,20 @@ function filterOrders() {
         .value.trim().toLowerCase();
 
     const filtered = allOrders.filter(order => {
-        return [
+        if (!query) return true;
+        const hay = [
+            order.id,
             order.order_number,
             order.customer_name,
             order.customer_phone,
             order.customer_email,
-            order.customer_id,
-            order.id
-        ].some(value =>
-            String(value ?? "").toLowerCase().includes(query)
-        );
+            order.tracking_code,
+            order.courier_name
+        ].map(v => String(v ?? "").toLowerCase()).join(" ");
+        return hay.includes(query);
     });
 
     renderOrders(filtered);
-}
-
-async function logout() {
-    try {
-        await fetch("/api/admin/logout", {
-            method: "POST",
-            credentials: "same-origin"
-        });
-    } finally {
-        window.location.href = "/pages/admin.html";
-    }
 }
 
 loadOrders();

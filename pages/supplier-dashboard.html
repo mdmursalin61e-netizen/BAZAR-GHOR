@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -210,6 +209,89 @@
             border: none;
             padding: 8px 13px;
             border-radius: 5px;
+        }
+
+        .gallery-box, .links-box {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 14px;
+            background: #f8fafc;
+        }
+
+        .gallery-add-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .gallery-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .gallery-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .gallery-chip img {
+            width: 36px;
+            height: 36px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .links-add-row {
+            display: grid;
+            grid-template-columns: 1.2fr 2fr 1fr auto;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .links-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .link-chip {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            flex-wrap: wrap;
+        }
+
+        .badge-pub {
+            background: #dcfce7;
+            color: #166534;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .badge-priv {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
         }
 
         .message {
@@ -427,6 +509,12 @@
             font-size: 13px;
         }
 
+        @media (max-width: 768px) {
+            .links-add-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @media (max-width: 700px) {
             .stats,
             .info-grid,
@@ -463,7 +551,7 @@
         <h1>Welcome, <span id="supplierName">Supplier</span>!</h1>
         <p>
             Welcome to your BAZAR GHOR Supplier Dashboard.
-            Manage your products, receive orders and update delivery progress.
+            Manage your products (up to 4 gallery images &amp; 25 links), receive orders and update delivery progress.
         </p>
     </section>
 
@@ -491,8 +579,8 @@
         <div class="note">
             Admin তোমার কাছে যে অর্ডার পাঠাবে, শুধু সেগুলো এখানে দেখতে পাবে।
             অর্ডার নিতে চাইলে Accept এবং নিতে না পারলে Reject করো।
-            Reject করার সময় কারণ লিখতে হবে।
-            Admin অনুমোদন দেওয়ার পর ডেলিভারির অগ্রগতি আপডেট করতে পারবে।
+            Reject করার সময় কারণ লিখতে হবে।
+            Admin অনুমোদন দেওয়ার পর ডেলিভারির অগ্রগতি আপডেট করতে পারবে।
         </div>
 
         <div id="ordersContainer">
@@ -575,11 +663,45 @@
                               maxlength="10000"></textarea>
                 </div>
 
+                <!-- PRODUCT GALLERY (MAX 4 IMAGES) -->
                 <div class="form-group full">
-                    <label for="imageUrl">Product Image URL</label>
-                    <input id="imageUrl"
-                           type="url"
-                           placeholder="https://example.com/image.jpg">
+                    <label for="imageUrl">Product Image Gallery (Maximum 4 Images)</label>
+                    <div class="gallery-box">
+                        <div class="gallery-add-row">
+                            <input id="imageUrl"
+                                   type="url"
+                                   placeholder="https://example.com/image.jpg"
+                                   style="flex: 1; min-width: 220px;">
+                            <button type="button" class="secondary-btn" id="addGalleryUrlBtn">+ Add Image URL</button>
+                            <input id="galleryFileInput"
+                                   type="file"
+                                   accept="image/jpeg,image/png,image/webp,image/gif"
+                                   multiple
+                                   style="max-width: 260px;">
+                        </div>
+                        <p class="small-muted" id="galleryCounterText">Gallery Images: 0 / 4</p>
+                        <div class="gallery-list" id="supplierGalleryList"></div>
+                    </div>
+                </div>
+
+                <!-- PRODUCT LINKS (MAX 25 LINKS, PUBLIC / PRIVATE) -->
+                <div class="form-group full">
+                    <label>Product Links (YouTube, Facebook, Website — Maximum 25 Links)</label>
+                    <div class="links-box">
+                        <p class="small-muted" id="supplierLinksCounterText">
+                            Links: 0 / 25 (Customers only see Public links)
+                        </p>
+                        <div class="links-add-row">
+                            <input id="linkTitleInput" type="text" maxlength="120" placeholder="Link Title (e.g. YouTube Video)">
+                            <input id="linkUrlInput" type="url" maxlength="1000" placeholder="https://youtube.com/... or https://...">
+                            <select id="linkVisibilitySelect">
+                                <option value="public">Public (Customer Visible)</option>
+                                <option value="private">Private (Admin Only)</option>
+                            </select>
+                            <button type="button" class="secondary-btn" id="addSupplierLinkBtn">+ Add Link</button>
+                        </div>
+                        <div class="links-list" id="supplierLinksList"></div>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -671,6 +793,7 @@
                 <thead>
                     <tr>
                         <th>Product Name</th>
+                        <th>Gallery &amp; Links</th>
                         <th>Purchase Price</th>
                         <th>Proposed Price</th>
                         <th>Stock</th>
@@ -682,7 +805,7 @@
 
                 <tbody id="productsTable">
                     <tr>
-                        <td colspan="7" class="empty">
+                        <td colspan="8" class="empty">
                             Loading products...
                         </td>
                     </tr>
@@ -701,55 +824,42 @@
     const errorMessage = document.getElementById("errorMessage");
     const successMessage = document.getElementById("successMessage");
 
+    const MAX_GALLERY_IMAGES = 4;
+    const MAX_PRODUCT_LINKS = 25;
+
     let myProducts = [];
     let myOrders = [];
 
+    // Each gallery entry: { url, file, previewUrl }
+    let galleryItems = [];
+
+    // Each link entry: { title, url, visibility }
+    let supplierLinks = [];
+
     const DELIVERY_STEPS = [
-        {
-            value: "preparing",
-            label: "Preparing"
-        },
-        {
-            value: "ready_for_dispatch",
-            label: "Ready for Dispatch"
-        },
-        {
-            value: "shipped",
-            label: "Shipped"
-        },
-        {
-            value: "delivered",
-            label: "Delivered"
-        }
+        { value: "preparing", label: "Preparing" },
+        { value: "ready_for_dispatch", label: "Ready for Dispatch" },
+        { value: "shipped", label: "Shipped" },
+        { value: "delivered", label: "Delivered" }
     ];
 
     function showError(message) {
         successMessage.style.display = "none";
         errorMessage.textContent = message;
         errorMessage.style.display = "block";
-
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function showSuccess(message) {
         errorMessage.style.display = "none";
         successMessage.textContent = message;
         successMessage.style.display = "block";
-
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function setText(id, value, fallback = "Not provided") {
         const element = document.getElementById(id);
-
         if (!element) return;
-
         element.textContent =
             value !== null && value !== undefined && value !== ""
                 ? value
@@ -758,55 +868,57 @@
 
     function money(value) {
         const number = Number(value);
-
-        if (!Number.isFinite(number)) {
-            return "৳ 0.00";
-        }
-
+        if (!Number.isFinite(number)) return "৳ 0.00";
         return "৳ " + number.toFixed(2);
     }
 
     function formatDate(value) {
         if (!value) return "Not available";
-
         const date = new Date(value);
-
-        if (Number.isNaN(date.getTime())) {
-            return "Not available";
-        }
-
+        if (Number.isNaN(date.getTime())) return "Not available";
         return date.toLocaleString("en-BD", {
             dateStyle: "medium",
             timeStyle: "short"
         });
     }
 
+    function isSafeUrl(val) {
+        const str = String(val || "").trim();
+        if (!str) return false;
+        if (str.startsWith("/uploads/") || str.startsWith("/assets/")) return true;
+        try {
+            const u = new URL(str);
+            return ["http:", "https:"].includes(u.protocol);
+        } catch {
+            return false;
+        }
+    }
+
     function createElement(tag, className, text) {
         const element = document.createElement(tag);
-
-        if (className) {
-            element.className = className;
-        }
-
+        if (className) element.className = className;
         if (text !== undefined && text !== null) {
             element.textContent = String(text);
         }
-
         return element;
     }
 
     async function apiRequest(url, options = {}) {
+        const headers = {
+            ...(options.headers || {})
+        };
+        if (!(options.body instanceof FormData)) {
+            headers["Content-Type"] = "application/json";
+        }
+
         const response = await fetch(url, {
-            credentials: "same-origin",
+            credentials: "include",
             cache: "no-store",
             ...options,
-            headers: {
-                ...(options.headers || {})
-            }
+            headers
         });
 
         let result;
-
         try {
             result = await response.json();
         } catch {
@@ -824,6 +936,190 @@
 
         return result;
     }
+
+    // ==========================================
+    // GALLERY & LINKS HELPERS (MAX 4 / MAX 25)
+    // ==========================================
+
+    function clearGalleryPreviews() {
+        galleryItems.forEach(item => {
+            if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+        });
+        galleryItems = [];
+        document.getElementById("imageUrl").value = "";
+        document.getElementById("galleryFileInput").value = "";
+        renderGalleryItems();
+    }
+
+    function renderGalleryItems() {
+        const list = document.getElementById("supplierGalleryList");
+        const counter = document.getElementById("galleryCounterText");
+        counter.textContent = `Gallery Images: ${galleryItems.length} / ${MAX_GALLERY_IMAGES}`;
+        list.replaceChildren();
+
+        galleryItems.forEach((item, idx) => {
+            const chip = createElement("div", "gallery-chip");
+            const img = document.createElement("img");
+            img.src = item.previewUrl || item.url;
+            img.alt = "Gallery image " + (idx + 1);
+
+            const label = createElement(
+                "span",
+                "",
+                idx === 0 ? "Main #" + (idx + 1) : "Img #" + (idx + 1)
+            );
+
+            const rmBtn = createElement("button", "delete-btn", "×");
+            rmBtn.type = "button";
+            rmBtn.style.padding = "3px 8px";
+            rmBtn.addEventListener("click", () => {
+                if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+                galleryItems.splice(idx, 1);
+                renderGalleryItems();
+            });
+
+            chip.append(img, label, rmBtn);
+            list.appendChild(chip);
+        });
+    }
+
+    document.getElementById("addGalleryUrlBtn").addEventListener("click", () => {
+        const input = document.getElementById("imageUrl");
+        const val = input.value.trim();
+        if (!isSafeUrl(val)) {
+            showError("Please enter a valid HTTP/HTTPS image URL.");
+            return;
+        }
+        if (galleryItems.length >= MAX_GALLERY_IMAGES) {
+            showError(`Maximum ${MAX_GALLERY_IMAGES} images allowed per product.`);
+            return;
+        }
+        if (galleryItems.some(i => (i.url || i.previewUrl) === val)) {
+            showError("Image already in gallery.");
+            return;
+        }
+        galleryItems.push({ url: val, file: null, previewUrl: "" });
+        input.value = "";
+        renderGalleryItems();
+    });
+
+    document.getElementById("galleryFileInput").addEventListener("change", event => {
+        const files = Array.from(event.target.files || []);
+        if (!files.length) return;
+
+        const space = MAX_GALLERY_IMAGES - galleryItems.length;
+        if (space <= 0) {
+            event.target.value = "";
+            showError(`Maximum ${MAX_GALLERY_IMAGES} images allowed.`);
+            return;
+        }
+
+        if (files.length > space) {
+            event.target.value = "";
+            showError(`You can add only ${space} more image(s).`);
+            return;
+        }
+
+        for (const f of files) {
+            if (f.size > 5 * 1024 * 1024) {
+                event.target.value = "";
+                showError(`${f.name} exceeds 5 MB limit.`);
+                return;
+            }
+            galleryItems.push({
+                url: "",
+                file: f,
+                previewUrl: URL.createObjectURL(f)
+            });
+        }
+
+        event.target.value = "";
+        renderGalleryItems();
+    });
+
+    function renderSupplierLinks() {
+        const list = document.getElementById("supplierLinksList");
+        const counter = document.getElementById("supplierLinksCounterText");
+        counter.textContent = `Links: ${supplierLinks.length} / ${MAX_PRODUCT_LINKS} (Customers only see Public links)`;
+        list.replaceChildren();
+
+        if (!supplierLinks.length) {
+            list.appendChild(createElement("p", "small-muted", "No links added yet."));
+            return;
+        }
+
+        supplierLinks.forEach((lk, idx) => {
+            const row = createElement("div", "link-chip");
+            const info = createElement("div");
+            const titleEl = createElement("strong", "", (lk.title || "Link") + " ");
+            const badge = createElement(
+                "span",
+                lk.visibility === "private" ? "badge-priv" : "badge-pub",
+                lk.visibility === "private" ? "Private" : "Public"
+            );
+            const urlEl = createElement("div", "small-muted", lk.url);
+            info.append(titleEl, badge, urlEl);
+
+            const rmBtn = createElement("button", "delete-btn", "Remove");
+            rmBtn.type = "button";
+            rmBtn.style.padding = "5px 10px";
+            rmBtn.addEventListener("click", () => {
+                supplierLinks.splice(idx, 1);
+                renderSupplierLinks();
+            });
+
+            row.append(info, rmBtn);
+            list.appendChild(row);
+        });
+    }
+
+    document.getElementById("addSupplierLinkBtn").addEventListener("click", () => {
+        if (supplierLinks.length >= MAX_PRODUCT_LINKS) {
+            showError(`Maximum ${MAX_PRODUCT_LINKS} links allowed per product.`);
+            return;
+        }
+        const title = document.getElementById("linkTitleInput").value.trim() || "Link";
+        const url = document.getElementById("linkUrlInput").value.trim();
+        const visibility = document.getElementById("linkVisibilitySelect").value === "private" ? "private" : "public";
+
+        if (!isSafeUrl(url)) {
+            showError("Please enter a valid HTTP/HTTPS link URL.");
+            return;
+        }
+
+        supplierLinks.push({ title, url, visibility });
+        document.getElementById("linkTitleInput").value = "";
+        document.getElementById("linkUrlInput").value = "";
+        renderSupplierLinks();
+    });
+
+    async function resolveGalleryUrls() {
+        const finalUrls = [];
+        for (const item of galleryItems) {
+            if (item.url) {
+                if (!finalUrls.includes(item.url)) finalUrls.push(item.url);
+            } else if (item.file) {
+                const fd = new FormData();
+                fd.append("image", item.file);
+                try {
+                    const up = await apiRequest("/api/supplier/upload-image", {
+                        method: "POST",
+                        body: fd
+                    });
+                    if (up.image_url && isSafeUrl(up.image_url) && !finalUrls.includes(up.image_url)) {
+                        finalUrls.push(up.image_url);
+                    }
+                } catch {
+                    // Fallback if upload endpoint is not configured
+                }
+            }
+        }
+        return finalUrls.slice(0, MAX_GALLERY_IMAGES);
+    }
+
+    // ==========================================
+    // DASHBOARD INIT
+    // ==========================================
 
     async function loadDashboard() {
         try {
@@ -847,8 +1143,6 @@
                 loadOrders()
             ]);
 
-            console.log("Supplier dashboard loaded successfully.");
-
         } catch (error) {
             console.error("Dashboard loading error:", error);
             showError(error.message || "Unable to load dashboard.");
@@ -860,230 +1154,110 @@
     // ==========================================
 
     async function loadOrders() {
-        const container =
-            document.getElementById("ordersContainer");
-
-        container.replaceChildren(
-            createElement("p", "empty", "Loading orders...")
-        );
+        const container = document.getElementById("ordersContainer");
+        container.replaceChildren(createElement("p", "empty", "Loading orders..."));
 
         try {
-            const result = await apiRequest(
-                "/api/admin/supplier/orders"
-            );
-
-            myOrders = Array.isArray(result.orders)
-                ? result.orders
-                : [];
-
+            const result = await apiRequest("/api/admin/supplier/orders");
+            myOrders = Array.isArray(result.orders) ? result.orders : [];
             setText("totalOrders", myOrders.length, "0");
 
             const approvedSales = myOrders
-                .filter(order =>
-                    order.status === "admin_approved"
-                )
-                .reduce((total, order) => {
-                    return total + Number(order.subtotal || 0);
-                }, 0);
+                .filter(order => order.status === "admin_approved")
+                .reduce((total, order) => total + Number(order.subtotal || 0), 0);
 
             setText("totalSales", money(approvedSales));
-
             renderOrders();
-
         } catch (error) {
             console.error("Order loading error:", error);
-
             container.replaceChildren(
-                createElement(
-                    "p",
-                    "empty",
-                    "Could not load orders: " + error.message
-                )
+                createElement("p", "empty", "Could not load orders: " + error.message)
             );
         }
     }
 
     function addOrderDetail(container, label, value) {
         const item = createElement("div", "order-detail");
-
-        item.appendChild(
-            createElement("span", "", label)
-        );
-
+        item.appendChild(createElement("span", "", label));
         item.appendChild(
             createElement(
                 "strong",
                 "",
-                value !== null && value !== undefined && value !== ""
-                    ? value
-                    : "Not available"
+                value !== null && value !== undefined && value !== "" ? value : "Not available"
             )
         );
-
         container.appendChild(item);
     }
 
     function renderOrders() {
-        const container =
-            document.getElementById("ordersContainer");
-
+        const container = document.getElementById("ordersContainer");
         container.replaceChildren();
 
         if (!myOrders.length) {
             container.appendChild(
-                createElement(
-                    "p",
-                    "empty",
-                    "No orders have been sent to you yet."
-                )
+                createElement("p", "empty", "No orders have been sent to you yet.")
             );
-
             return;
         }
 
         myOrders.forEach(order => {
             const card = createElement("div", "order-card");
-
             const handoffId = order.handoff_id || order.id;
+            const orderStatus = order.handoff_status || order.status || "sent";
 
-            const orderStatus =
-                order.handoff_status ||
-                order.status ||
-                "sent";
-
-            // Order heading and status
             const top = createElement("div", "order-top");
-
             const heading = createElement(
                 "h3",
                 "",
-                "Order: " +
-                (order.order_number || ("#" + order.order_id))
+                "Order: " + (order.order_number || ("#" + order.order_id))
             );
-
             const status = createElement(
                 "span",
                 "status " + orderStatus,
                 orderStatus.replaceAll("_", " ")
             );
-
             top.append(heading, status);
 
-            // Order product details
-            const details = createElement(
-                "div",
-                "order-details"
-            );
-
-            addOrderDetail(
-                details,
-                "Product",
-                order.product_name
-            );
-
-            addOrderDetail(
-                details,
-                "Quantity",
-                order.quantity
-            );
-
-            addOrderDetail(
-                details,
-                "Unit Price",
-                money(order.unit_price)
-            );
-
-            addOrderDetail(
-                details,
-                "Item Subtotal",
-                money(order.subtotal)
-            );
-
-            addOrderDetail(
-                details,
-                "Sent At",
-                formatDate(order.sent_at)
-            );
-
+            const details = createElement("div", "order-details");
+            addOrderDetail(details, "Product", order.product_name);
+            addOrderDetail(details, "Quantity", order.quantity);
+            addOrderDetail(details, "Unit Price", money(order.unit_price));
+            addOrderDetail(details, "Item Subtotal", money(order.subtotal));
+            addOrderDetail(details, "Sent At", formatDate(order.sent_at));
             card.append(top, details);
 
-            // Supplier response note
             if (order.supplier_response_note) {
                 card.appendChild(
-                    createElement(
-                        "p",
-                        "order-note",
-                        "Your response: " +
-                        order.supplier_response_note
-                    )
+                    createElement("p", "order-note", "Your response: " + order.supplier_response_note)
                 );
             }
 
-            // Admin note
             if (order.admin_note) {
                 card.appendChild(
-                    createElement(
-                        "p",
-                        "order-note",
-                        "Admin note: " + order.admin_note
-                    )
+                    createElement("p", "order-note", "Admin note: " + order.admin_note)
                 );
             }
 
-            // New order: Accept or Reject
             if (orderStatus === "sent") {
                 renderOrderResponse(card, order, handoffId);
-            }
-
-            // Accepted: waiting for Admin approval
-            else if (orderStatus === "accepted") {
+            } else if (orderStatus === "accepted") {
                 card.appendChild(
-                    createElement(
-                        "p",
-                        "order-note",
-                        "You accepted this order. Waiting for Admin's review."
-                    )
+                    createElement("p", "order-note", "You accepted this order. Waiting for Admin's review.")
                 );
-
                 renderCustomerInformation(card, order);
-            }
-
-            // Rejected
-            else if (
-                orderStatus === "rejected" ||
-                orderStatus === "admin_rejected"
-            ) {
+            } else if (orderStatus === "rejected" || orderStatus === "admin_rejected") {
                 card.appendChild(
-                    createElement(
-                        "p",
-                        "order-note",
-                        "This order was rejected. You do not need to take further action."
-                    )
+                    createElement("p", "order-note", "This order was rejected. You do not need to take further action.")
                 );
-            }
-
-            // Admin approved: customer info and delivery progress
-            else if (orderStatus === "admin_approved") {
+            } else if (orderStatus === "admin_approved") {
                 card.appendChild(
-                    createElement(
-                        "p",
-                        "order-note",
-                        "Admin approved this order. Please complete delivery and update its progress."
-                    )
+                    createElement("p", "order-note", "Admin approved this order. Please complete delivery and update its progress.")
                 );
-
                 renderCustomerInformation(card, order);
                 renderDeliveryProgress(card, order, handoffId);
-            }
-
-            else {
+            } else {
                 card.appendChild(
-                    createElement(
-                        "p",
-                        "order-note",
-                        "Current order status: " +
-                        orderStatus.replaceAll("_", " ")
-                    )
+                    createElement("p", "order-note", "Current order status: " + orderStatus.replaceAll("_", " "))
                 );
             }
 
@@ -1091,877 +1265,361 @@
         });
     }
 
-    // ==========================================
-    // CUSTOMER INFORMATION
-    // ==========================================
-
     function renderCustomerInformation(card, order) {
-        const customerBox =
-            createElement("div", "customer-box");
+        const customerBox = createElement("div", "customer-box");
+        customerBox.appendChild(createElement("h4", "", "Customer Information"));
+
+        const customerName = order.customer_name || order.name;
+        const customerPhone = order.customer_phone || order.phone;
+        const deliveryAddress = order.delivery_address;
 
         customerBox.appendChild(
-            createElement("h4", "", "Customer Information")
+            createElement("p", "", "Customer Name: " + (customerName || "Not available"))
         );
-
-        const customerName =
-            order.customer_name || order.name;
-
-        const customerPhone =
-            order.customer_phone || order.phone;
-
-        const deliveryAddress =
-            order.delivery_address;
-
         customerBox.appendChild(
-            createElement(
-                "p",
-                "",
-                "Customer Name: " +
-                (customerName || "Not available")
-            )
+            createElement("p", "", "Phone Number: " + (customerPhone || "Not available"))
         );
-
         customerBox.appendChild(
-            createElement(
-                "p",
-                "",
-                "Phone Number: " +
-                (customerPhone || "Not available")
-            )
-        );
-
-        customerBox.appendChild(
-            createElement(
-                "p",
-                "",
-                "Delivery Address: " +
-                (deliveryAddress || "Not available")
-            )
+            createElement("p", "", "Delivery Address: " + (deliveryAddress || "Not available"))
         );
 
         if (customerPhone) {
             const phoneLink = document.createElement("a");
-
-            phoneLink.href =
-                "tel:" + String(customerPhone).replace(/[^\d+]/g, "");
-
+            phoneLink.href = "tel:" + String(customerPhone).replace(/[^\d+]/g, "");
             phoneLink.textContent = "Call Customer";
-
             phoneLink.style.display = "inline-block";
             phoneLink.style.marginTop = "10px";
             phoneLink.style.color = "#087443";
             phoneLink.style.fontWeight = "bold";
-
             customerBox.appendChild(phoneLink);
         }
 
         card.appendChild(customerBox);
     }
 
-    // ==========================================
-    // ACCEPT / REJECT ORDER
-    // ==========================================
-
     function renderOrderResponse(card, order, handoffId) {
-        const responseArea =
-            createElement("div", "response-area");
-
-        const noteLabel =
-            createElement(
-                "label",
-                "",
-                "Response Note (required for rejection)"
-            );
-
-        const noteInput =
-            document.createElement("textarea");
-
-        noteInput.placeholder =
-            "Write a note for Admin. Rejection reason is required.";
-
+        const responseArea = createElement("div", "response-area");
+        const noteLabel = createElement("label", "", "Response Note (required for rejection)");
+        const noteInput = document.createElement("textarea");
+        noteInput.placeholder = "Write a note for Admin. Rejection reason is required.";
         noteInput.maxLength = 2000;
 
-        const actions =
-            createElement("div", "order-actions");
-
-        const acceptButton =
-            createElement("button", "accept-btn", "Accept Order");
-
+        const actions = createElement("div", "order-actions");
+        const acceptButton = createElement("button", "accept-btn", "Accept Order");
         acceptButton.type = "button";
 
-        const rejectButton =
-            createElement("button", "reject-btn", "Reject Order");
-
+        const rejectButton = createElement("button", "reject-btn", "Reject Order");
         rejectButton.type = "button";
 
         acceptButton.addEventListener("click", () => {
-            respondToOrder(
-                handoffId,
-                "accepted",
-                noteInput.value,
-                acceptButton,
-                rejectButton
-            );
+            respondToOrder(handoffId, "accepted", noteInput.value, acceptButton, rejectButton);
         });
 
         rejectButton.addEventListener("click", () => {
-            respondToOrder(
-                handoffId,
-                "rejected",
-                noteInput.value,
-                acceptButton,
-                rejectButton
-            );
+            respondToOrder(handoffId, "rejected", noteInput.value, acceptButton, rejectButton);
         });
 
         actions.append(acceptButton, rejectButton);
-
-        responseArea.append(
-            noteLabel,
-            noteInput,
-            actions
-        );
-
+        responseArea.append(noteLabel, noteInput, actions);
         card.appendChild(responseArea);
     }
 
-    async function respondToOrder(
-        handoffId,
-        decision,
-        note,
-        acceptButton,
-        rejectButton
-    ) {
-        if (!handoffId) {
-            showError("Order handoff ID is missing. Please refresh.");
+    async function respondToOrder(handoffId, decision, note, acceptBtn, rejectBtn) {
+        const cleanNote = String(note || "").trim();
+        if (decision === "rejected" && !cleanNote) {
+            showError("Please write a reason before rejecting an order.");
             return;
         }
 
-        if (decision === "rejected" && !note.trim()) {
-            showError(
-                "Please write a reason before rejecting the order."
-            );
-            return;
-        }
-
-        const confirmation =
-            decision === "accepted"
-                ? "Are you sure you want to accept this order?"
-                : "Are you sure you want to reject this order?";
-
-        if (!confirm(confirmation)) return;
-
-        acceptButton.disabled = true;
-        rejectButton.disabled = true;
+        if (acceptBtn) acceptBtn.disabled = true;
+        if (rejectBtn) rejectBtn.disabled = true;
 
         try {
-            const result = await apiRequest(
-                "/api/admin/supplier/orders/" +
-                encodeURIComponent(handoffId) +
-                "/response",
-                {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        decision,
-                        note: note.trim()
-                    })
-                }
-            );
+            await apiRequest(`/api/admin/supplier/orders/${handoffId}/respond`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    decision,
+                    response_note: cleanNote
+                })
+            });
 
             showSuccess(
-                result.message ||
-                (
-                    decision === "accepted"
-                        ? "Order accepted successfully."
-                        : "Order rejected successfully."
-                )
+                decision === "accepted"
+                    ? "Order accepted. Waiting for Admin approval."
+                    : "Order rejected."
             );
-
             await loadOrders();
-
         } catch (error) {
-            showError(
-                error.message ||
-                "Could not submit your response."
-            );
-
-            acceptButton.disabled = false;
-            rejectButton.disabled = false;
+            showError(error.message || "Could not update order response.");
+        } finally {
+            if (acceptBtn) acceptBtn.disabled = false;
+            if (rejectBtn) rejectBtn.disabled = false;
         }
     }
-
-    // ==========================================
-    // DELIVERY PROGRESS
-    // ==========================================
 
     function renderDeliveryProgress(card, order, handoffId) {
-        const deliveryArea =
-            createElement("div", "delivery-area");
+        const area = createElement("div", "delivery-area");
+        area.appendChild(createElement("h4", "", "Delivery Progress Update"));
 
-        deliveryArea.appendChild(
-            createElement("h4", "", "Delivery Progress")
-        );
+        const group = createElement("div", "form-group");
+        group.appendChild(createElement("label", "", "Delivery Stage"));
 
-        const currentStatus =
-            order.delivery_status || "not_started";
-
-        const statusLabel =
-            createElement(
-                "p",
-                "delivery-info",
-                "Current status: " +
-                currentStatus.replaceAll("_", " ")
-            );
-
-        deliveryArea.appendChild(statusLabel);
-
-        if (order.delivery_note) {
-            deliveryArea.appendChild(
-                createElement(
-                    "p",
-                    "delivery-info",
-                    "Last update note: " + order.delivery_note
-                )
-            );
-        }
-
-        if (order.delivery_updated_at) {
-            deliveryArea.appendChild(
-                createElement(
-                    "p",
-                    "small-muted",
-                    "Last updated: " +
-                    formatDate(order.delivery_updated_at)
-                )
-            );
-        }
-
-        if (currentStatus === "delivered") {
-            deliveryArea.appendChild(
-                createElement(
-                    "p",
-                    "delivery-info",
-                    "Delivery marked as completed."
-                )
-            );
-
-            card.appendChild(deliveryArea);
-            return;
-        }
-
-        const formGroup =
-            createElement("div", "form-group");
-
-        const selectLabel =
-            createElement(
-                "label",
-                "",
-                "Update Delivery Status"
-            );
-
-        const select =
-            document.createElement("select");
-
-        select.required = true;
+        const select = document.createElement("select");
+        const currentStep = order.supplier_progress || order.delivery_status || "preparing";
 
         DELIVERY_STEPS.forEach(step => {
-            const option =
-                document.createElement("option");
-
-            option.value = step.value;
-            option.textContent = step.label;
-
-            select.appendChild(option);
+            const opt = document.createElement("option");
+            opt.value = step.value;
+            opt.textContent = step.label;
+            if (step.value === currentStep) opt.selected = true;
+            select.appendChild(opt);
         });
 
-        // Select the next allowed status
-        const currentIndex = DELIVERY_STEPS.findIndex(
-            step => step.value === currentStatus
-        );
+        group.appendChild(select);
 
-        const nextIndex = Math.min(
-            currentIndex + 1,
-            DELIVERY_STEPS.length - 1
-        );
+        const noteInput = document.createElement("textarea");
+        noteInput.placeholder = "Optional delivery update note (e.g. packed, handed to courier)";
+        noteInput.maxLength = 1000;
+        noteInput.value = order.supplier_note || "";
 
-        select.value =
-            currentIndex === -1
-                ? DELIVERY_STEPS[0].value
-                : DELIVERY_STEPS[nextIndex].value;
+        const updateBtn = createElement("button", "primary-btn", "Update Delivery Progress");
+        updateBtn.type = "button";
 
-        const noteLabel =
-            createElement(
-                "label",
-                "",
-                "Delivery Update Note"
-            );
-
-        const noteInput =
-            document.createElement("textarea");
-
-        noteInput.maxLength = 2000;
-        noteInput.placeholder =
-            "Write an optional delivery update for Admin...";
-
-        const updateButton =
-            createElement(
-                "button",
-                "primary-btn",
-                "Update Delivery"
-            );
-
-        updateButton.type = "button";
-
-        updateButton.addEventListener("click", () => {
-            updateDeliveryProgress(
-                handoffId,
-                select.value,
-                noteInput.value,
-                updateButton
-            );
-        });
-
-        formGroup.append(
-            selectLabel,
-            select,
-            noteLabel,
-            noteInput,
-            updateButton
-        );
-
-        deliveryArea.appendChild(formGroup);
-        card.appendChild(deliveryArea);
-    }
-
-    async function updateDeliveryProgress(
-        handoffId,
-        deliveryStatus,
-        note,
-        button
-    ) {
-        if (!handoffId) {
-            showError("Order handoff ID is missing.");
-            return;
-        }
-
-        const validStatus = DELIVERY_STEPS.some(
-            step => step.value === deliveryStatus
-        );
-
-        if (!validStatus) {
-            showError("Please select a valid delivery status.");
-            return;
-        }
-
-        if (!confirm(
-            "Are you sure you want to update the delivery status?"
-        )) {
-            return;
-        }
-
-        button.disabled = true;
-        button.textContent = "Updating...";
-
-        try {
-            const result = await apiRequest(
-                "/api/admin/supplier/orders/" +
-                encodeURIComponent(handoffId) +
-                "/delivery",
-                {
+        updateBtn.addEventListener("click", async () => {
+            updateBtn.disabled = true;
+            try {
+                const targetOrderId = order.order_id || handoffId;
+                await apiRequest(`/api/supplier/orders/${targetOrderId}/delivery-status`, {
                     method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        delivery_status: deliveryStatus,
-                        delivery_note: note.trim()
+                        delivery_status: select.value,
+                        note: noteInput.value.trim()
                     })
-                }
-            );
-
-            showSuccess(
-                result.message ||
-                "Delivery progress updated successfully."
-            );
-
-            await loadOrders();
-
-        } catch (error) {
-            showError(
-                error.message ||
-                "Could not update delivery progress."
-            );
-
-            button.disabled = false;
-            button.textContent = "Update Delivery";
-        }
-    }
-
-    document.getElementById("refreshOrdersBtn")
-        .addEventListener("click", async function() {
-            this.disabled = true;
-            this.textContent = "Refreshing...";
-
-            await loadOrders();
-
-            this.disabled = false;
-            this.textContent = "Refresh Orders";
+                });
+                showSuccess("Delivery progress updated to " + select.value.replaceAll("_", " ") + ".");
+                await loadOrders();
+            } catch (error) {
+                showError(error.message || "Could not update delivery progress.");
+            } finally {
+                updateBtn.disabled = false;
+            }
         });
+
+        area.append(group, noteInput, updateBtn);
+        card.appendChild(area);
+    }
 
     // ==========================================
-    // SUPPLIER PRODUCTS
+    // SUPPLIER PRODUCTS CRUD
     // ==========================================
 
     async function loadProducts() {
-        const tbody =
-            document.getElementById("productsTable");
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="empty">
-                    Loading products...
-                </td>
-            </tr>
-        `;
+        const tbody = document.getElementById("productsTable");
+        tbody.replaceChildren();
+        const tr = document.createElement("tr");
+        const td = createElement("td", "empty", "Loading products...");
+        td.colSpan = 8;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
 
         try {
-            const result = await apiRequest(
-                "/api/admin/supplier/my-products"
-            );
-
-            myProducts = Array.isArray(result.products)
-                ? result.products
-                : [];
-
+            const result = await apiRequest("/api/supplier/my-products");
+            myProducts = Array.isArray(result.products) ? result.products : [];
             setText("totalProducts", myProducts.length, "0");
-
             renderProducts();
-
         } catch (error) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="empty">
-                        Could not load products.
-                    </td>
-                </tr>
-            `;
-
-            throw error;
+            tbody.replaceChildren();
+            const errTr = document.createElement("tr");
+            const errTd = createElement("td", "empty", "Could not load products: " + error.message);
+            errTd.colSpan = 8;
+            errTr.appendChild(errTd);
+            tbody.appendChild(errTr);
         }
     }
 
     function renderProducts() {
-        const tbody =
-            document.getElementById("productsTable");
-
+        const tbody = document.getElementById("productsTable");
         tbody.replaceChildren();
 
         if (!myProducts.length) {
-            const row = document.createElement("tr");
-            const cell = document.createElement("td");
-
-            cell.colSpan = 7;
-            cell.className = "empty";
-            cell.textContent =
-                "You have not added any products yet.";
-
-            row.appendChild(cell);
-            tbody.appendChild(row);
-
+            const tr = document.createElement("tr");
+            const td = createElement("td", "empty", "You have not added any products yet.");
+            td.colSpan = 8;
+            tr.appendChild(td);
+            tbody.appendChild(tr);
             return;
         }
 
-        myProducts.forEach(product => {
-            const row = document.createElement("tr");
+        myProducts.forEach(prod => {
+            const tr = document.createElement("tr");
 
-            const name = createElement(
-                "td",
-                "",
-                product.product_name || "Unnamed"
-            );
+            const imgs = Array.isArray(prod.image_urls)
+                ? prod.image_urls
+                : (prod.image_url ? [prod.image_url] : []);
+            const links = Array.isArray(prod.links) ? prod.links : [];
 
-            const purchase = createElement(
-                "td",
-                "",
-                money(product.purchase_price)
-            );
+            tr.appendChild(createElement("td", "", prod.product_name || prod.name || "Product"));
+            tr.appendChild(createElement("td", "", `${imgs.length}/${MAX_GALLERY_IMAGES} imgs · ${links.length}/${MAX_PRODUCT_LINKS} links`));
+            tr.appendChild(createElement("td", "", money(prod.purchase_price ?? prod.supplier_cost)));
+            tr.appendChild(createElement("td", "", money(prod.proposed_selling_price ?? prod.selling_price)));
+            tr.appendChild(createElement("td", "", String(prod.supplier_stock_quantity ?? prod.stock_available ?? 0)));
 
-            const proposed = createElement(
-                "td",
-                "",
-                money(product.proposed_selling_price)
-            );
+            const statusTd = document.createElement("td");
+            const st = prod.approval_status || "pending";
+            statusTd.appendChild(createElement("span", "status " + st, st));
+            tr.appendChild(statusTd);
 
-            const stock = createElement(
-                "td",
-                "",
-                product.supplier_stock_quantity ?? 0
-            );
+            tr.appendChild(createElement("td", "", prod.admin_approval_note || "—"));
 
-            const statusCell =
-                document.createElement("td");
+            const actTd = document.createElement("td");
+            const editBtn = createElement("button", "edit-btn", "Edit");
+            editBtn.type = "button";
+            editBtn.addEventListener("click", () => startEditSupplierProduct(prod));
 
-            const status = createElement(
-                "span",
-                "status " + (product.approval_status || "pending"),
-                product.approval_status || "pending"
-            );
+            const delBtn = createElement("button", "delete-btn", "Delete");
+            delBtn.type = "button";
+            delBtn.addEventListener("click", () => deleteSupplierProduct(prod.id));
 
-            statusCell.appendChild(status);
+            actTd.append(editBtn, delBtn);
+            tr.appendChild(actTd);
 
-            const note = createElement(
-                "td",
-                "",
-                product.admin_approval_note || "No note"
-            );
-
-            const action =
-                document.createElement("td");
-
-            const editButton = createElement(
-                "button",
-                "edit-btn",
-                "Edit"
-            );
-
-            editButton.type = "button";
-
-            editButton.addEventListener("click", () => {
-                editProduct(product.id);
-            });
-
-            const deleteButton = createElement(
-                "button",
-                "delete-btn",
-                "Delete"
-            );
-
-            deleteButton.type = "button";
-
-            deleteButton.addEventListener("click", () => {
-                deleteProduct(product.id, deleteButton);
-            });
-
-            action.append(editButton, deleteButton);
-
-            row.append(
-                name,
-                purchase,
-                proposed,
-                stock,
-                statusCell,
-                note,
-                action
-            );
-
-            tbody.appendChild(row);
+            tbody.appendChild(tr);
         });
     }
 
-    async function deleteProduct(id, button) {
-        const product = myProducts.find(
-            item => String(item.id) === String(id)
-        );
+    function startEditSupplierProduct(prod) {
+        document.getElementById("editingProductId").value = prod.id;
+        document.getElementById("formTitle").textContent = "Edit Product #" + prod.id;
+        document.getElementById("productName").value = prod.product_name || prod.name || "";
+        document.getElementById("category").value = prod.category || "";
+        document.getElementById("description").value = prod.description || "";
+        document.getElementById("purchasePrice").value = Number(prod.purchase_price ?? prod.supplier_cost ?? 0);
+        document.getElementById("proposedPrice").value = Number(prod.proposed_selling_price ?? prod.selling_price ?? 0.01);
+        document.getElementById("deliveryCost").value = Number(prod.delivery_cost || 0);
+        document.getElementById("otherCost").value = Number(prod.other_cost || 0);
+        document.getElementById("stock").value = Number(prod.supplier_stock_quantity ?? prod.stock_available ?? 0);
+        document.getElementById("sku").value = prod.supplier_sku || prod.sku || "";
+        document.getElementById("notes").value = prod.notes || "";
 
-        if (!product) {
-            showError("Product not found.");
-            return;
+        clearGalleryPreviews();
+        const existingImgs = Array.isArray(prod.image_urls)
+            ? prod.image_urls
+            : (prod.image_url ? [prod.image_url] : []);
+        existingImgs.slice(0, MAX_GALLERY_IMAGES).forEach(u => {
+            if (isSafeUrl(u)) galleryItems.push({ url: u, file: null, previewUrl: "" });
+        });
+        renderGalleryItems();
+
+        supplierLinks = Array.isArray(prod.links)
+            ? prod.links.slice(0, MAX_PRODUCT_LINKS).map(lk => ({
+                title: lk.title || "Link",
+                url: lk.url,
+                visibility: lk.visibility === "private" ? "private" : "public"
+            }))
+            : [];
+        renderSupplierLinks();
+
+        document.getElementById("submitBtn").textContent = "Update Product";
+        document.getElementById("cancelEditBtn").style.display = "inline-block";
+        window.scrollTo({ top: document.getElementById("productForm").offsetTop - 30, behavior: "smooth" });
+    }
+
+    document.getElementById("cancelEditBtn").addEventListener("click", () => {
+        document.getElementById("editingProductId").value = "";
+        document.getElementById("productForm").reset();
+        document.getElementById("formTitle").textContent = "Add New Product";
+        document.getElementById("submitBtn").textContent = "Submit Product";
+        document.getElementById("cancelEditBtn").style.display = "none";
+        clearGalleryPreviews();
+        supplierLinks = [];
+        renderSupplierLinks();
+    });
+
+    async function deleteSupplierProduct(id) {
+        if (!confirm("Are you sure you want to delete this product?")) return;
+        try {
+            await apiRequest(`/api/supplier/my-products/${id}`, { method: "DELETE" });
+            showSuccess("Product deleted successfully.");
+            await loadProducts();
+        } catch (error) {
+            showError(error.message || "Could not delete product.");
         }
+    }
 
-        const confirmed = confirm(
-            "Are you sure you want to delete '" +
-            (product.product_name || "this product") +
-            "'?\n\nThis product will be removed from your product list."
-        );
-
-        if (!confirmed) return;
-
-        button.disabled = true;
-        button.textContent = "Deleting...";
+    document.getElementById("productForm").addEventListener("submit", async event => {
+        event.preventDefault();
+        const submitBtn = document.getElementById("submitBtn");
+        submitBtn.disabled = true;
 
         try {
-            const result = await apiRequest(
-                "/api/admin/supplier/my-products/" +
-                encodeURIComponent(id),
-                {
-                    method: "DELETE"
+            const extraUrl = document.getElementById("imageUrl").value.trim();
+            if (extraUrl && isSafeUrl(extraUrl) && galleryItems.length < MAX_GALLERY_IMAGES) {
+                if (!galleryItems.some(i => (i.url || i.previewUrl) === extraUrl)) {
+                    galleryItems.push({ url: extraUrl, file: null, previewUrl: "" });
                 }
-            );
-
-            myProducts = myProducts.filter(
-                item => String(item.id) !== String(id)
-            );
-
-            const editingId =
-                document.getElementById("editingProductId").value;
-
-            if (String(editingId) === String(id)) {
-                resetForm();
             }
 
-            setText("totalProducts", myProducts.length, "0");
+            const finalImages = await resolveGalleryUrls();
+            if (finalImages.length > MAX_GALLERY_IMAGES) {
+                throw new Error(`Maximum ${MAX_GALLERY_IMAGES} images allowed.`);
+            }
 
-            renderProducts();
-
-            showSuccess(
-                result.message ||
-                "Product deleted successfully."
-            );
-
-        } catch (error) {
-            showError(
-                error.message ||
-                "Could not delete product."
-            );
-
-            button.disabled = false;
-            button.textContent = "Delete";
-        }
-    }
-
-    // ==========================================
-    // PRODUCT FORM
-    // ==========================================
-
-    function resetForm() {
-        document.getElementById("productForm").reset();
-
-        document.getElementById("editingProductId").value = "";
-
-        document.getElementById("formTitle").textContent =
-            "Add New Product";
-
-        document.getElementById("submitBtn").textContent =
-            "Submit Product";
-
-        document.getElementById("cancelEditBtn").style.display =
-            "none";
-
-        document.getElementById("deliveryCost").value = "0";
-        document.getElementById("otherCost").value = "0";
-        document.getElementById("stock").value = "0";
-    }
-
-    function editProduct(id) {
-        const product = myProducts.find(
-            item => String(item.id) === String(id)
-        );
-
-        if (!product) {
-            showError("Product not found.");
-            return;
-        }
-
-        document.getElementById("editingProductId").value =
-            product.id;
-
-        document.getElementById("productName").value =
-            product.product_name || "";
-
-        document.getElementById("category").value =
-            product.category || "";
-
-        document.getElementById("description").value =
-            product.description || "";
-
-        document.getElementById("imageUrl").value =
-            product.image_url || "";
-
-        document.getElementById("purchasePrice").value =
-            product.purchase_price ?? 0;
-
-        document.getElementById("proposedPrice").value =
-            product.proposed_selling_price ?? 0;
-
-        document.getElementById("deliveryCost").value =
-            product.delivery_cost ?? 0;
-
-        document.getElementById("otherCost").value =
-            product.other_cost ?? 0;
-
-        document.getElementById("stock").value =
-            product.supplier_stock_quantity ?? 0;
-
-        document.getElementById("sku").value =
-            product.supplier_sku || "";
-
-        document.getElementById("notes").value =
-            product.notes || "";
-
-        document.getElementById("formTitle").textContent =
-            "Edit Product";
-
-        document.getElementById("submitBtn").textContent =
-            "Update Product";
-
-        document.getElementById("cancelEditBtn").style.display =
-            "inline-block";
-
-        document.getElementById("formTitle").scrollIntoView({
-            behavior: "smooth",
-            block: "start"
-        });
-    }
-
-    document.getElementById("cancelEditBtn")
-        .addEventListener("click", resetForm);
-
-    document.getElementById("productForm")
-        .addEventListener("submit", async function(event) {
-            event.preventDefault();
-
-            const submitButton =
-                document.getElementById("submitBtn");
-
-            const editingId =
-                document.getElementById("editingProductId").value;
-
-            const data = {
+            const editId = document.getElementById("editingProductId").value;
+            const payload = {
                 name: document.getElementById("productName").value.trim(),
-
                 category: document.getElementById("category").value.trim(),
-
                 description: document.getElementById("description").value.trim(),
-
-                image_url: document.getElementById("imageUrl").value.trim(),
-
-                purchase_price: document.getElementById("purchasePrice").value,
-
-                proposed_selling_price: document.getElementById("proposedPrice").value,
-
-                delivery_cost: document.getElementById("deliveryCost").value,
-
-                other_cost: document.getElementById("otherCost").value,
-
-                supplier_stock_quantity: Number(
-                    document.getElementById("stock").value
-                ),
-
+                image_url: finalImages[0] || null,
+                image_urls: finalImages,
+                links: supplierLinks.slice(0, MAX_PRODUCT_LINKS),
+                purchase_price: Number(document.getElementById("purchasePrice").value),
+                proposed_selling_price: Number(document.getElementById("proposedPrice").value),
+                delivery_cost: Number(document.getElementById("deliveryCost").value || 0),
+                other_cost: Number(document.getElementById("otherCost").value || 0),
+                supplier_stock_quantity: Number(document.getElementById("stock").value || 0),
                 supplier_sku: document.getElementById("sku").value.trim(),
-
                 notes: document.getElementById("notes").value.trim()
             };
 
-            if (!data.name || !data.category) {
-                showError(
-                    "Please enter product name and category."
-                );
-                return;
-            }
-
-            if (
-                data.image_url &&
-                !/^https?:\/\//i.test(data.image_url)
-            ) {
-                showError(
-                    "Image URL must start with http:// or https://"
-                );
-                return;
-            }
-
-            if (
-                !Number.isFinite(Number(data.purchase_price)) ||
-                Number(data.purchase_price) < 0
-            ) {
-                showError("Please enter a valid purchase price.");
-                return;
-            }
-
-            if (
-                !Number.isFinite(Number(data.proposed_selling_price)) ||
-                Number(data.proposed_selling_price) <= 0
-            ) {
-                showError("Please enter a valid proposed selling price.");
-                return;
-            }
-
-            if (
-                !Number.isInteger(data.supplier_stock_quantity) ||
-                data.supplier_stock_quantity < 0
-            ) {
-                showError("Stock must be a whole number of 0 or more.");
-                return;
-            }
-
-            submitButton.disabled = true;
-            submitButton.textContent = "Please wait...";
-
-            try {
-                const url = editingId
-                    ? "/api/admin/supplier/my-products/" +
-                      encodeURIComponent(editingId)
-                    : "/api/admin/supplier/my-products";
-
-                const method = editingId ? "PUT" : "POST";
-
-                const result = await apiRequest(url, {
-                    method,
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(data)
+            if (editId) {
+                await apiRequest(`/api/supplier/my-products/${editId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
                 });
-
-                resetForm();
-
-                await loadProducts();
-
-                showSuccess(
-                    result.message ||
-                    "Product submitted successfully."
-                );
-
-            } catch (error) {
-                showError(
-                    error.message ||
-                    "Could not submit product."
-                );
-
-            } finally {
-                submitButton.disabled = false;
-
-                submitButton.textContent =
-                    document.getElementById("editingProductId").value
-                        ? "Update Product"
-                        : "Submit Product";
+                showSuccess("Product updated successfully.");
+            } else {
+                await apiRequest("/api/supplier/my-products", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                showSuccess("Product submitted for Admin approval.");
             }
-        });
 
-    // ==========================================
-    // SUPPLIER LOGOUT
-    // ==========================================
+            document.getElementById("cancelEditBtn").click();
+            await loadProducts();
+        } catch (error) {
+            showError(error.message || "Could not save product.");
+        } finally {
+            submitBtn.disabled = false;
+        }
+    });
 
-    document.getElementById("logoutBtn")
-        .addEventListener("click", async function() {
-            this.disabled = true;
-            this.textContent = "Logging out...";
+    document.getElementById("refreshOrdersBtn").addEventListener("click", loadOrders);
 
-            try {
-                await apiRequest(
-                    "/api/supplier/logout",
-                    {
-                        method: "POST"
-                    }
-                );
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+        try {
+            await apiRequest("/api/supplier/logout", { method: "POST" });
+        } finally {
+            window.location.replace("/pages/supplier-login.html");
+        }
+    });
 
-                window.location.replace(
-                    "/pages/supplier-login.html"
-                );
-
-            } catch (error) {
-                showError(
-                    error.message || "Logout failed."
-                );
-
-                this.disabled = false;
-                this.textContent = "Logout";
-            }
-        });
-
-    // Start dashboard
+    renderGalleryItems();
+    renderSupplierLinks();
     loadDashboard();
 </script>
 

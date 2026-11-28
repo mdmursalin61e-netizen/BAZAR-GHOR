@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS suppliers (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+COMMENT ON TABLE suppliers IS 'BAZAR GHOR supplier directory and fulfillment partners';
+
 CREATE INDEX IF NOT EXISTS idx_suppliers_status
 ON suppliers(status);
 

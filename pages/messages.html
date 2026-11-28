@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Messages Management | ELITE SPHERE GROUP</title>
+  <title>Messages Management | BAZAR GHOR</title>
 
   <style>
     * {
@@ -91,6 +90,7 @@
       border-radius: 7px;
       font-size: 14px;
       outline: none;
+      background: white;
     }
 
     input:focus {
@@ -292,7 +292,7 @@
 <body>
 
 <header>
-  <h2>ELITE SPHERE GROUP</h2>
+  <h2>BAZAR GHOR</h2>
 
   <nav>
     <a href="/pages/dashboard.html">Dashboard</a>
@@ -300,7 +300,7 @@
     <a href="/pages/orders.html">Orders</a>
     <a href="/pages/customers.html">Customers</a>
     <a href="/pages/services.html">Services</a>
-    <button onclick="logout()">Logout</button>
+    <button type="button" onclick="logout()">Logout</button>
   </nav>
 </header>
 
@@ -320,7 +320,7 @@
         oninput="renderMessages()"
       >
 
-      <button class="btn refresh-btn" onclick="loadMessages()">
+      <button type="button" class="btn refresh-btn" onclick="loadMessages()">
         Refresh Messages
       </button>
     </div>
@@ -361,7 +361,7 @@
 
     <div class="modal-header">
       <h2>Message Details</h2>
-      <button class="close-btn" onclick="closeModal()">Close</button>
+      <button type="button" class="close-btn" onclick="closeModal()">Close</button>
     </div>
 
     <div id="messageDetails"></div>
@@ -394,7 +394,8 @@
 
   async function apiRequest(url, options = {}) {
     const response = await fetch(url, {
-      credentials: "same-origin",
+      credentials: "include",
+      cache: "no-store",
       ...options,
       headers: {
         ...(options.headers || {})
@@ -510,18 +511,21 @@
           <td>
             <div class="action-buttons">
               <button
+                type="button"
                 class="btn view-btn"
                 onclick="viewMessage(${Number(message.id)})">
                 View
               </button>
 
               <button
+                type="button"
                 class="btn status-btn"
                 onclick="updateStatus(${Number(message.id)}, '${nextStatus}')">
                 ${nextLabel}
               </button>
 
               <button
+                type="button"
                 class="btn delete-btn"
                 onclick="deleteMessage(${Number(message.id)})">
                 Delete

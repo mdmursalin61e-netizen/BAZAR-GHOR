@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,6 +9,8 @@
 *{box-sizing:border-box}
 body{margin:0;padding:20px;font-family:Arial,sans-serif;background:#f4f6f9;color:#222}
 .container{max-width:1400px;margin:auto}
+.top-brand{background:#173b2b;color:white;padding:15px 20px;border-radius:10px;margin-bottom:18px}
+.top-brand small{color:#b7e4c7;display:block;margin-top:4px}
 .header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px}
 h1,h2,h3{color:#173b2b}
 h1{margin:0}
@@ -19,7 +20,7 @@ h2{margin-top:0}
 .field{display:flex;flex-direction:column;gap:7px}
 .full{grid-column:1/-1}
 label{font-weight:bold;font-size:14px}
-input,select,textarea{width:100%;padding:12px;border:1px solid #ccc;border-radius:6px;font-size:15px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #ccc;border-radius:6px;font-size:15px;background:white}
 textarea{min-height:85px;resize:vertical}
 button,.back-btn{border:0;border-radius:6px;padding:11px 16px;cursor:pointer;font-weight:bold;text-decoration:none}
 button:disabled{opacity:.6;cursor:not-allowed}
@@ -62,11 +63,16 @@ small{color:#666}
 <body>
 <div class="container">
 
+<div class="top-brand">
+    <strong>BAZAR GHOR</strong>
+    <small>Supplier Product Catalog &amp; Margin Approval</small>
+</div>
+
 <div class="header">
     <h1>Supplier Product Management</h1>
     <div>
         <a class="back-btn" href="/pages/dashboard.html">← Dashboard</a>
-        <button id="logoutBtn" style="background:#c62828;color:white">Logout</button>
+        <button type="button" id="logoutBtn" style="background:#c62828;color:white">Logout</button>
     </div>
 </div>
 
@@ -137,8 +143,8 @@ small{color:#666}
     <h2>Supplier Product Approval</h2>
 
     <div class="info">
-        এখানে প্রতিটি পণ্যের জন্য আলাদাভাবে Final Selling Price এবং BAZAR GHOR Profit Percentage নির্ধারণ করতে হবে।
-        Profit Percentage-এর ডিফল্ট 0%; Admin নিজে সিদ্ধান্ত নিয়ে সেট করবে।
+        Set the Final Selling Price and BAZAR GHOR Profit Percentage separately for each product.
+        Profit Percentage defaults to 0% and is decided by Admin.
     </div>
 
     <p><strong>Product:</strong> <span id="reviewProductName">-</span></p>
@@ -238,7 +244,7 @@ function showMessage(text, success = true) {
 
 async function apiRequest(url, options = {}) {
     const response = await fetch(url, {
-        credentials: "same-origin",
+        credentials: "include",
         cache: "no-store",
         ...options,
         headers: {
@@ -400,7 +406,6 @@ async function loadSupplierProducts() {
     }
 }
 
-// ADD / EDIT SUPPLIER PRODUCT
 form.addEventListener("submit", async event => {
     event.preventDefault();
 
@@ -502,7 +507,6 @@ function resetForm() {
     document.getElementById("cancelBtn").hidden = true;
 }
 
-// OPEN APPROVAL REVIEW
 function openReview(id) {
     const item = records.find(record => String(record.id) === String(id));
     if (!item) return;
@@ -541,7 +545,6 @@ function closeReview() {
     document.getElementById("approvalRecordId").value = "";
 }
 
-// APPROVE / REJECT
 async function submitApproval(status) {
     const id = document.getElementById("approvalRecordId").value;
     if (!id) {

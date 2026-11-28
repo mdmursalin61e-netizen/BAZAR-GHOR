@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -108,6 +107,12 @@
             font-size: 12px;
         }
 
+        .footer a {
+            color: #16834b;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
         @media (max-width: 480px) {
             .login-card {
                 padding: 24px 18px;
@@ -134,7 +139,7 @@
             <input
                 type="text"
                 id="username"
-                minlength="4"
+                minlength="3"
                 maxlength="100"
                 autocomplete="username"
                 required
@@ -161,7 +166,7 @@
     <div id="message" role="status" aria-live="polite"></div>
 
     <div class="footer">
-        © BAZAR GHOR | Supplier Management System
+        <a href="/">Back to Store</a> · © 2026 BAZAR GHOR | Supplier Management System
     </div>
 
 </div>
@@ -179,7 +184,7 @@
     async function checkExistingSession() {
         try {
             const response = await fetch("/api/supplier/me", {
-                credentials: "same-origin",
+                credentials: "include",
                 cache: "no-store"
             });
 
@@ -211,7 +216,7 @@
         try {
             const response = await fetch("/api/supplier/login", {
                 method: "POST",
-                credentials: "same-origin",
+                credentials: "include",
                 cache: "no-store",
                 headers: {
                     "Content-Type": "application/json"

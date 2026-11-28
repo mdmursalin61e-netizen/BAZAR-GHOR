@@ -1,4 +1,3 @@
-
 function createSupplierProductsRouter({
     sql,
     requireAdmin,
@@ -11,6 +10,9 @@ function createSupplierProductsRouter({
     const DELETED_BY_ADMIN = "Deleted by Admin";
     const DELETED_BY_SUPPLIER = "Deleted by Supplier";
     const LEGACY_DELETED_NOTE = "Deactivated by Admin";
+
+    const MAX_PRODUCT_IMAGES = 4;
+    const MAX_PRODUCT_LINKS = 25;
 
     const DELIVERY_STATUSES = [
         "preparing",
@@ -57,6 +59,159 @@ function createSupplierProductsRouter({
         return Math.round(n * 100) / 100;
     }
 
+    function isSafeImagePathOrUrl(raw) {
+        const val = String(raw || "").trim();
+        if (!val) return false;
+        if (val.startsWith("/uploads/") || val.startsWith("/assets/")) return true;
+        try {
+            const parsed = new URL(val);
+            return ["http:", "https:"].includes(parsed.protocol);
+        } catch {
+            return false;
+        }
+    }
+
+    function isSafeLinkUrl(raw) {
+        const val = String(raw || "").trim();
+        if (!val) return false;
+        try {
+            const parsed = new URL(val);
+            return ["http:", "https:"].includes(parsed.protocol);
+        } catch {
+            return false;
+        }
+    }
+
+    function detectPlatform(url) {
+        const lower = String(url || "").toLowerCase();
+        if (lower.includes("youtube.com") || lower.includes("youtu.be")) return "youtube";
+        if (lower.includes("facebook.com") || lower.includes("fb.watch")) return "facebook";
+        if (lower.includes("instagram.com")) return "instagram";
+        if (lower.includes("tiktok.com")) return "tiktok";
+        return "website";
+    }
+
+    function validateImageUrls(body = {}) {
+        let images;
+
+        if (Array.isArray(body.image_urls)) {
+            images = body.image_urls;
+        } else if (typeof body.image_urls === "string" && body.image_urls.trim() !== "") {
+            try {
+                const parsed = JSON.parse(body.image_urls);
+                images = Array.isArray(parsed) ? parsed : [body.image_urls];
+            } catch {
+                images = body.image_urls.split(",");
+            }
+        } else if (body.image_url) {
+            images = [body.image_url];
+        } else {
+            images = [];
+        }
+
+        images = images
+            .map(value => String(value || "").trim())
+            .filter(Boolean);
+
+        // Deduplicate while preserving order
+        const uniqueImages = [];
+        for (const img of images) {
+            if (!uniqueImages.includes(img)) uniqueImages.push(img);
+        }
+
+        if (uniqueImages.length > MAX_PRODUCT_IMAGES) {
+            return {
+                error: `Maximum ${MAX_PRODUCT_IMAGES} product images are allowed.`
+            };
+        }
+
+        for (const image of uniqueImages) {
+            if (!isSafeImagePathOrUrl(image)) {
+                return {
+                    error: "Image URL must be a valid HTTP/HTTPS URL or uploaded image path."
+                };
+            }
+        }
+
+        return {
+            data: {
+                imageUrls: uniqueImages,
+                imageUrl: uniqueImages[0] || null
+            }
+        };
+    }
+
+    function validateProductLinks(body = {}) {
+        if (body.links === undefined) {
+            return { data: null };
+        }
+
+        if (!Array.isArray(body.links)) {
+            return { error: "Links must be provided as a list." };
+        }
+
+        if (body.links.length > MAX_PRODUCT_LINKS) {
+            return {
+                error: `Maximum ${MAX_PRODUCT_LINKS} links are allowed per product.`
+            };
+        }
+
+        const normalized = [];
+        for (let i = 0; i < body.links.length; i++) {
+            const item = body.links[i];
+            if (!item || typeof item !== "object") continue;
+
+            const title = String(item.title || item.name || item.label || "Link")
+                .trim()
+                .slice(0, 120);
+            const url = String(item.url || item.link || "")
+                .trim()
+                .slice(0, 1000);
+
+            if (!url || !isSafeLinkUrl(url)) {
+                return { error: `Invalid URL at link #${i + 1}. Must start with http:// or https://.` };
+            }
+
+            const visibility = String(
+                item.visibility || (item.is_public === false ? "private" : "public")
+            )
+                .trim()
+                .toLowerCase() === "private"
+                ? "private"
+                : "public";
+
+            const platform = String(item.platform || detectPlatform(url))
+                .trim()
+                .slice(0, 50);
+
+            normalized.push({
+                title: title || "Link",
+                url,
+                platform,
+                visibility,
+                sortOrder: i
+            });
+        }
+
+        return { data: normalized };
+    }
+
+    async function syncProductLinks(productId, linksArray, actorRole, actorId) {
+        if (!Array.isArray(linksArray)) return;
+        await sql`DELETE FROM product_links WHERE product_id = ${productId}`;
+        for (const lk of linksArray) {
+            await sql`
+                INSERT INTO product_links (
+                    product_id, title, url, platform, visibility, sort_order, created_by_role, created_by_id
+                )
+                VALUES (
+                    ${productId}, ${lk.title}, ${lk.url}, ${lk.platform}, ${lk.visibility},
+                    ${lk.sortOrder}, ${actorRole}, ${actorId}
+                )
+            `;
+        }
+    }
+
     function validate(body = {}) {
         const supplierId = Number(body.supplier_id);
         const productId = Number(body.product_id);
@@ -89,6 +244,11 @@ function createSupplierProductsRouter({
             return { error: "Please enter a valid supplier stock quantity." };
         }
 
+        const linkValidation = validateProductLinks(body);
+        if (linkValidation.error) {
+            return { error: linkValidation.error };
+        }
+
         return {
             data: {
                 supplierId,
@@ -100,7 +260,8 @@ function createSupplierProductsRouter({
                 stock,
                 sku: String(
                     body.supplier_sku ?? body.sku ?? ""
-                ).trim().slice(0, 100)
+                ).trim().slice(0, 100),
+                links: linkValidation.data
             }
         };
     }
@@ -112,13 +273,21 @@ function createSupplierProductsRouter({
         const sku = String(body.supplier_sku || "").trim();
         const notes = String(body.notes || "").trim();
 
-        const proposedPrice = money(body.proposed_selling_price);
-        const purchasePrice = money(body.purchase_price);
+        const proposedPrice = money(body.proposed_selling_price ?? body.selling_price ?? body.price);
+        const purchasePrice = money(body.purchase_price ?? body.supplier_cost ?? 0);
         const deliveryCost = money(body.delivery_cost ?? 0);
         const otherCost = money(body.other_cost ?? 0);
-        const stock = quantity(body.supplier_stock_quantity);
+        const stock = quantity(body.supplier_stock_quantity ?? body.stock_quantity ?? 0);
 
-        const imageUrl = String(body.image_url || "").trim();
+        const imageValidation = validateImageUrls(body);
+        if (imageValidation.error) {
+            return { error: imageValidation.error };
+        }
+
+        const linkValidation = validateProductLinks(body);
+        if (linkValidation.error) {
+            return { error: linkValidation.error };
+        }
 
         if (!name || name.length > 180) {
             return {
@@ -154,18 +323,6 @@ function createSupplierProductsRouter({
             return { error: "SKU or notes are too long." };
         }
 
-        if (imageUrl) {
-            try {
-                const parsed = new URL(imageUrl);
-
-                if (!["http:", "https:"].includes(parsed.protocol)) {
-                    return { error: "Image URL must use HTTP or HTTPS." };
-                }
-            } catch {
-                return { error: "Please enter a valid image URL." };
-            }
-        }
-
         return {
             data: {
                 name,
@@ -178,7 +335,9 @@ function createSupplierProductsRouter({
                 deliveryCost,
                 otherCost,
                 stock,
-                imageUrl: imageUrl || null
+                imageUrl: imageValidation.data.imageUrl,
+                imageUrls: imageValidation.data.imageUrls,
+                links: linkValidation.data
             }
         };
     }
@@ -198,10 +357,11 @@ function createSupplierProductsRouter({
                     p.name AS product_name,
                     p.price AS public_selling_price,
                     p.image_url AS product_image,
+                    p.image_urls AS product_images,
+                    COALESCE(p.category, '') AS category,
                     sp.supplier_cost AS purchase_price,
                     sp.stock_available AS supplier_stock_quantity,
                     sp.sku AS supplier_sku,
-                    NULL::text AS category,
                     TRUE AS is_available,
                     p.is_active AS is_active,
                     NULL::text AS notes
@@ -219,11 +379,31 @@ function createSupplierProductsRouter({
                     sp.id DESC
             `;
 
+            const productIds = [...new Set(records.map(r => r.product_id).filter(Boolean))];
+            const linksByProduct = new Map();
+            if (productIds.length > 0) {
+                const links = await sql`
+                    SELECT * FROM product_links
+                    WHERE product_id = ANY(${productIds})
+                    ORDER BY sort_order ASC, id ASC
+                `;
+                for (const l of links) {
+                    const key = String(l.product_id);
+                    if (!linksByProduct.has(key)) linksByProduct.set(key, []);
+                    linksByProduct.get(key).push(l);
+                }
+            }
+
+            const enriched = records.map(r => ({
+                ...r,
+                links: linksByProduct.get(String(r.product_id)) || []
+            }));
+
             res.setHeader("Cache-Control", "no-store");
 
             return res.json({
                 success: true,
-                supplier_products: records
+                supplier_products: enriched
             });
         } catch (error) {
             console.error("Supplier product list error:", error);
@@ -303,6 +483,16 @@ function createSupplierProductsRouter({
                 )
                 RETURNING id
             `;
+
+            await sql`
+                UPDATE products
+                SET supplier_id = COALESCE(supplier_id, ${d.supplierId})
+                WHERE id = ${d.productId}
+            `;
+
+            if (Array.isArray(d.links)) {
+                await syncProductLinks(d.productId, d.links, "admin", req.admin?.id || null);
+            }
 
             clearPublicCache();
 
@@ -407,7 +597,7 @@ function createSupplierProductsRouter({
                     ${DELETED_BY_SUPPLIER},
                     ${LEGACY_DELETED_NOTE}
                 )
-                RETURNING id
+                RETURNING id, product_id
             `;
 
             if (!result.length) {
@@ -415,6 +605,10 @@ function createSupplierProductsRouter({
                     success: false,
                     message: "Supplier product not found."
                 });
+            }
+
+            if (Array.isArray(d.links)) {
+                await syncProductLinks(result[0].product_id, d.links, "admin", req.admin?.id || null);
             }
 
             clearPublicCache();
@@ -746,8 +940,9 @@ function createSupplierProductsRouter({
                     p.name AS product_name,
                     p.description,
                     p.image_url,
+                    p.image_urls,
                     p.price AS public_selling_price,
-                    NULL::text AS category,
+                    COALESCE(p.category, '') AS category,
                     NULL::text AS notes,
                     TRUE AS is_available,
                     p.is_active AS is_active
@@ -762,11 +957,31 @@ function createSupplierProductsRouter({
                 ORDER BY sp.id DESC
             `;
 
+            const productIds = [...new Set(records.map(r => r.product_id).filter(Boolean))];
+            const linksByProduct = new Map();
+            if (productIds.length > 0) {
+                const links = await sql`
+                    SELECT * FROM product_links
+                    WHERE product_id = ANY(${productIds})
+                    ORDER BY sort_order ASC, id ASC
+                `;
+                for (const l of links) {
+                    const key = String(l.product_id);
+                    if (!linksByProduct.has(key)) linksByProduct.set(key, []);
+                    linksByProduct.get(key).push(l);
+                }
+            }
+
+            const enriched = records.map(r => ({
+                ...r,
+                links: linksByProduct.get(String(r.product_id)) || []
+            }));
+
             res.setHeader("Cache-Control", "no-store");
 
             return res.json({
                 success: true,
-                products: records
+                products: enriched
             });
         } catch (error) {
             console.error("Supplier own products error:", error);
@@ -819,7 +1034,7 @@ function createSupplierProductsRouter({
     });
 
     // =========================================================
-    // SUPPLIER: ADD NEW PRODUCT
+    // SUPPLIER: ADD NEW PRODUCT (Gallery max 4 + Links max 25)
     // =========================================================
 
     router.post("/supplier/my-products", requireSupplier, async (req, res) => {
@@ -839,7 +1054,7 @@ function createSupplierProductsRouter({
                 WITH new_product AS (
                     INSERT INTO products (
                         name, description, price,
-                        stock_quantity, image_url, is_active
+                        stock_quantity, image_url, image_urls, category, supplier_id, is_active
                     )
                     VALUES (
                         ${d.name},
@@ -847,6 +1062,9 @@ function createSupplierProductsRouter({
                         ${d.proposedPrice},
                         ${d.stock},
                         ${d.imageUrl},
+                        ${JSON.stringify(d.imageUrls)}::jsonb,
+                        ${d.category || null},
+                        ${req.supplier.id},
                         FALSE
                     )
                     RETURNING id
@@ -876,6 +1094,13 @@ function createSupplierProductsRouter({
                 SELECT id, product_id
                 FROM new_supplier_product
             `;
+
+            if (Array.isArray(d.links)) {
+                await syncProductLinks(result[0].product_id, d.links, "supplier", req.supplier.id);
+            }
+
+            await sql`INSERT INTO categories (name) VALUES (${d.category}) ON CONFLICT DO NOTHING`;
+            clearPublicCache("categories");
 
             return res.status(201).json({
                 success: true,
@@ -915,75 +1140,73 @@ function createSupplierProductsRouter({
                 });
             }
 
-            const d = validation.data;
-
-            const result = await sql`
-                WITH updated_link AS (
-                    UPDATE supplier_products sp
-                    SET
-                        supplier_cost = ${d.purchasePrice},
-                        selling_price = ${d.proposedPrice},
-                        delivery_cost = ${d.deliveryCost},
-                        other_cost = ${d.otherCost},
-                        stock_available = ${d.stock},
-                        sku = ${d.sku || null},
-                        proposed_selling_price = ${d.proposedPrice},
-                        approval_status = 'pending',
-                        admin_approval_note = NULL,
-                        updated_at = NOW()
-                    WHERE sp.id = ${req.params.id}
-                    AND sp.supplier_id = ${req.supplier.id}
-                    AND COALESCE(sp.admin_approval_note, '') NOT IN (
-                        ${DELETED_BY_ADMIN},
-                        ${DELETED_BY_SUPPLIER},
-                        ${LEGACY_DELETED_NOTE}
-                    )
-                    AND NOT EXISTS (
-                        SELECT 1
-                        FROM supplier_products other_sp
-                        WHERE other_sp.product_id = sp.product_id
-                        AND other_sp.supplier_id <> sp.supplier_id
-                        AND COALESCE(
-                            other_sp.admin_approval_note, ''
-                        ) NOT IN (
-                            ${DELETED_BY_ADMIN},
-                            ${DELETED_BY_SUPPLIER},
-                            ${LEGACY_DELETED_NOTE}
-                        )
-                    )
-                    RETURNING sp.id, sp.product_id
-                ),
-                updated_product AS (
-                    UPDATE products p
-                    SET
-                        name = ${d.name},
-                        description = ${d.description || null},
-                        price = ${d.proposedPrice},
-                        stock_quantity = ${d.stock},
-                        image_url = ${d.imageUrl},
-                        is_active = FALSE,
-                        updated_at = NOW()
-                    FROM updated_link ul
-                    WHERE p.id = ul.product_id
-                    RETURNING p.id
+            const existing = await sql`
+                SELECT sp.id, sp.product_id, sp.approval_status
+                FROM supplier_products sp
+                WHERE sp.id = ${req.params.id}
+                AND sp.supplier_id = ${req.supplier.id}
+                AND COALESCE(sp.admin_approval_note, '') NOT IN (
+                    ${DELETED_BY_ADMIN},
+                    ${DELETED_BY_SUPPLIER},
+                    ${LEGACY_DELETED_NOTE}
                 )
-                SELECT ul.id
-                FROM updated_link ul
-                JOIN updated_product up ON up.id = ul.product_id
+                LIMIT 1
             `;
 
-            if (!result.length) {
+            if (!existing.length) {
                 return res.status(404).json({
                     success: false,
-                    message: "Product not found, or it is linked to another supplier."
+                    message: "Product not found or you do not have permission to edit it."
                 });
             }
 
+            const d = validation.data;
+            const target = existing[0];
+
+            await sql`
+                UPDATE supplier_products
+                SET
+                    supplier_cost = ${d.purchasePrice},
+                    delivery_cost = ${d.deliveryCost},
+                    other_cost = ${d.otherCost},
+                    stock_available = ${d.stock},
+                    sku = ${d.sku || null},
+                    proposed_selling_price = ${d.proposedPrice},
+                    selling_price = CASE
+                        WHEN approval_status = 'approved' THEN selling_price
+                        ELSE ${d.proposedPrice}
+                    END,
+                    updated_at = NOW()
+                WHERE id = ${target.id}
+            `;
+
+            await sql`
+                UPDATE products
+                SET
+                    name = ${d.name},
+                    description = ${d.description || null},
+                    category = ${d.category || null},
+                    image_url = ${d.imageUrl},
+                    image_urls = ${JSON.stringify(d.imageUrls)}::jsonb,
+                    supplier_id = COALESCE(supplier_id, ${req.supplier.id}),
+                    stock_quantity = CASE
+                        WHEN ${target.approval_status} = 'approved' THEN ${d.stock}
+                        ELSE stock_quantity
+                    END,
+                    updated_at = NOW()
+                WHERE id = ${target.product_id}
+            `;
+
+            if (Array.isArray(d.links)) {
+                await syncProductLinks(target.product_id, d.links, "supplier", req.supplier.id);
+            }
+
+            await sql`INSERT INTO categories (name) VALUES (${d.category}) ON CONFLICT DO NOTHING`;
             clearPublicCache();
 
             return res.json({
                 success: true,
-                message: "Product updated and sent for Admin approval."
+                message: "Your product has been updated successfully."
             });
         } catch (error) {
             console.error("Supplier update product error:", error);
@@ -996,652 +1219,97 @@ function createSupplierProductsRouter({
     });
 
     // =========================================================
-    // ADMIN: GET APPROVED SUPPLIERS FOR AN ORDER ITEM
+    // SUPPLIER: UPDATE ORDER DELIVERY PROGRESS
     // =========================================================
 
-    router.get(
-        "/orders/:orderId/items/:itemId/supplier-options",
-        requireAdmin,
-        async (req, res) => {
-            try {
-                const { orderId, itemId } = req.params;
-
-                if (!validId(orderId) || !validId(itemId)) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Invalid order or item ID."
-                    });
-                }
-
-                const items = await sql`
-                    SELECT id, product_id, product_name, quantity
-                    FROM order_items
-                    WHERE id = ${itemId}
-                    AND order_id = ${orderId}
-                    LIMIT 1
-                `;
-
-                if (!items.length) {
-                    return res.status(404).json({
-                        success: false,
-                        message: "Order item not found."
-                    });
-                }
-
-                const item = items[0];
-
-                const suppliers = await sql`
-                    SELECT
-                        sp.id AS supplier_product_id,
-                        sp.supplier_id,
-                        s.supplier_name,
-                        s.business_name,
-                        sp.stock_available,
-                        sp.selling_price,
-                        sp.supplier_cost
-                    FROM supplier_products sp
-                    JOIN suppliers s ON s.id = sp.supplier_id
-                    WHERE sp.product_id = ${item.product_id}
-                    AND s.status = 'active'
-                    AND sp.approval_status = 'approved'
-                    AND sp.is_active = TRUE
-                    AND sp.is_available = TRUE
-                    AND COALESCE(sp.admin_approval_note, '') NOT IN (
-                        ${DELETED_BY_ADMIN},
-                        ${DELETED_BY_SUPPLIER},
-                        ${LEGACY_DELETED_NOTE}
-                    )
-                    ORDER BY sp.stock_available DESC, s.supplier_name ASC
-                `;
-
-                res.setHeader("Cache-Control", "no-store");
-
-                return res.json({
-                    success: true,
-                    item: {
-                        id: item.id,
-                        product_id: item.product_id,
-                        product_name: item.product_name,
-                        quantity: item.quantity
-                    },
-                    suppliers
-                });
-            } catch (error) {
-                console.error("Supplier options error:", error);
-
-                return res.status(500).json({
+    router.patch("/supplier/orders/:orderId/delivery-status", requireSupplier, async (req, res) => {
+        try {
+            if (!validId(req.params.orderId)) {
+                return res.status(400).json({
                     success: false,
-                    message: "Could not load supplier options."
+                    message: "Invalid order ID."
                 });
             }
-        }
-    );
 
-    // =========================================================
-    // ADMIN: SEND ONE ORDER ITEM TO A SELECTED SUPPLIER
-    // =========================================================
+            const status = String(req.body?.delivery_status || req.body?.status || "")
+                .trim()
+                .toLowerCase();
+            const note = String(req.body?.note || "").trim().slice(0, 1000);
 
-    router.post(
-        "/orders/:orderId/items/:itemId/handoff",
-        requireAdmin,
-        async (req, res) => {
-            try {
-                const { orderId, itemId } = req.params;
-                const supplierProductId = req.body?.supplier_product_id;
-
-                if (
-                    !validId(orderId) ||
-                    !validId(itemId) ||
-                    !validId(supplierProductId)
-                ) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Please select a valid order item and supplier."
-                    });
-                }
-
-                const orderItems = await sql`
-                    SELECT
-                        oi.id,
-                        oi.product_id,
-                        oi.quantity,
-                        o.status AS order_status
-                    FROM order_items oi
-                    JOIN orders o ON o.id = oi.order_id
-                    WHERE oi.id = ${itemId}
-                    AND oi.order_id = ${orderId}
-                    LIMIT 1
-                `;
-
-                if (!orderItems.length) {
-                    return res.status(404).json({
-                        success: false,
-                        message: "Order item not found."
-                    });
-                }
-
-                if (
-                    String(orderItems[0].order_status).toLowerCase() === "cancelled"
-                ) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "A cancelled order cannot be sent to a supplier."
-                    });
-                }
-
-                const selectedSupplierProducts = await sql`
-                    SELECT
-                        sp.id,
-                        sp.supplier_id,
-                        sp.product_id,
-                        s.supplier_name
-                    FROM supplier_products sp
-                    JOIN suppliers s ON s.id = sp.supplier_id
-                    WHERE sp.id = ${supplierProductId}
-                    AND sp.product_id = ${orderItems[0].product_id}
-                    AND s.status = 'active'
-                    AND sp.approval_status = 'approved'
-                    AND sp.is_active = TRUE
-                    AND sp.is_available = TRUE
-                    AND COALESCE(sp.admin_approval_note, '') NOT IN (
-                        ${DELETED_BY_ADMIN},
-                        ${DELETED_BY_SUPPLIER},
-                        ${LEGACY_DELETED_NOTE}
-                    )
-                    LIMIT 1
-                `;
-
-                if (!selectedSupplierProducts.length) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Selected supplier is not approved or is not linked to this product."
-                    });
-                }
-
-                const selected = selectedSupplierProducts[0];
-
-                const existing = await sql`
-                    SELECT id, status
-                    FROM supplier_order_handoffs
-                    WHERE order_item_id = ${itemId}
-                    LIMIT 1
-                `;
-
-                if (existing.length) {
-                    return res.status(409).json({
-                        success: false,
-                        message: "This order item has already been sent to a supplier.",
-                        handoff_status: existing[0].status
-                    });
-                }
-
-                const result = await sql`
-                    INSERT INTO supplier_order_handoffs (
-                        order_id,
-                        order_item_id,
-                        supplier_id,
-                        supplier_product_id,
-                        status,
-                        sent_at,
-                        updated_at
-                    )
-                    VALUES (
-                        ${orderId},
-                        ${itemId},
-                        ${selected.supplier_id},
-                        ${selected.id},
-                        'sent',
-                        NOW(),
-                        NOW()
-                    )
-                    RETURNING id, status, sent_at
-                `;
-
-                return res.status(201).json({
-                    success: true,
-                    message: "Order item sent to supplier successfully.",
-                    handoff: result[0]
-                });
-            } catch (error) {
-                console.error("Send order to supplier error:", error);
-
-                if (error.code === "23505") {
-                    return res.status(409).json({
-                        success: false,
-                        message: "This order item has already been assigned to a supplier."
-                    });
-                }
-
-                return res.status(500).json({
+            if (!DELIVERY_STATUSES.includes(status)) {
+                return res.status(400).json({
                     success: false,
-                    message: "Could not send order item to supplier."
+                    message: "Allowed statuses: preparing, ready_for_dispatch, shipped, delivered."
                 });
             }
-        }
-    );
 
-    // =========================================================
-    // ADMIN: VIEW ALL SUPPLIER ORDER HANDOFFS
-    // Requires migration 003_supplier_delivery_progress.sql
-    // =========================================================
+            const orders = await sql`
+                SELECT DISTINCT o.id, o.supplier_id, o.approval_status, o.status, o.delivery_status
+                FROM orders o
+                LEFT JOIN order_items oi ON oi.order_id = o.id
+                LEFT JOIN products p ON p.id = oi.product_id
+                WHERE o.id = ${req.params.orderId}
+                AND (o.supplier_id = ${req.supplier.id} OR p.supplier_id = ${req.supplier.id})
+                LIMIT 1
+            `;
 
-    router.get(
-        "/supplier-order-handoffs",
-        requireAdmin,
-        async (req, res) => {
-            try {
-                const records = await sql`
-                    SELECT
-                        h.id,
-                        h.order_id,
-                        h.order_item_id,
-                        h.supplier_id,
-                        h.supplier_product_id,
-                        h.status,
-                        h.supplier_response_note,
-                        h.admin_note,
-                        h.sent_at,
-                        h.responded_at,
-                        h.reviewed_at,
-                        h.delivery_status,
-                        h.delivery_note,
-                        h.delivery_updated_at,
-                        o.order_number,
-                        o.status AS order_status,
-                        oi.product_name,
-                        oi.quantity,
-                        oi.unit_price,
-                        oi.subtotal,
-                        s.supplier_name,
-                        s.business_name
-                    FROM supplier_order_handoffs h
-                    JOIN orders o ON o.id = h.order_id
-                    JOIN order_items oi ON oi.id = h.order_item_id
-                    JOIN suppliers s ON s.id = h.supplier_id
-                    ORDER BY h.id DESC
-                `;
-
-                res.setHeader("Cache-Control", "no-store");
-
-                return res.json({
-                    success: true,
-                    handoffs: records
-                });
-            } catch (error) {
-                console.error("Admin handoff list error:", error);
-
-                return res.status(500).json({
+            if (!orders.length) {
+                return res.status(404).json({
                     success: false,
-                    message: "Could not load supplier order handoffs."
+                    message: "Order not found or not assigned to your supplier account."
                 });
             }
-        }
-    );
 
-    // =========================================================
-    // SUPPLIER: VIEW ONLY ORDERS ASSIGNED TO THIS SUPPLIER
-    // Customer details are revealed only after supplier accepts.
-    // =========================================================
-
-    router.get(
-        "/supplier/orders",
-        requireSupplier,
-        async (req, res) => {
-            try {
-                const records = await sql`
-                    SELECT
-                        h.id AS id,
-                        h.id AS handoff_id,
-                        h.order_id,
-                        h.order_item_id,
-                        h.status AS status,
-                        h.status AS handoff_status,
-                        h.supplier_response_note,
-                        h.sent_at,
-                        h.responded_at,
-                        h.reviewed_at,
-                        h.delivery_status,
-                        h.delivery_note,
-                        h.delivery_updated_at,
-                        o.order_number,
-                        o.created_at AS order_created_at,
-                        oi.product_name,
-                        oi.quantity,
-                        oi.unit_price,
-                        oi.subtotal,
-
-                        CASE
-                            WHEN h.status IN ('accepted', 'admin_approved')
-                            THEN c.name
-                            ELSE NULL
-                        END AS customer_name,
-
-                        CASE
-                            WHEN h.status IN ('accepted', 'admin_approved')
-                            THEN c.phone
-                            ELSE NULL
-                        END AS customer_phone,
-
-                        CASE
-                            WHEN h.status IN ('accepted', 'admin_approved')
-                            THEN o.delivery_address
-                            ELSE NULL
-                        END AS delivery_address
-
-                    FROM supplier_order_handoffs h
-                    JOIN orders o ON o.id = h.order_id
-                    JOIN order_items oi ON oi.id = h.order_item_id
-                    LEFT JOIN customers c ON c.id = o.customer_id
-
-                    WHERE h.supplier_id = ${req.supplier.id}
-                    ORDER BY h.sent_at DESC, h.id DESC
-                `;
-
-                res.setHeader("Cache-Control", "no-store");
-
-                return res.json({
-                    success: true,
-                    orders: records
-                });
-            } catch (error) {
-                console.error("Supplier order list error:", error);
-
-                return res.status(500).json({
+            const order = orders[0];
+            if (order.approval_status === "rejected" || order.status === "cancelled") {
+                return res.status(400).json({
                     success: false,
-                    message: "Could not load your received orders."
+                    message: "Cannot update a rejected or cancelled order."
                 });
             }
+
+            const updated = await sql`
+                UPDATE orders
+                SET
+                    supplier_progress = ${status},
+                    supplier_note = ${note || null},
+                    supplier_updated_at = NOW(),
+                    delivery_status = ${status === "preparing" ? "processing" : status},
+                    delivery_updated_at = NOW(),
+                    delivered_at = CASE
+                        WHEN ${status} = 'delivered' THEN COALESCE(delivered_at, NOW())
+                        ELSE delivered_at
+                    END
+                WHERE id = ${order.id}
+                RETURNING *
+            `;
+
+            await sql`
+                INSERT INTO order_events (order_id, event_type, old_value, new_value, note, actor)
+                VALUES (
+                    ${order.id},
+                    'supplier_delivery_progress',
+                    ${order.supplier_progress || order.delivery_status},
+                    ${status},
+                    ${note || `Supplier updated status to ${status}`},
+                    ${`supplier:${req.supplier.id}`}
+                )
+            `;
+
+            return res.json({
+                success: true,
+                message: "Order delivery progress updated.",
+                order: updated[0]
+            });
+        } catch (error) {
+            console.error("Supplier order delivery status error:", error);
+
+            return res.status(500).json({
+                success: false,
+                message: "Could not update order delivery progress."
+            });
         }
-    );
-
-    // =========================================================
-    // SUPPLIER: ACCEPT OR REJECT AN ASSIGNED ORDER ITEM
-    // =========================================================
-
-    router.patch(
-        "/supplier/orders/:handoffId/response",
-        requireSupplier,
-        async (req, res) => {
-            try {
-                const { handoffId } = req.params;
-
-                if (!validId(handoffId)) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Invalid order reference."
-                    });
-                }
-
-                const decision = String(
-                    req.body?.decision || ""
-                ).trim().toLowerCase();
-
-                const note = String(
-                    req.body?.note || ""
-                ).trim().slice(0, 3000);
-
-                if (!["accepted", "rejected"].includes(decision)) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Please choose Accept or Reject."
-                    });
-                }
-
-                if (decision === "rejected" && !note) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Please provide a reason for rejecting this order."
-                    });
-                }
-
-                const result = await sql`
-                    UPDATE supplier_order_handoffs
-                    SET
-                        status = ${decision},
-                        supplier_response_note = ${note || null},
-                        responded_at = NOW(),
-                        updated_at = NOW()
-                    WHERE id = ${handoffId}
-                    AND supplier_id = ${req.supplier.id}
-                    AND status = 'sent'
-                    RETURNING
-                        id, status, supplier_response_note, responded_at
-                `;
-
-                if (!result.length) {
-                    const existing = await sql`
-                        SELECT id, status
-                        FROM supplier_order_handoffs
-                        WHERE id = ${handoffId}
-                        AND supplier_id = ${req.supplier.id}
-                        LIMIT 1
-                    `;
-
-                    if (!existing.length) {
-                        return res.status(404).json({
-                            success: false,
-                            message: "Order not found in your supplier account."
-                        });
-                    }
-
-                    return res.status(409).json({
-                        success: false,
-                        message: "You have already responded to this order or it has been reviewed by Admin.",
-                        handoff_status: existing[0].status
-                    });
-                }
-
-                return res.json({
-                    success: true,
-                    message: decision === "accepted"
-                        ? "Order accepted. Customer delivery details are now available."
-                        : "Order rejected. Admin has been notified.",
-                    handoff: result[0]
-                });
-            } catch (error) {
-                console.error("Supplier order response error:", error);
-
-                return res.status(500).json({
-                    success: false,
-                    message: "Could not submit your order response."
-                });
-            }
-        }
-    );
-
-    // =========================================================
-    // ADMIN: FINAL REVIEW OF SUPPLIER RESPONSE
-    // =========================================================
-
-    router.patch(
-        "/supplier-order-handoffs/:id/review",
-        requireAdmin,
-        async (req, res) => {
-            try {
-                const { id } = req.params;
-
-                if (!validId(id)) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Invalid handoff ID."
-                    });
-                }
-
-                const decision = String(
-                    req.body?.decision || ""
-                ).trim().toLowerCase();
-
-                const note = String(
-                    req.body?.note || ""
-                ).trim().slice(0, 3000);
-
-                if (!["approved", "rejected"].includes(decision)) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Decision must be approved or rejected."
-                    });
-                }
-
-                const requiredSupplierStatus =
-                    decision === "approved" ? "accepted" : "rejected";
-
-                const finalStatus =
-                    decision === "approved"
-                        ? "admin_approved"
-                        : "admin_rejected";
-
-                const result = await sql`
-                    UPDATE supplier_order_handoffs
-                    SET
-                        status = ${finalStatus},
-                        admin_note = ${note || null},
-                        reviewed_at = NOW(),
-                        updated_at = NOW()
-                    WHERE id = ${id}
-                    AND status = ${requiredSupplierStatus}
-                    RETURNING id, status, admin_note, reviewed_at
-                `;
-
-                if (!result.length) {
-                    return res.status(409).json({
-                        success: false,
-                        message: "This supplier response is not available for final review. Check its current status."
-                    });
-                }
-
-                return res.json({
-                    success: true,
-                    message: decision === "approved"
-                        ? "Supplier response approved by Admin."
-                        : "Supplier response rejected by Admin.",
-                    handoff: result[0]
-                });
-            } catch (error) {
-                console.error("Admin handoff review error:", error);
-
-                return res.status(500).json({
-                    success: false,
-                    message: "Could not review supplier response."
-                });
-            }
-        }
-    );
-
-    // =========================================================
-    // SUPPLIER: UPDATE DELIVERY PROGRESS
-    // Only Admin-approved supplier orders can be updated.
-    // Requires migration 003_supplier_delivery_progress.sql
-    // =========================================================
-
-    router.patch(
-        "/supplier/orders/:handoffId/delivery",
-        requireSupplier,
-        async (req, res) => {
-            try {
-                const { handoffId } = req.params;
-
-                if (!validId(handoffId)) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Invalid order reference."
-                    });
-                }
-
-                const deliveryStatus = String(
-                    req.body?.delivery_status || ""
-                ).trim().toLowerCase();
-
-                const deliveryNote = String(
-                    req.body?.delivery_note || ""
-                ).trim().slice(0, 2000);
-
-                if (!DELIVERY_STATUSES.includes(deliveryStatus)) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Please select a valid delivery status."
-                    });
-                }
-
-                const result = await sql`
-                    UPDATE supplier_order_handoffs
-                    SET
-                        delivery_status = ${deliveryStatus},
-                        delivery_note = ${deliveryNote || null},
-                        delivery_updated_at = NOW(),
-                        updated_at = NOW()
-                    WHERE id = ${handoffId}
-                    AND supplier_id = ${req.supplier.id}
-                    AND status = 'admin_approved'
-                    AND (
-                        CASE delivery_status
-                            WHEN 'not_started' THEN 0
-                            WHEN 'preparing' THEN 1
-                            WHEN 'ready_for_dispatch' THEN 2
-                            WHEN 'shipped' THEN 3
-                            WHEN 'delivered' THEN 4
-                            ELSE -1
-                        END
-                    ) <= (
-                        CASE ${deliveryStatus}
-                            WHEN 'preparing' THEN 1
-                            WHEN 'ready_for_dispatch' THEN 2
-                            WHEN 'shipped' THEN 3
-                            WHEN 'delivered' THEN 4
-                            ELSE -1
-                        END
-                    )
-                    RETURNING
-                        id,
-                        status,
-                        delivery_status,
-                        delivery_note,
-                        delivery_updated_at
-                `;
-
-                if (!result.length) {
-                    const existing = await sql`
-                        SELECT id, status, delivery_status
-                        FROM supplier_order_handoffs
-                        WHERE id = ${handoffId}
-                        AND supplier_id = ${req.supplier.id}
-                        LIMIT 1
-                    `;
-
-                    if (!existing.length) {
-                        return res.status(404).json({
-                            success: false,
-                            message: "Order not found in your supplier account."
-                        });
-                    }
-
-                    if (existing[0].status !== "admin_approved") {
-                        return res.status(403).json({
-                            success: false,
-                            message: "Admin must approve this supplier order before delivery updates."
-                        });
-                    }
-
-                    return res.status(400).json({
-                        success: false,
-                        message: "Delivery progress cannot move backwards."
-                    });
-                }
-
-                return res.json({
-                    success: true,
-                    message: "Delivery progress updated successfully.",
-                    handoff: result[0]
-                });
-            } catch (error) {
-                console.error("Supplier delivery update error:", error);
-
-                return res.status(500).json({
-                    success: false,
-                    message: "Could not update delivery progress."
-                });
-            }
-        }
-    );
+    });
 
     return router;
 }

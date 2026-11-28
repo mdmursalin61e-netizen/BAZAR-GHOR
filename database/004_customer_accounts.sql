@@ -1,4 +1,3 @@
-
 -- BAZAR GHOR
 -- Migration 004: Customer Accounts
 -- Preserve all existing customers and orders.
@@ -10,23 +9,35 @@ ADD COLUMN IF NOT EXISTS password_hash TEXT;
 
 ALTER TABLE customers
 ADD COLUMN IF NOT EXISTS account_status VARCHAR(20)
-DEFAULT 'active';
+NOT NULL DEFAULT 'active';
 
 ALTER TABLE customers
 ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ
-DEFAULT NOW();
+NOT NULL DEFAULT NOW();
+
+COMMENT ON COLUMN customers.password_hash IS 'BAZAR GHOR bcrypt password hash for registered customer accounts';
+COMMENT ON COLUMN customers.account_status IS 'BAZAR GHOR customer account state: active, inactive, or blocked';
+COMMENT ON COLUMN customers.updated_at IS 'Timestamp of last customer record update on BAZAR GHOR';
 
 UPDATE customers
 SET account_status = 'active'
-WHERE account_status IS NULL;
+WHERE account_status IS NULL
+   OR account_status NOT IN ('active', 'inactive', 'blocked');
+
+UPDATE customers
+SET updated_at = NOW()
+WHERE updated_at IS NULL;
 
 DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1
-        FROM pg_constraint
-        WHERE conname = 'customers_account_status_check'
-          AND conrelid = 'customers'::regclass
+        FROM pg_constraint c
+        JOIN pg_class t ON t.oid = c.conrelid
+        JOIN pg_namespace n ON n.oid = t.relnamespace
+        WHERE c.conname = 'customers_account_status_check'
+          AND t.relname = 'customers'
+          AND n.nspname = 'public'
     ) THEN
         ALTER TABLE customers
         ADD CONSTRAINT customers_account_status_check

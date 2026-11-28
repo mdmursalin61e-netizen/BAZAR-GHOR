@@ -1,4 +1,3 @@
-
 CREATE TABLE IF NOT EXISTS supplier_products (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
@@ -30,6 +29,8 @@ CREATE TABLE IF NOT EXISTS supplier_products (
 
     UNIQUE (supplier_id, product_id)
 );
+
+COMMENT ON TABLE supplier_products IS 'BAZAR GHOR supplier product pricing, cost breakdown, SKU, and stock mapping';
 
 CREATE INDEX IF NOT EXISTS idx_supplier_products_supplier
 ON supplier_products(supplier_id);

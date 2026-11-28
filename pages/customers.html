@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Customers Management | ELITE SPHERE GROUP</title>
+  <title>Customers Management | BAZAR GHOR</title>
 
   <style>
     * {
@@ -20,7 +19,7 @@
     }
 
     .header {
-      background: #101c35;
+      background: #10243a;
       color: white;
       padding: 20px 30px;
       display: flex;
@@ -36,6 +35,23 @@
       color: #b9c5d9;
       font-size: 13px;
       margin-top: 5px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .back-link {
+      background: #1769aa;
+      color: white;
+      text-decoration: none;
+      padding: 10px 14px;
+      border-radius: 7px;
+      font-weight: bold;
+      font-size: 13px;
     }
 
     .container {
@@ -95,6 +111,7 @@
       border: 1px solid #d5dbe6;
       border-radius: 7px;
       outline: none;
+      background: white;
     }
 
     .tabs {
@@ -109,7 +126,7 @@
     }
 
     .tab.active {
-      background: #101c35;
+      background: #10243a;
       color: white;
     }
 
@@ -152,6 +169,7 @@
       padding: 13px;
       margin-bottom: 15px;
       border-radius: 7px;
+      font-weight: bold;
     }
 
     .modal {
@@ -175,7 +193,7 @@
 
     .modal-content h2 {
       margin-bottom: 18px;
-      color: #101c35;
+      color: #10243a;
     }
 
     .close {
@@ -266,10 +284,13 @@
 
 <header class="header">
   <div>
-    <h2>ELITE SPHERE GROUP</h2>
+    <h2>BAZAR GHOR</h2>
     <p>Bangladesh | Admin Panel</p>
   </div>
-  <button class="logout" onclick="logout()">Logout</button>
+  <div class="header-actions">
+    <a class="back-link" href="/pages/dashboard.html">← Dashboard</a>
+    <button type="button" class="logout" onclick="logout()">Logout</button>
+  </div>
 </header>
 
 <main class="container">
@@ -281,20 +302,20 @@
     </div>
 
     <div>
-      <button class="refresh" onclick="loadCustomers()">Refresh</button>
-      <button class="green" onclick="exportCustomers()">Export CSV</button>
+      <button type="button" class="refresh" onclick="loadCustomers()">Refresh</button>
+      <button type="button" class="green" onclick="exportCustomers()">Export CSV</button>
     </div>
   </div>
 
-  <div id="message" class="message"></div>
+  <div id="message" class="message" role="status" aria-live="polite"></div>
 
   <div class="toolbar">
     <div class="tabs">
-      <button id="activeTab" class="tab active" onclick="changeTab(false)">
+      <button type="button" id="activeTab" class="tab active" onclick="changeTab(false)">
         Active Customers
       </button>
 
-      <button id="archivedTab" class="tab" onclick="changeTab(true)">
+      <button type="button" id="archivedTab" class="tab" onclick="changeTab(true)">
         Archived Customers
       </button>
     </div>
@@ -334,7 +355,7 @@
 <!-- CUSTOMER MODAL -->
 <div id="customerModal" class="modal">
   <div class="modal-content">
-    <button class="close" onclick="closeModal()">×</button>
+    <button type="button" class="close" onclick="closeModal()">×</button>
     <div id="modalBody"></div>
   </div>
 </div>
@@ -366,12 +387,18 @@
 
   async function apiRequest(url, options = {}) {
     const response = await fetch(url, {
-      credentials: "same-origin",
+      credentials: "include",
+      cache: "no-store",
       ...options,
       headers: {
         ...(options.headers || {})
       }
     });
+
+    if (response.status === 401 || response.status === 403) {
+      window.location.href = "/pages/admin.html";
+      throw new Error("Admin login required.");
+    }
 
     const contentType = response.headers.get("content-type") || "";
     let data = {};
@@ -380,7 +407,7 @@
       data = await response.json();
     }
 
-    if (!response.ok) {
+    if (!response.ok || data.success === false) {
       throw new Error(data.message || "Request failed.");
     }
 
@@ -468,13 +495,13 @@
               : "-"
           )}</td>
           <td class="actions">
-            <button class="blue" onclick="viewCustomer(${id})">View</button>
+            <button type="button" class="blue" onclick="viewCustomer(${id})">View</button>
 
             ${
               showArchived
-                ? `<button class="green" onclick="restoreCustomer(${id})">Restore</button>
-                   <button class="red" onclick="deleteCustomer(${id})">Delete</button>`
-                : `<button class="orange" onclick="archiveCustomer(${id})">Archive</button>`
+                ? `<button type="button" class="green" onclick="restoreCustomer(${id})">Restore</button>
+                   <button type="button" class="red" onclick="deleteCustomer(${id})">Delete</button>`
+                : `<button type="button" class="orange" onclick="archiveCustomer(${id})">Archive</button>`
             }
           </td>
         </tr>
@@ -539,11 +566,11 @@
       </div>
 
       <div class="modal-actions">
-        <button class="blue" onclick="showEditForm()">Edit Customer</button>
-        <button class="green" onclick="showOrderHistory(${Number(customer.id)})">
+        <button type="button" class="blue" onclick="showEditForm()">Edit Customer</button>
+        <button type="button" class="green" onclick="showOrderHistory(${Number(customer.id)})">
           Order History
         </button>
-        <button class="gray" onclick="closeModal()">Close</button>
+        <button type="button" class="gray" onclick="closeModal()">Close</button>
       </div>
     `;
   }
@@ -652,7 +679,7 @@
         body.innerHTML = `
           <h2>Customer Order History</h2>
           <p class="empty">No orders found for this customer.</p>
-          <button class="gray" onclick="viewCustomer(${id})">Back</button>
+          <button type="button" class="gray" onclick="viewCustomer(${id})">Back</button>
         `;
         return;
       }
@@ -695,8 +722,8 @@
         </div>
 
         <div class="modal-actions">
-          <button class="gray" onclick="viewCustomer(${id})">Back to Customer</button>
-          <button class="gray" onclick="closeModal()">Close</button>
+          <button type="button" class="gray" onclick="viewCustomer(${id})">Back to Customer</button>
+          <button type="button" class="gray" onclick="closeModal()">Close</button>
         </div>
       `;
 
@@ -704,7 +731,7 @@
       body.innerHTML = `
         <h2>Order History</h2>
         <p>${escapeHTML(error.message)}</p>
-        <button class="gray" onclick="viewCustomer(${id})">Back</button>
+        <button type="button" class="gray" onclick="viewCustomer(${id})">Back</button>
       `;
     }
   }
@@ -785,8 +812,13 @@
     try {
       const response = await fetch(
         `/api/admin/customers/export.csv?archived=${showArchived}`,
-        { credentials: "same-origin" }
+        { credentials: "include", cache: "no-store" }
       );
+
+      if (response.status === 401 || response.status === 403) {
+        window.location.href = "/pages/admin.html";
+        return;
+      }
 
       if (!response.ok) {
         let data = {};
@@ -831,7 +863,7 @@
     try {
       await fetch("/api/admin/logout", {
         method: "POST",
-        credentials: "same-origin"
+        credentials: "include"
       });
     } finally {
       window.location.href = "/pages/admin.html";

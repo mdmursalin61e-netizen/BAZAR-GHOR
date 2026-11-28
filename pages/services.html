@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Services Management | ELITE SPHERE GROUP</title>
+  <title>Services Management | BAZAR GHOR</title>
 
   <style>
     * {
@@ -120,6 +119,7 @@
       border-radius: 6px;
       font-size: 14px;
       outline: none;
+      background: white;
     }
 
     input:focus, textarea:focus, select:focus {
@@ -264,7 +264,7 @@
 <body>
 
 <header>
-  <h2>ELITE SPHERE GROUP</h2>
+  <h2>BAZAR GHOR</h2>
 
   <div class="header-actions">
     <a class="nav-link" href="/pages/dashboard.html">Dashboard</a>
@@ -399,7 +399,8 @@
 
   async function apiRequest(url, options = {}) {
     const response = await fetch(url, {
-      credentials: "same-origin",
+      credentials: "include",
+      cache: "no-store",
       ...options,
       headers: {
         ...(options.body ? { "Content-Type": "application/json" } : {}),
@@ -662,7 +663,7 @@
     try {
       await fetch("/api/admin/logout", {
         method: "POST",
-        credentials: "same-origin"
+        credentials: "include"
       });
     } catch (error) {
       console.error("Logout request failed:", error);

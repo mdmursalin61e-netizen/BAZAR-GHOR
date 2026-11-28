@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="bn">
 <head>
@@ -253,7 +252,7 @@ main.container{padding-top:20px;padding-bottom:35px}
   overflow-y:auto;border-radius:14px;padding:19px;position:relative;
   box-shadow:0 20px 60px rgba(0,0,0,.25);overscroll-behavior:contain;
 }
-.modal-box.wide{max-width:820px;padding:0}
+.modal-box.wide{max-width:860px;padding:0}
 .modal-close{
   position:absolute;top:10px;right:10px;z-index:5;
   width:34px;height:34px;border:0;border-radius:50%;
@@ -317,7 +316,7 @@ main.container{padding-top:20px;padding-bottom:35px}
 .payment-number{font-size:17px;font-weight:900;letter-spacing:1px}
 .copy-btn{border:0;color:#fff;padding:7px 10px;border-radius:6px;font-weight:700;font-size:10px}
 
-/* Orders */
+/* Orders & Tracking */
 
 .order-card{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;font-size:11px}
 .order-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:800;color:var(--navy);margin-bottom:7px}
@@ -325,14 +324,28 @@ main.container{padding-top:20px;padding-bottom:35px}
 .badge.green{background:#e6f6ee;color:var(--green)}
 .badge.red{background:#fdecee;color:var(--red)}
 .badge.gold{background:#fff4d9;color:#9a6b00}
-.track-box{background:#f4f8fc;border-radius:7px;padding:8px;margin-top:7px}
+.track-box{background:#f4f8fc;border-radius:7px;padding:9px;margin-top:8px;border:1px solid #dce6f2}
+.track-steps{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.track-step{background:#fff;padding:6px 9px;border-radius:6px;border-left:3px solid var(--blue);font-size:10px}
 .reply-box{background:#eef7f1;border-left:3px solid var(--green);padding:8px;margin-top:7px;border-radius:5px}
 
-/* Product details */
+/* Product details & Gallery & Public Links */
 
 .product-view-content{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:22px}
 .product-view-image{background:#f6f7fa;border-radius:10px;overflow:hidden;min-height:250px}
 .product-view-image img{width:100%;height:100%;min-height:250px;object-fit:contain;display:block}
+.gallery-thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.gallery-thumb{
+  width:56px;height:56px;border-radius:7px;object-fit:cover;
+  border:2px solid var(--border);cursor:pointer;background:#fff;
+}
+.gallery-thumb.active{border-color:var(--blue)}
+.public-links-box{margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
+.public-links-box h4{font-size:11px;color:var(--navy);margin-bottom:6px}
+.public-link-item{
+  display:inline-block;margin:3px 6px 3px 0;padding:5px 9px;
+  background:#edf5fc;color:var(--blue);border-radius:6px;font-size:10px;font-weight:700;
+}
 .product-view-info h2{font-size:22px;line-height:1.35;margin-bottom:8px}
 .product-view-description{color:#66758a;font-size:12px;line-height:1.8;margin:10px 0;white-space:pre-wrap;overflow-wrap:anywhere}
 .product-view-price{color:var(--orange);font-size:27px;font-weight:900}
@@ -440,7 +453,7 @@ footer p{color:#bdc9e2;font-size:10px;margin-top:6px}
 
 <div id="cartToast" class="cart-toast" role="status" aria-live="polite">
   <span class="cart-toast-icon">✓</span>
-  <span id="cartToastText" class="cart-toast-text">পণ্যটি সফলভাবে কার্টে যোগ হয়েছে!</span>
+  <span id="cartToastText" class="cart-toast-text">পণ্যটি সফলভাবে কার্টে যোগ হয়েছে!</span>
 </div>
 
 <header>
@@ -469,7 +482,7 @@ footer p{color:#bdc9e2;font-size:10px;margin-top:6px}
   <div class="welcome-inner">
     <div>
       <span class="welcome-tag">WELCOME TO BAZAR GHOR</span>
-      <h2>আপনার পছন্দের কেনাকাটা, এক জায়গায়।</h2>
+      <h2>আপনার পছন্দের কেনাকাটা, এক জায়গায়।</h2>
       <p>পছন্দের পণ্য বেছে নিন, সহজে অর্ডার করুন এবং ঘরে বসে ডেলিভারি পান।</p>
       <a href="#products" class="shop-btn">এখনই কেনাকাটা করুন →</a>
     </div>
@@ -620,7 +633,7 @@ footer p{color:#bdc9e2;font-size:10px;margin-top:6px}
     <p class="sub" id="accountSub"></p>
     <div class="tabs">
       <button type="button" class="tab active" data-acc="profile">Profile</button>
-      <button type="button" class="tab" data-acc="orders">My Orders</button>
+      <button type="button" class="tab" data-acc="orders">My Orders &amp; Tracking</button>
       <button type="button" class="tab" data-acc="support">Support</button>
     </div>
 
@@ -727,6 +740,8 @@ const $ = id => document.getElementById(id);
 
 const CART_KEY = "bazarGhorCart";
 const TOKEN_KEY = "bazarGhorCustomerToken";
+const MAX_GALLERY = 4;
+const MAX_LINKS = 25;
 
 let allProducts = [];
 let selectedCategory = "All Products";
@@ -774,684 +789,715 @@ async function api(path,{method="GET",body}={}){
   if(t) headers.Authorization="Bearer "+t;
 
   const res=await fetch(path,{
-    method,headers,
+    method,
+    headers,
+    credentials:"include",
     body:body ? JSON.stringify(body):undefined,
     cache:"no-store"
   });
 
   let data={};
-  try{data=await res.json()}catch(e){}
-
-  if(res.status===401 && t && path.startsWith("/api/customer")){
-    setToken("");customer=null;renderAuthState();
-  }
+  try{data=await res.json()}catch(e){data={}}
 
   if(!res.ok || data.success===false){
-    throw new Error(data.message || "Something went wrong.");
+    throw new Error(data.message || "Request failed");
   }
   return data;
 }
 
+function isSafeImg(u){
+  if(!u || typeof u!=="string") return false;
+  const s=u.trim();
+  if(s.startsWith("/uploads/") || s.startsWith("/assets/")) return true;
+  try{const p=new URL(s);return p.protocol==="https:" || p.protocol==="http:"}catch(e){return false}
+}
+
+function isSafeLink(u){
+  if(!u || typeof u!=="string") return false;
+  const s=u.trim();
+  try{const p=new URL(s);return p.protocol==="https:" || p.protocol==="http:"}catch(e){return false}
+}
+
+function getGalleryList(p){
+  const list=[];
+  if(Array.isArray(p.image_urls)){
+    p.image_urls.forEach(img=>{
+      if(isSafeImg(img) && !list.includes(img.trim())) list.push(img.trim());
+    });
+  } else if(typeof p.image_urls==="string"){
+    try{
+      const parsed=JSON.parse(p.image_urls);
+      if(Array.isArray(parsed)){
+        parsed.forEach(img=>{
+          if(isSafeImg(img) && !list.includes(img.trim())) list.push(img.trim());
+        });
+      }
+    }catch(e){}
+  }
+  if(!list.length && isSafeImg(p.image_url)) list.push(p.image_url.trim());
+  return list.slice(0, MAX_GALLERY);
+}
+
+function getPublicLinks(p){
+  const raw = Array.isArray(p.links) ? p.links : [];
+  return raw
+    .filter(lk => lk && (lk.visibility === undefined || lk.visibility === null || String(lk.visibility).toLowerCase() === "public"))
+    .filter(lk => isSafeLink(lk.url))
+    .slice(0, MAX_LINKS);
+}
+
+function pricing(p){
+  const price=Math.max(0, Number(p.price)||0);
+  const pct=Math.max(0, Number(p.discount_percent)||0);
+  const on=Boolean(p.discount_enabled) && pct>0 && pct<100;
+  const final=on ? +(price*(1-pct/100)).toFixed(2) : price;
+  const saved=Math.max(0, +(price-final).toFixed(2));
+  return{price,pct,on,final,saved};
+}
+
+function stockOf(p){
+  return Math.max(0, Number(p.stock_quantity ?? 0) || 0);
+}
+
+const findProduct = id => allProducts.find(p=>Number(p.id)===Number(id));
+
 function readCart(){
   try{
-    const p=JSON.parse(
-      localStorage.getItem(CART_KEY) ||
-      localStorage.getItem("eliteSphereCart") || "[]"
-    );
-    return (Array.isArray(p)?p:[])
-      .filter(i=>i && Number(i.id)>0 && Number(i.quantity)>0)
-      .map(i=>({
-        id:Number(i.id),
-        name:String(i.name || "Product"),
-        price:Number(i.price)||0,
-        stock_quantity:Number(i.stock_quantity)||0,
-        image_url:String(i.image_url||""),
-        quantity:Number(i.quantity)
-      }));
-  }catch(e){return []}
+    const d=JSON.parse(localStorage.getItem(CART_KEY)||"[]");
+    return Array.isArray(d) ? d.filter(i=>i && i.id && Number(i.qty)>0) : [];
+  }catch(e){return[]}
 }
 
-const saveCart=()=>{
+function saveCart(){
   try{localStorage.setItem(CART_KEY,JSON.stringify(cart))}catch(e){}
-};
-
-function discountOf(p){
-  const price=Number(p.price)||0;
-  const old=Number(p.old_price)||0;
-  const has=old>price && price>0;
-  let pct=Number(p.discount_percent)||0;
-  if(!pct && has) pct=Math.round((old-price)/old*100);
-  return {percent:has?pct:0,oldPrice:has?old:0,price,saving:has?old-price:0};
+  updateCartCount();
 }
 
-/* Modal Functions */
-
-const openModal=id=>{
-  $(id).classList.add("open");
-  $(id).setAttribute("aria-hidden","false");
-  document.body.classList.add("modal-open");
-};
-
-function closeModal(id){
-  $(id).classList.remove("open");
-  $(id).setAttribute("aria-hidden","true");
-  if(!document.querySelector(".modal.open")) document.body.classList.remove("modal-open");
-}
-
-document.querySelectorAll("[data-close]").forEach(b=>{
-  b.addEventListener("click",()=>closeModal(b.dataset.close));
-});
-
-document.querySelectorAll(".modal").forEach(m=>{
-  m.addEventListener("click",e=>{
-    if(e.target===m) closeModal(m.id);
-  });
-});
-
-document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"){
-    const o=[...document.querySelectorAll(".modal.open")].pop();
-    if(o) closeModal(o.id);
-  }
-});
-
-/* Cart Toast */
-
-function showCartToast(message){
-  const toast=$("cartToast");
-  const text=$("cartToastText");
-  if(!toast || !text) return;
-  text.textContent=message;
-  toast.classList.remove("show");
-  clearTimeout(cartToastTimer);
-  void toast.offsetWidth;
-  toast.classList.add("show");
-  cartToastTimer=setTimeout(()=>toast.classList.remove("show"),2800);
-}
-
-function animateCartCount(){
+function updateCartCount(animate=false){
+  const total=cart.reduce((s,i)=>s+Number(i.qty||0),0);
   ["desktopCartCount","mobileCartCount"].forEach(id=>{
     const el=$(id);
     if(!el) return;
-    el.classList.remove("cart-count-animate");
-    void el.offsetWidth;
-    el.classList.add("cart-count-animate");
+    el.textContent=total;
+    if(animate){
+      el.classList.remove("cart-count-animate");
+      void el.offsetWidth;
+      el.classList.add("cart-count-animate");
+    }
   });
-  const cartLink=document.querySelector(".cart-link");
-  const mobileCart=document.querySelector(".mobile-nav a[href='#cart']");
-  [cartLink,mobileCart].forEach(el=>{
-    if(!el) return;
-    el.classList.remove("cart-bounce");
-    void el.offsetWidth;
-    el.classList.add("cart-bounce");
-  });
-}
-
-/* Settings */
-
-async function loadSettings(){
-  try{
-    const d=await api("/api/settings/public");
-    settings={...settings,...(d.settings||d)};
-  }catch(e){console.warn("Settings not loaded:",e.message)}
-
-  $("optBkash").classList.toggle("hidden",!settings.bkash_number);
-  $("optNagad").classList.toggle("hidden",!settings.nagad_number);
-  updateCart();
-}
-
-/* Services */
-
-async function loadServices(){
-  try{
-    const d=await api("/api/services");
-    const s=Array.isArray(d.services)?d.services:[];
-    $("serviceList").innerHTML=s.length
-      ? s.map(x=>`
-        <article class="service-card">
-          <div class="service-icon">✦</div>
-          <h3>${esc(x.title)}</h3>
-          <p>${esc(x.description||"Contact us to learn more.")}</p>
-        </article>
-      `).join("")
-      : '<div class="msg-box">No services available right now.</div>';
-  }catch(e){
-    $("serviceList").innerHTML='<div class="msg-box">Services could not be loaded.</div>';
+  const link=document.querySelector("header nav .cart-link");
+  if(link && animate){
+    link.classList.remove("cart-bounce");
+    void link.offsetWidth;
+    link.classList.add("cart-bounce");
   }
 }
 
-/* Products */
-
-async function loadProducts(){
-  try{
-    const d=await api("/api/products");
-    allProducts=Array.isArray(d.products)?d.products:[];
-    buildCategories();
-    showProducts();
-  }catch(e){
-    $("productList").innerHTML='<div class="msg-box">Products could not be loaded. Please refresh.</div>';
-  }
+function showCartToast(msg){
+  const toast=$("cartToast");
+  if(!toast) return;
+  $("cartToastText").textContent=msg;
+  toast.classList.add("show");
+  clearTimeout(cartToastTimer);
+  cartToastTimer=setTimeout(()=>toast.classList.remove("show"),2300);
 }
 
-function buildCategories(){
-  const names=[...new Set(
-    allProducts.map(p=>String(p.category||"").trim()).filter(Boolean)
-  )].sort();
+function openModal(id){
+  $(id)?.classList.add("open");
+  document.body.classList.add("modal-open");
+}
 
-  $("categoryButtons").innerHTML=["All Products",...names].map(n=>`
-    <button type="button" class="category${n===selectedCategory?" active":""}" data-category="${esc(n)}">${esc(n)}</button>
+function closeModal(id){
+  $(id)?.classList.remove("open");
+  if(!document.querySelector(".modal.open")) document.body.classList.remove("modal-open");
+}
+
+/* Products & Categories */
+
+function renderCategories(products){
+  const cats=["All Products",...new Set(products.map(p=>p.category).filter(Boolean))];
+  if(!cats.includes(selectedCategory)) selectedCategory="All Products";
+  $("categoryButtons").innerHTML=cats.map(c=>`
+    <button type="button" class="category ${c===selectedCategory ? "active":""}" data-category="${esc(c)}">${esc(c)}</button>
   `).join("");
 }
 
-$("categoryButtons").addEventListener("click",e=>{
-  const b=e.target.closest(".category");
-  if(!b) return;
-  selectedCategory=b.dataset.category;
-  document.querySelectorAll("#categoryButtons .category").forEach(x=>{
-    x.classList.toggle("active",x===b);
-  });
-  showProducts();
-});
-
-function showProducts(){
+function renderProducts(){
   const q=$("searchInput").value.trim().toLowerCase();
-
   const list=allProducts.filter(p=>{
-    const hay=[p.name,p.description,p.category]
-      .map(v=>String(v||"").toLowerCase()).join(" ");
-    const cat=String(p.category||"").trim().toLowerCase();
-    return hay.includes(q) && (
-      selectedCategory==="All Products" ||
-      cat===selectedCategory.toLowerCase()
-    );
+    const catOk=selectedCategory==="All Products" || p.category===selectedCategory;
+    const qOk=!q || `${p.name||""} ${p.category||""} ${p.description||""}`.toLowerCase().includes(q);
+    return catOk && qOk;
   });
 
-  $("productList").innerHTML=list.length ? list.map(p=>{
-    const d=discountOf(p);
-    const stock=Number(p.stock_quantity)||0;
-    const id=Number(p.id);
+  if(!list.length){
+    $("productList").innerHTML=`<div class="msg-box">কোনো পণ্য পাওয়া যায়নি।</div>`;
+    return;
+  }
 
+  $("productList").innerHTML=list.map(p=>{
+    const pr=pricing(p);
+    const st=stockOf(p);
+    const out=st<=0;
+    const gallery=getGalleryList(p);
+    const mainImg=gallery[0] || "";
     return `
-      <article class="product${stock<=0?" oos":""}">
-        <div class="product-img-wrap" onclick="openProductView(${id})">
-          ${
-            p.image_url
-              ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}" loading="lazy"
-                   onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">
-                 <div class="product-no-img" style="display:none">📦</div>`
-              : '<div class="product-no-img">📦</div>'
-          }
-          ${d.percent>0?`<span class="discount-badge">${d.percent}% OFF</span>`:""}
-          <span class="stock-badge${stock<=0?" out":""}">
-            ${stock>0?`${stock} available`:"Out of Stock"}
-          </span>
+      <article class="product ${out ? "oos":""}" data-id="${p.id}">
+        <div class="product-img-wrap" data-view="${p.id}">
+          ${pr.on ? `<span class="discount-badge">-${pr.pct}%</span>`:""}
+          ${mainImg
+            ? `<img src="${esc(mainImg)}" alt="${esc(p.name)}" loading="lazy">`
+            : `<div class="product-no-img">🛍️</div>`}
+          <span class="stock-badge ${out ? "out":""}">${out ? "Out of Stock":"In Stock ("+st+")"}</span>
         </div>
-
         <div class="product-info">
-          <h3 onclick="openProductView(${id})">${esc(p.name)}</h3>
-          <div>
-            <div class="price">৳${money(d.price)}</div>
-            <div class="old-price-row">
-              ${d.oldPrice?`
-                <span class="old-price">৳${money(d.oldPrice)}</span>
-                <span class="save-text">Save ৳${money(d.saving)}</span>
-              `:""}
-            </div>
+          <h3 data-view="${p.id}">${esc(p.name)}</h3>
+          <div class="price">৳${money(pr.final)}</div>
+          <div class="old-price-row">
+            ${pr.on ? `<span class="old-price">৳${money(pr.price)}</span><span class="save-text">Save ৳${money(pr.saved)}</span>`:""}
           </div>
           <div class="product-actions">
-            <button type="button" class="view-btn" onclick="openProductView(${id})">View</button>
-            <button type="button" class="add-btn" onclick="addToCart(${id},this)" ${stock<=0?"disabled":""}>
-              ${stock<=0?"Out of Stock":"Add Cart"}
-            </button>
+            <button type="button" class="view-btn" data-view="${p.id}">View</button>
+            <button type="button" class="add-btn" data-add="${p.id}" ${out ? "disabled":""}>${out ? "Stock Out":"Add to Cart"}</button>
           </div>
         </div>
       </article>
     `;
-  }).join(""):'<div class="msg-box">No products found. Try another search or category.</div>';
+  }).join("");
 }
 
-$("searchForm").addEventListener("submit",e=>{
-  e.preventDefault();
-  showProducts();
-  $("searchInput").blur();
-  $("products").scrollIntoView({behavior:"smooth"});
-});
+async function loadProducts(){
+  try{
+    const d=await api("/api/products");
+    allProducts=Array.isArray(d.products) ? d.products:[];
+    renderCategories(allProducts);
+    renderProducts();
+  }catch(e){
+    $("productList").innerHTML=`<div class="msg-box">পণ্য লোড করা যায়নি।</div>`;
+  }
+}
 
-$("searchInput").addEventListener("input",showProducts);
+/* Services & Settings */
 
-$("clearSearchBtn").addEventListener("click",()=>{
-  $("searchInput").value="";
-  showProducts();
-});
+async function loadServices(){
+  try{
+    const d=await api("/api/services");
+    const list=Array.isArray(d.services) ? d.services:[];
+    if(!list.length){
+      $("serviceList").innerHTML=`<div class="msg-box">কোনো সেবা পাওয়া যায়নি।</div>`;
+      return;
+    }
+    $("serviceList").innerHTML=list.map(s=>`
+      <div class="service-card">
+        <div class="service-icon">${esc(s.icon || "✦")}</div>
+        <h3>${esc(s.title)}</h3>
+        <p>${esc(s.description || "")}</p>
+      </div>
+    `).join("");
+  }catch(e){
+    $("serviceList").innerHTML=`<div class="msg-box">সেবা লোড করা যায়নি।</div>`;
+  }
+}
 
-/* Product Details */
+async function loadSettings(){
+  try{
+    const d=await api("/api/settings");
+    if(d.settings) settings={...settings,...d.settings};
+  }catch(e){}
+}
 
-function openProductView(id){
-  const p=allProducts.find(x=>Number(x.id)===Number(id));
+/* Product details modal with Gallery (max 4) & Public Links (max 25) */
+
+function openProductModal(id){
+  const p=findProduct(id);
   if(!p) return;
+  const pr=pricing(p);
+  const st=stockOf(p);
+  const out=st<=0;
+  const gallery=getGalleryList(p);
+  const mainImg=gallery[0] || "";
+  const publicLinks=getPublicLinks(p);
 
-  const d=discountOf(p);
-  const stock=Number(p.stock_quantity)||0;
+  const thumbsHtml = gallery.length > 1
+    ? `<div class="gallery-thumbs" id="detailThumbs">
+        ${gallery.map((imgUrl, i) => `
+          <img src="${esc(imgUrl)}" alt="Preview ${i+1}" class="gallery-thumb ${i===0 ? "active":""}" data-thumb="${esc(imgUrl)}">
+        `).join("")}
+       </div>`
+    : "";
+
+  const linksHtml = publicLinks.length > 0
+    ? `<div class="public-links-box">
+        <h4>Product Links</h4>
+        ${publicLinks.map(lk => `
+          <a class="public-link-item" href="${esc(lk.url)}" target="_blank" rel="noopener noreferrer">
+            🔗 ${esc(lk.title || "View Link")}
+          </a>
+        `).join("")}
+       </div>`
+    : "";
 
   $("productViewContent").innerHTML=`
     <div class="product-view-content">
-      <div class="product-view-image">
-        ${p.image_url
-          ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">`
-          : '<div class="product-no-img">📦</div>'}
+      <div>
+        <div class="product-view-image">
+          ${mainImg
+            ? `<img id="detailMainImg" src="${esc(mainImg)}" alt="${esc(p.name)}">`
+            : `<div class="product-no-img">🛍️</div>`}
+        </div>
+        ${thumbsHtml}
       </div>
-
       <div class="product-view-info">
+        ${p.category ? `<span class="badge">${esc(p.category)}</span>`:""}
         <h2>${esc(p.name)}</h2>
-        <div class="product-view-price">৳${money(d.price)}</div>
-        ${d.oldPrice?`
-          <div class="product-view-old">৳${money(d.oldPrice)}</div>
-          <div class="product-view-save">You save ৳${money(d.saving)} (${d.percent}%)</div>
-        `:""}
-        <div class="product-view-stock${stock<=0?" out":""}">
-          ${stock>0?`✓ In Stock (${stock} available)`:"Out of Stock"}
-        </div>
-        <div class="product-view-description">
-          ${esc(p.description||"আরও জানতে BAZAR GHOR-এ যোগাযোগ করুন।")}
-        </div>
+        <div class="product-view-price">৳${money(pr.final)}</div>
+        ${pr.on ? `<div class="old-price-row"><span class="product-view-old">৳${money(pr.price)}</span><span class="product-view-save">Save ৳${money(pr.saved)} (${pr.pct}% OFF)</span></div>`:""}
+        <div class="product-view-stock ${out ? "out":""}">${out ? "Out of Stock":"In Stock ("+st+" available)"}</div>
+        <div class="product-view-description">${esc(p.description || "বিস্তারিত তথ্য শীঘ্রই যুক্ত করা হবে।")}</div>
+        ${linksHtml}
         <div class="product-view-actions">
-          <button type="button" class="buy-now-btn" onclick="buyNow(${Number(p.id)})" ${stock<=0?"disabled":""}>Buy Now</button>
-          <button type="button" class="detail-add-btn" onclick="addToCart(${Number(p.id)});closeModal('productModal')" ${stock<=0?"disabled":""}>Add Cart</button>
+          <button type="button" class="detail-add-btn" data-detail-add="${p.id}" ${out ? "disabled":""}>Add to Cart</button>
+          <button type="button" class="buy-now-btn" data-buy-now="${p.id}" ${out ? "disabled":""}>Order Now</button>
         </div>
       </div>
     </div>
   `;
+
+  const thumbsWrap = $("detailThumbs");
+  if(thumbsWrap){
+    thumbsWrap.addEventListener("click", e => {
+      const th = e.target.closest("[data-thumb]");
+      if(!th) return;
+      const newSrc = th.getAttribute("data-thumb");
+      const mainEl = $("detailMainImg");
+      if(mainEl && newSrc) mainEl.src = newSrc;
+      thumbsWrap.querySelectorAll(".gallery-thumb").forEach(el => el.classList.remove("active"));
+      th.classList.add("active");
+    });
+  }
+
   openModal("productModal");
 }
 
-$("closeProductModal").addEventListener("click",()=>closeModal("productModal"));
-
 /* Cart */
 
-function cartLine(p){
-  return {
-    id:Number(p.id),name:p.name,price:Number(p.price),
-    stock_quantity:Number(p.stock_quantity),
-    image_url:p.image_url||"",quantity:1
-  };
-}
+function addToCart(id, btn){
+  const p=findProduct(id);
+  if(!p) return;
+  const st=stockOf(p);
+  if(st<=0){showCartToast("এই পণ্যটি বর্তমানে স্টকে নেই।");return}
 
-function addToCart(id,button=null){
-  const p=allProducts.find(x=>Number(x.id)===Number(id));
-  if(!p || Number(p.stock_quantity)<=0){
-    showCartToast("এই পণ্যটি বর্তমানে Stock-এ নেই!");
+  const found=cart.find(i=>Number(i.id)===Number(p.id));
+  const nextQty=(found ? found.qty:0)+1;
+  if(nextQty>st){
+    showCartToast("স্টকে সর্বোচ্চ "+st+"টি পণ্য আছে।");
     return;
   }
 
-  const ex=cart.find(i=>i.id===Number(id));
-  if(ex){
-    if(ex.quantity>=Number(p.stock_quantity)){
-      showCartToast("এই পণ্যের সর্বোচ্চ Stock যোগ করা হয়েছে!");
-      return;
-    }
-    ex.quantity++;
-  }else{
-    cart.push(cartLine(p));
-  }
-
+  if(found) found.qty=nextQty;
+  else cart.push({id:p.id,qty:1});
   saveCart();
-  updateCart();
-  animateCartCount();
+  renderCart();
 
-  if(button){
-    button.classList.remove("added");
-    void button.offsetWidth;
-    button.classList.add("added");
+  if(btn){
+    btn.classList.remove("added");
+    void btn.offsetWidth;
+    btn.classList.add("added");
   }
-
-  showCartToast(p.name+" সফলভাবে কার্টে যোগ হয়েছে!");
+  updateCartCount(true);
+  showCartToast(`"${p.name}" কার্টে যোগ হয়েছে!`);
 }
 
-function buyNow(id){
-  const p=allProducts.find(x=>Number(x.id)===Number(id));
-  if(!p || Number(p.stock_quantity)<=0) return;
-  cart=[cartLine(p)];
+function changeQty(id,delta){
+  const idx=cart.findIndex(i=>Number(i.id)===Number(id));
+  if(idx<0) return;
+  const p=findProduct(id);
+  const st=p ? stockOf(p):999;
+  const next=cart[idx].qty+delta;
+  if(next<=0) cart.splice(idx,1);
+  else if(p && st>0 && next>st){showCartToast("স্টকে সর্বোচ্চ "+st+"টি পণ্য আছে।");return}
+  else cart[idx].qty=next;
   saveCart();
-  updateCart();
-  closeModal("productModal");
-  openCheckout();
-}
-
-function changeQuantity(id,delta){
-  const i=cart.findIndex(x=>x.id===Number(id));
-  if(i<0) return;
-
-  const n=cart[i].quantity+delta;
-  const max=cart[i].stock_quantity||999;
-
-  if(n<=0) cart.splice(i,1);
-  else if(n<=max) cart[i].quantity=n;
-  else showCartToast("Maximum available stock reached.");
-
-  saveCart();
-  updateCart();
+  renderCart();
 }
 
 function removeFromCart(id){
-  cart=cart.filter(i=>i.id!==Number(id));
+  cart=cart.filter(i=>Number(i.id)!==Number(id));
   saveCart();
-  updateCart();
-  showCartToast("পণ্যটি কার্ট থেকে সরানো হয়েছে।");
+  renderCart();
 }
 
-const subtotal=()=>cart.reduce((s,i)=>s+i.price*i.quantity,0);
-const deliveryCharge=()=>cart.length?(Number(settings.delivery_charge)||0):0;
-
-function updateCart(){
-  const count=cart.reduce((s,i)=>s+i.quantity,0);
-  $("desktopCartCount").textContent=count;
-  $("mobileCartCount").textContent=count;
-  $("cartTotal").textContent=`Subtotal: ৳${money(subtotal())}`;
-
-  $("cartItems").innerHTML=cart.length?cart.map(i=>`
-    <div class="cart-item">
-      <div>
-        <strong>${esc(i.name)}</strong>
-        <p>৳${money(i.price)} × ${i.quantity}</p>
-      </div>
-      <div class="quantity-controls">
-        <button type="button" onclick="changeQuantity(${i.id},-1)">−</button>
-        <span>${i.quantity}</span>
-        <button type="button" onclick="changeQuantity(${i.id},1)">+</button>
-        <button type="button" class="remove-btn" onclick="removeFromCart(${i.id})">Remove</button>
-      </div>
-    </div>
-  `).join(""):"Your cart is empty.";
-
-  updateCheckoutSummary();
+function cartSubtotal(){
+  return cart.reduce((sum,item)=>{
+    const p=findProduct(item.id);
+    if(!p) return sum;
+    return sum + pricing(p).final * Number(item.qty||0);
+  },0);
 }
 
-function updateCheckoutSummary(){
+function renderCart(){
   if(!cart.length){
-    $("checkoutSummary").textContent="Your cart is empty.";
+    $("cartItems").innerHTML=`<p style="color:var(--muted);font-size:12px">Your cart is empty.</p>`;
+    $("cartTotal").textContent="Total: ৳0";
     return;
   }
 
-  const dc=deliveryCharge();
-  $("checkoutSummary").innerHTML=cart.map(i=>`
-    <div class="line">
-      <span>${esc(i.name)} × ${i.quantity}</span>
-      <span>৳${money(i.price*i.quantity)}</span>
-    </div>
-  `).join("")+`
-    <div class="line" style="margin-top:6px"><span>Subtotal</span><span>৳${money(subtotal())}</span></div>
-    <div class="line"><span>Delivery Charge</span><span>৳${money(dc)}</span></div>
-    <div class="line total"><span>Total</span><span>৳${money(subtotal()+dc)}</span></div>
-  `;
+  let html="";
+  let total=0;
+  cart.forEach(item=>{
+    const p=findProduct(item.id);
+    if(!p) return;
+    const unit=pricing(p).final;
+    const sub=unit*item.qty;
+    total+=sub;
+    html+=`
+      <div class="cart-item">
+        <div>
+          <strong>${esc(p.name)}</strong>
+          <p>৳${money(unit)} × ${item.qty} = ৳${money(sub)}</p>
+        </div>
+        <div class="quantity-controls">
+          <button type="button" data-qty="${p.id}" data-d="-1">−</button>
+          <span>${item.qty}</span>
+          <button type="button" data-qty="${p.id}" data-d="1">+</button>
+          <button type="button" class="remove-btn" data-rem="${p.id}">Remove</button>
+        </div>
+      </div>
+    `;
+  });
+
+  $("cartItems").innerHTML=html || `<p style="color:var(--muted);font-size:12px">Your cart is empty.</p>`;
+  $("cartTotal").textContent="Total: ৳"+money(total);
 }
 
 /* Checkout */
 
-function openCheckout(){
-  if(!cart.length){
-    showCartToast("আগে Cart-এ পণ্য যোগ করুন।");
-    return;
-  }
+function updatePaymentBox(){
+  const m=document.querySelector('input[name="paymentMethod"]:checked')?.value;
+  const online=$("onlineInfo"),cod=$("codInfo"),tx=$("transactionId");
+  online.classList.add("hidden");
+  cod.classList.add("hidden");
+  tx.required=false;
 
-  updateCheckoutSummary();
-  setMsg($("checkoutMessage"),"");
-
-  if(customer){
-    $("customerName").value=$("customerName").value||customer.name||"";
-    $("customerPhone").value=$("customerPhone").value||customer.phone||"";
-    $("customerAddress").value=$("customerAddress").value||customer.address||"";
-    $("checkoutLoginHint").textContent="";
-  }else{
-    $("checkoutLoginHint").innerHTML=
-      'অর্ডার ট্র্যাক করতে <a href="#" id="hintLogin" style="color:var(--blue);font-weight:800">Login করুন</a>।';
-  }
-
-  openModal("checkoutModal");
-
-  const h=$("hintLogin");
-  if(h){
-    h.onclick=e=>{
-      e.preventDefault();
-      closeModal("checkoutModal");
-      openModal("authModal");
-    };
+  if(m==="bkash" || m==="nagad"){
+    const isBkash=m==="bkash";
+    const num=isBkash ? settings.bkash_number : settings.nagad_number;
+    $("onlineTitle").textContent=(isBkash ? "bKash":"Nagad")+" Personal Send Money";
+    $("onlineHint").textContent="নিচের নম্বরে Send Money করে Transaction ID লিখুন:";
+    $("onlineNumber").textContent=num || "Admin Panel থেকে নম্বর সেট করুন";
+    $("copyBtn").style.background=isBkash ? "#e2136e":"#f36f21";
+    $("transactionLabel").textContent=(isBkash ? "bKash":"Nagad")+" Transaction ID *";
+    tx.required=true;
+    online.classList.remove("hidden");
+  }else if(m==="cod"){
+    cod.classList.remove("hidden");
   }
 }
 
-$("cartCheckoutBtn").addEventListener("click",openCheckout);
-
-document.querySelectorAll('input[name="paymentMethod"]').forEach(r=>{
-  r.addEventListener("change",()=>{
-    const m=r.value;
-    const online=m==="bkash"||m==="nagad";
-
-    $("onlineInfo").classList.toggle("hidden",!online);
-    $("codInfo").classList.toggle("hidden",m!=="cod");
-    $("transactionId").required=online;
-
-    if(online){
-      const name=m==="bkash"?"bKash":"Nagad";
-      const color=m==="bkash"?"#e2136e":"#d01b65";
-      const number=settings[m+"_number"]||"";
-
-      $("onlineTitle").textContent=name+" Personal Payment";
-      $("onlineHint").textContent=`${name} Personal নম্বরে টাকা পাঠিয়ে Transaction ID দিন:`;
-      $("onlineNumber").textContent=number;
-      $("onlineNumber").style.color=color;
-      $("copyBtn").style.background=color;
-      $("transactionLabel").textContent=name+" Transaction ID *";
-
-      $("copyMessage").textContent="";
-      if(!number) $("onlineHint").textContent=name+" নম্বর পাওয়া যাচ্ছে না। পরে আবার চেষ্টা করুন।";
-    }else{
-      $("transactionId").value="";
-      $("onlineNumber").textContent="";
-      $("copyMessage").textContent="";
-    }
-    setMsg($("checkoutMessage"),"");
-  });
-});
-
-$("copyBtn").addEventListener("click",async()=>{
-  const t=$("onlineNumber").textContent.trim();
-  if(!t){
-    $("copyMessage").textContent="Payment number is not available.";
-    return;
+function openCheckout(){
+  if(!cart.length){showCartToast("আপনার কার্ট খালি!");return}
+  const sub=cartSubtotal();
+  const del=Number(settings.delivery_charge)||0;
+  $("checkoutSummary").innerHTML=`
+    <div class="line"><span>Subtotal (${cart.reduce((s,i)=>s+i.qty,0)} items)</span><span>৳${money(sub)}</span></div>
+    <div class="line"><span>Delivery Charge</span><span>৳${money(del)}</span></div>
+    <div class="line total"><span>Grand Total</span><span>৳${money(sub+del)}</span></div>
+  `;
+  if(customer){
+    $("checkoutLoginHint").textContent=`(${customer.name} হিসেবে অর্ডার করছেন)`;
+    if(!$("customerName").value) $("customerName").value=customer.name || "";
+    if(!$("customerPhone").value) $("customerPhone").value=customer.phone || "";
+    if(!$("customerAddress").value) $("customerAddress").value=customer.address || "";
+  }else{
+    $("checkoutLoginHint").innerHTML=`<a href="#account" id="checkoutAuthLink" style="color:var(--blue);font-weight:800;text-decoration:underline">Login করলে</a> অর্ডার History সেভ থাকবে।`;
   }
-  try{
-    await navigator.clipboard.writeText(t);
-    $("copyMessage").textContent="Number copied!";
-  }catch(e){
-    $("copyMessage").textContent="Please copy manually: "+t;
-  }
-});
+  $("optBkash").classList.toggle("hidden",!settings.bkash_number);
+  $("optNagad").classList.toggle("hidden",!settings.nagad_number);
+  setMsg($("checkoutMessage"),"");
+  updatePaymentBox();
+  openModal("checkoutModal");
+}
 
-$("checkoutForm").addEventListener("submit",async e=>{
+async function submitOrder(e){
   e.preventDefault();
+  if(!cart.length){setMsg($("checkoutMessage"),"কার্ট খালি।");return}
+  const payment_method=document.querySelector('input[name="paymentMethod"]:checked')?.value;
+  if(!payment_method){setMsg($("checkoutMessage"),"Payment method নির্বাচন করুন।");return}
 
-  if(!cart.length) return setMsg($("checkoutMessage"),"Please add at least one product to cart.");
-
-  const method=document.querySelector('input[name="paymentMethod"]:checked')?.value;
-  if(!method) return setMsg($("checkoutMessage"),"Please select a payment method.");
-
-  const name=$("customerName").value.trim();
-  const phone=$("customerPhone").value.trim();
-  const address=$("customerAddress").value.trim();
-  const trx=$("transactionId").value.trim();
-
-  if(!name||!phone||!address) return setMsg($("checkoutMessage"),"Please complete all required information.");
-  if((method==="bkash"||method==="nagad")&&!trx) return setMsg($("checkoutMessage"),"Please enter your Transaction ID.");
-
-  $("placeOrderBtn").disabled=true;
-  setMsg($("checkoutMessage"),"Placing your order...",true);
+  const btn=$("placeOrderBtn");
+  btn.disabled=true;
+  setMsg($("checkoutMessage"),"অর্ডার পাঠানো হচ্ছে...",true);
 
   try{
     const d=await api("/api/orders",{
       method:"POST",
       body:{
-        name,customer_name:name,phone,
-        delivery_address:address,address,
-        payment_method:method,
-        transaction_id:trx,payment_reference:trx,
-        items:cart.map(i=>({id:i.id,quantity:i.quantity}))
+        customer_name:$("customerName").value.trim(),
+        customer_phone:$("customerPhone").value.trim(),
+        delivery_address:$("customerAddress").value.trim(),
+        payment_method,
+        transaction_id:$("transactionId").value.trim(),
+        items:cart.map(i=>({product_id:i.id,quantity:i.qty}))
       }
     });
-
     cart=[];
     saveCart();
-    updateCart();
+    renderCart();
     $("checkoutForm").reset();
-    $("onlineInfo").classList.add("hidden");
-    $("codInfo").classList.add("hidden");
-
-    setMsg(
-      $("checkoutMessage"),
-      (d.message||"আপনার অর্ডার সফলভাবে হয়েছে।")+
-      (d.order_id?` (Order #${d.order_id})`:""),
-      true
-    );
-
-    showCartToast("আপনার অর্ডার সফলভাবে গ্রহণ করা হয়েছে!");
-    loadProducts();
+    updatePaymentBox();
+    setMsg($("checkoutMessage"),`অর্ডার সফল! Order Number: ${d.order?.order_number || ""}`,true);
+    if(customer) loadOrders();
   }catch(err){
     setMsg($("checkoutMessage"),err.message);
   }finally{
-    $("placeOrderBtn").disabled=false;
+    btn.disabled=false;
   }
-});
-
-/* Customer Authentication */
-
-function renderAuthState(){
-  const label=customer?("👤 "+(customer.name||"Account").split(" ")[0]):"Login / Register";
-  $("accountBtn").textContent=label;
-  $("mobileAccountBtn").lastElementChild.textContent=customer?"Account":"Login";
 }
 
-async function loadCustomer(){
-  if(!getToken()){
-    customer=null;
-    renderAuthState();
+/* Customer Account, Orders & Tracking Timeline */
+
+function syncAccountUI(){
+  $("accountBtn").textContent=customer ? (customer.name || "My Account"):"Login / Register";
+}
+
+function openAccount(){
+  if(!customer){
+    setMsg($("authMessage"),"");
+    openModal("authModal");
     return;
   }
-  try{
-    const d=await api("/api/customer/me");
-    customer=d.customer||d.user||null;
-  }catch(e){customer=null}
-  renderAuthState();
-}
-
-function openAccountArea(){
-  if(customer){
-    fillProfile();
-    switchAcc("profile");
-    openModal("accountModal");
-  }else{
-    openModal("authModal");
-  }
-}
-
-$("accountBtn").addEventListener("click",openAccountArea);
-$("mobileAccountBtn").addEventListener("click",openAccountArea);
-
-document.querySelectorAll("[data-auth]").forEach(t=>{
-  t.addEventListener("click",()=>{
-    document.querySelectorAll("[data-auth]").forEach(x=>x.classList.toggle("active",x===t));
-    $("loginForm").classList.toggle("hidden",t.dataset.auth!=="login");
-    $("registerForm").classList.toggle("hidden",t.dataset.auth!=="register");
-    setMsg($("authMessage"),"");
-  });
-});
-
-async function authDone(d){
-  setToken(d.token);
-  customer=d.customer||d.user||null;
-  if(!customer) await loadCustomer();
-  renderAuthState();
-  closeModal("authModal");
-  $("loginForm").reset();
-  $("registerForm").reset();
-  fillProfile();
-  switchAcc("profile");
+  $("accountTitle").textContent=customer.name || "My Account";
+  $("accountSub").textContent=`${customer.email || ""} · ${customer.phone || ""}`;
+  $("pfName").value=customer.name || "";
+  $("pfEmail").value=customer.email || "";
+  $("pfPhone").value=customer.phone || "";
+  $("pfAddress").value=customer.address || "";
+  $("pfPass").value="";
+  setMsg($("profileMessage"),"");
+  switchAccTab("profile");
   openModal("accountModal");
 }
 
+function switchAccTab(tab){
+  document.querySelectorAll("#accountModal .tab").forEach(t=>t.classList.toggle("active",t.dataset.acc===tab));
+  $("accProfile").classList.toggle("hidden",tab!=="profile");
+  $("accOrders").classList.toggle("hidden",tab!=="orders");
+  $("accSupport").classList.toggle("hidden",tab!=="support");
+  if(tab==="orders") loadOrders();
+  if(tab==="support") loadSupport();
+}
+
+async function checkCustomer(){
+  if(!getToken()){customer=null;syncAccountUI();return}
+  try{
+    const d=await api("/api/customer/me");
+    customer=d.customer || null;
+  }catch(e){
+    setToken("");
+    customer=null;
+  }
+  syncAccountUI();
+}
+
+async function fetchTrackingEvents(orderId){
+  try{
+    const d=await api(`/api/orders/${encodeURIComponent(orderId)}/tracking`);
+    return Array.isArray(d.events) ? d.events : [];
+  }catch(e){
+    return [];
+  }
+}
+
+async function loadOrders(){
+  $("accOrders").innerHTML=`<p class="sub">Loading orders...</p>`;
+  try{
+    const d=await api("/api/customer/orders");
+    myOrders=Array.isArray(d.orders) ? d.orders:[];
+    $("spOrder").innerHTML=`<option value="">— Order নির্বাচন করুন —</option>`+
+      myOrders.map(o=>`<option value="${o.id}">${esc(o.order_number)} (৳${money(o.total_amount)})</option>`).join("");
+
+    if(!myOrders.length){
+      $("accOrders").innerHTML=`<p class="sub">আপনার কোনো অর্ডার নেই।</p>`;
+      return;
+    }
+
+    const cards = await Promise.all(myOrders.map(async o => {
+      const pCls=o.payment_status==="paid" ? "green":o.payment_status==="failed" ? "red":"gold";
+      const aprStatus = o.approval_status || "pending";
+      const aprCls = aprStatus==="approved" ? "green":aprStatus==="rejected" ? "red":"gold";
+      const events = await fetchTrackingEvents(o.id);
+
+      const eventsHtml = events.length
+        ? `<div class="track-steps">${events.map(ev => `
+            <div class="track-step">
+              <strong>${esc(ev.event_type || "update")}:</strong> ${esc(ev.new_value || ev.status || "")}
+              ${ev.note ? `<div>${esc(ev.note)}</div>` : ""}
+              <span style="color:var(--muted)">${esc(fmtDate(ev.created_at))}</span>
+            </div>
+          `).join("")}</div>`
+        : `<div style="margin-top:4px;color:var(--muted)">Status: ${esc(o.status || "pending")} · Delivery: ${esc(o.delivery_status || "pending")}</div>`;
+
+      return `
+        <div class="order-card">
+          <div class="order-head"><span>#${esc(o.order_number)}</span><span>৳${money(o.total_amount)}</span></div>
+          <div>
+            <span class="badge">Order: ${esc(o.status)}</span>
+            <span class="badge ${aprCls}">Approval: ${esc(aprStatus)}</span>
+            <span class="badge ${pCls}">Payment: ${esc(o.payment_status)}</span>
+            <span class="badge">${esc((o.payment_method||"").toUpperCase())}</span>
+          </div>
+          <div class="track-box">
+            <strong>Order Tracking Timeline</strong>
+            ${o.courier_name || o.tracking_code ? `<div style="margin-top:4px">Courier: <strong>${esc(o.courier_name || "-")}</strong> · Tracking: <strong>${esc(o.tracking_code || "-")}</strong></div>` : ""}
+            ${o.gps_location ? `<div>Location: <strong>${esc(o.gps_location)}</strong></div>` : ""}
+            ${eventsHtml}
+          </div>
+          <div style="margin-top:6px;color:var(--muted)">${esc(fmtDate(o.created_at))}</div>
+        </div>
+      `;
+    }));
+
+    $("accOrders").innerHTML = cards.join("");
+  }catch(e){
+    $("accOrders").innerHTML=`<p class="err">${esc(e.message)}</p>`;
+  }
+}
+
+async function loadSupport(){
+  $("supportList").innerHTML=`<p class="sub">Loading...</p>`;
+  try{
+    const d=await api("/api/customer/messages");
+    const list=Array.isArray(d.messages) ? d.messages:[];
+    if(!list.length){$("supportList").innerHTML=`<p class="sub">কোনো message নেই।</p>`;return}
+    $("supportList").innerHTML=list.map(m=>`
+      <div class="order-card">
+        <div class="order-head"><span>${esc(m.subject)}</span><span class="badge ${m.admin_reply ? "green":"gold"}">${m.admin_reply ? "Replied":"Pending"}</span></div>
+        <p>${esc(m.message)}</p>
+        ${m.admin_reply ? `<div class="reply-box"><strong>Admin Reply:</strong><p>${esc(m.admin_reply)}</p></div>`:""}
+      </div>
+    `).join("");
+  }catch(e){
+    $("supportList").innerHTML=`<p class="err">${esc(e.message)}</p>`;
+  }
+}
+
+/* Events */
+
+document.addEventListener("click",e=>{
+  const closeId=e.target.closest("[data-close]")?.dataset.close;
+  if(closeId) closeModal(closeId);
+  if(e.target.classList.contains("modal")) closeModal(e.target.id);
+
+  const cat=e.target.closest("[data-category]")?.dataset.category;
+  if(cat){
+    selectedCategory=cat;
+    document.querySelectorAll("#categoryButtons .category").forEach(b=>b.classList.toggle("active",b.dataset.category===cat));
+    renderProducts();
+  }
+
+  const viewId=e.target.closest("[data-view]")?.dataset.view;
+  if(viewId) openProductModal(viewId);
+
+  const addBtn=e.target.closest("[data-add]");
+  if(addBtn) addToCart(addBtn.dataset.add,addBtn);
+
+  const dAdd=e.target.closest("[data-detail-add]")?.dataset.detailAdd;
+  if(dAdd) addToCart(dAdd);
+
+  const buyNow=e.target.closest("[data-buy-now]")?.dataset.buyNow;
+  if(buyNow){addToCart(buyNow);closeModal("productModal");openCheckout()}
+
+  const qtyBtn=e.target.closest("[data-qty]");
+  if(qtyBtn) changeQty(qtyBtn.dataset.qty,Number(qtyBtn.dataset.d));
+
+  const remId=e.target.closest("[data-rem]")?.dataset.rem;
+  if(remId) removeFromCart(remId);
+
+  const authTab=e.target.closest("[data-auth]")?.dataset.auth;
+  if(authTab){
+    document.querySelectorAll("#authModal .tab").forEach(t=>t.classList.toggle("active",t.dataset.auth===authTab));
+    $("loginForm").classList.toggle("hidden",authTab!=="login");
+    $("registerForm").classList.toggle("hidden",authTab!=="register");
+    setMsg($("authMessage"),"");
+  }
+
+  const accTab=e.target.closest("[data-acc]")?.dataset.acc;
+  if(accTab) switchAccTab(accTab);
+
+  if(e.target.id==="checkoutAuthLink"){e.preventDefault();closeModal("checkoutModal");openAccount()}
+});
+
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){
+    const open=document.querySelector(".modal.open");
+    if(open) closeModal(open.id);
+  }
+});
+
+$("closeProductModal").addEventListener("click",()=>closeModal("productModal"));
+$("searchForm").addEventListener("submit",e=>{e.preventDefault();renderProducts()});
+$("searchInput").addEventListener("input",renderProducts);
+$("clearSearchBtn").addEventListener("click",()=>{
+  $("searchInput").value="";
+  selectedCategory="All Products";
+  document.querySelectorAll("#categoryButtons .category").forEach(b=>b.classList.toggle("active",b.dataset.category==="All Products"));
+  renderProducts();
+});
+$("cartCheckoutBtn").addEventListener("click",openCheckout);
+document.querySelectorAll('input[name="paymentMethod"]').forEach(r=>r.addEventListener("change",updatePaymentBox));
+
+$("copyBtn").addEventListener("click",async()=>{
+  const num=$("onlineNumber").textContent.trim();
+  if(!num || num.includes("Admin")) return;
+  try{await navigator.clipboard.writeText(num)}catch(e){}
+  $("copyMessage").textContent="Copied!";
+  setTimeout(()=>$("copyMessage").textContent="",1800);
+});
+
+$("checkoutForm").addEventListener("submit",submitOrder);
+$("accountBtn").addEventListener("click",openAccount);
+$("mobileAccountBtn").addEventListener("click",openAccount);
+
 $("loginForm").addEventListener("submit",async e=>{
   e.preventDefault();
-  setMsg($("authMessage"),"Logging in...",true);
+  setMsg($("authMessage"),"Login হচ্ছে...",true);
   try{
-    await authDone(await api("/api/customer/login",{
-      method:"POST",
-      body:{
-        identifier:$("loginId").value.trim(),
-        email:$("loginId").value.trim(),
-        password:$("loginPass").value
-      }
-    }));
+    const d=await api("/api/customer/login",{method:"POST",body:{login:$("loginId").value.trim(),password:$("loginPass").value}});
+    setToken(d.token);
+    customer=d.customer;
+    syncAccountUI();
+    closeModal("authModal");
+    showCartToast(`স্বাগতম, ${customer.name}!`);
   }catch(err){setMsg($("authMessage"),err.message)}
 });
 
 $("registerForm").addEventListener("submit",async e=>{
   e.preventDefault();
-  setMsg($("authMessage"),"Creating account...",true);
+  setMsg($("authMessage"),"Account তৈরি হচ্ছে...",true);
   try{
-    await authDone(await api("/api/customer/register",{
+    const d=await api("/api/customer/register",{
       method:"POST",
-      body:{
-        name:$("regName").value.trim(),
-        email:$("regEmail").value.trim(),
-        phone:$("regPhone").value.trim(),
-        password:$("regPass").value
-      }
-    }));
+      body:{name:$("regName").value.trim(),email:$("regEmail").value.trim(),phone:$("regPhone").value.trim(),password:$("regPass").value}
+    });
+    setToken(d.token);
+    customer=d.customer;
+    syncAccountUI();
+    closeModal("authModal");
+    showCartToast(`Account তৈরি হয়েছে! স্বাগতম, ${customer.name}`);
   }catch(err){setMsg($("authMessage"),err.message)}
-});
-
-/* Customer Profile */
-
-function fillProfile(){
-  if(!customer) return;
-  $("accountSub").textContent=customer.email||"";
-  $("pfName").value=customer.name||"";
-  $("pfEmail").value=customer.email||"";
-  $("pfPhone").value=customer.phone||"";
-  $("pfAddress").value=customer.address||"";
-  $("pfPass").value="";
-}
-
-function switchAcc(tab){
-  document.querySelectorAll("[data-acc]").forEach(x=>{
-    x.classList.toggle("active",x.dataset.acc===tab);
-  });
-  $("accProfile").classList.toggle("hidden",tab!=="profile");
-  $("accOrders").classList.toggle("hidden",tab!=="orders");
-  $("accSupport").classList.toggle("hidden",tab!=="support");
-  if(tab==="orders") loadMyOrders();
-  if(tab==="support") loadSupport();
-}
-
-document.querySelectorAll("[data-acc]").forEach(t=>{
-  t.addEventListener("click",()=>switchAcc(t.dataset.acc));
 });
 
 $("profileForm").addEventListener("submit",async e=>{
   e.preventDefault();
   setMsg($("profileMessage"),"Saving...",true);
-
-  const body={
-    name:$("pfName").value.trim(),
-    email:$("pfEmail").value.trim(),
-    phone:$("pfPhone").value.trim(),
-    address:$("pfAddress").value.trim()
-  };
-  if($("pfPass").value) body.password=$("pfPass").value;
-
   try{
-    const d=await api("/api/customer/me",{method:"PUT",body});
-    customer=d.customer||{...customer,...body};
-    renderAuthState();
-    fillProfile();
-    setMsg($("profileMessage"),d.message||"Profile updated.",true);
+    const body={name:$("pfName").value.trim(),email:$("pfEmail").value.trim(),phone:$("pfPhone").value.trim(),address:$("pfAddress").value.trim()};
+    if($("pfPass").value) body.password=$("pfPass").value;
+    const d=await api("/api/customer/profile",{method:"PUT",body});
+    customer=d.customer;
+    syncAccountUI();
+    $("pfPass").value="";
+    setMsg($("profileMessage"),"Profile updated!",true);
   }catch(err){setMsg($("profileMessage"),err.message)}
 });
 
@@ -1459,143 +1505,46 @@ $("logoutBtn").addEventListener("click",async()=>{
   try{await api("/api/customer/logout",{method:"POST"})}catch(e){}
   setToken("");
   customer=null;
-  renderAuthState();
+  syncAccountUI();
   closeModal("accountModal");
-  showCartToast("আপনি সফলভাবে Logout করেছেন।");
+  showCartToast("Logout সফল হয়েছে।");
 });
-
-/* Orders */
-
-const STATUS_COLOR={
-  delivered:"green",paid:"green",confirmed:"green",
-  cancelled:"red",rejected:"red",failed:"red",
-  returned:"red",refunded:"gold",pending:"gold"
-};
-
-const badge=(label,val)=>{
-  if(!val) return "";
-  const k=String(val).toLowerCase();
-  const c=Object.keys(STATUS_COLOR).find(x=>k.includes(x));
-  return `<span class="badge ${c?STATUS_COLOR[c]:""}">${esc(label)}: ${esc(String(val).replace(/_/g," "))}</span>`;
-};
-
-async function loadMyOrders(){
-  const box=$("accOrders");
-  box.innerHTML='<div class="msg-box">Loading orders...</div>';
-
-  try{
-    const d=await api("/api/customer/orders");
-    myOrders=Array.isArray(d.orders)?d.orders:[];
-
-    box.innerHTML=myOrders.length?myOrders.map(o=>{
-      const items=Array.isArray(o.items)?o.items:[];
-      return `
-        <div class="order-card">
-          <div class="order-head">
-            <span>Order #${esc(o.id)}</span>
-            <span>৳${money(o.total_amount??o.total)}</span>
-          </div>
-          <div style="color:var(--muted);margin-bottom:6px">
-            ${esc(fmtDate(o.created_at))} · ${esc(String(o.payment_method||"").toUpperCase())}
-          </div>
-          <div>${badge("Order",o.status)}${badge("Payment",o.payment_status)}${badge("Delivery",o.delivery_status)}</div>
-          ${items.length?`<div style="margin-top:7px">${items.map(i=>`${esc(i.name||i.product_name)} × ${esc(i.quantity)}`).join("<br>")}</div>`:""}
-          ${Number(o.delivery_charge)>0?`<div style="margin-top:5px;color:var(--muted)">Delivery Charge: ৳${money(o.delivery_charge)}</div>`:""}
-          ${o.tracking_info||o.tracking_number?`
-            <div class="track-box"><strong>Tracking:</strong> ${esc(o.tracking_info||o.tracking_number)}</div>
-          `:""}
-        </div>
-      `;
-    }).join(""):'<div class="msg-box">এখনও কোনো অর্ডার নেই।</div>';
-  }catch(err){
-    box.innerHTML=`<div class="msg-box err">${esc(err.message)}</div>`;
-  }
-}
-
-/* Customer Support */
-
-async function loadSupport(){
-  try{
-    const d=await api("/api/customer/orders");
-    myOrders=Array.isArray(d.orders)?d.orders:[];
-  }catch(e){myOrders=[]}
-
-  $("spOrder").innerHTML='<option value="">— Order নির্বাচন করুন —</option>'+
-    myOrders.map(o=>`<option value="${esc(o.id)}">Order #${esc(o.id)}</option>`).join("");
-
-  try{
-    const d=await api("/api/customer/messages");
-    const m=Array.isArray(d.messages)?d.messages:[];
-    $("supportList").innerHTML=m.length?m.map(x=>`
-      <div class="order-card">
-        <div class="order-head">
-          <span>${esc(x.subject)}</span>
-          <span style="font-weight:600;color:var(--muted)">${esc(fmtDate(x.created_at))}</span>
-        </div>
-        ${esc(x.message)}
-        ${x.admin_reply||x.reply?`
-          <div class="reply-box"><strong>Admin:</strong> ${esc(x.admin_reply||x.reply)}</div>
-        `:""}
-      </div>
-    `).join(""):'<div class="msg-box">কোনো মেসেজ নেই।</div>';
-  }catch(err){
-    $("supportList").innerHTML=`<div class="msg-box err">${esc(err.message)}</div>`;
-  }
-}
 
 $("supportForm").addEventListener("submit",async e=>{
   e.preventDefault();
   setMsg($("supportMessage"),"Sending...",true);
   try{
-    const d=await api("/api/customer/messages",{
+    await api("/api/customer/messages",{
       method:"POST",
-      body:{
-        order_id:$("spOrder").value||null,
-        subject:$("spSubject").value.trim(),
-        message:$("spText").value.trim()
-      }
+      body:{order_id:$("spOrder").value || null,subject:$("spSubject").value.trim(),message:$("spText").value.trim()}
     });
     $("supportForm").reset();
-    setMsg($("supportMessage"),d.message||"Message sent.",true);
-    await loadSupport();
+    setMsg($("supportMessage"),"Message পাঠানো হয়েছে!",true);
+    loadSupport();
   }catch(err){setMsg($("supportMessage"),err.message)}
 });
 
-/* Public Contact */
-
 $("contactForm").addEventListener("submit",async e=>{
   e.preventDefault();
-  $("contactSubmitBtn").disabled=true;
-  setMsg($("contactMessage"),"Sending message...",true);
-
+  const btn=$("contactSubmitBtn");
+  btn.disabled=true;
+  setMsg($("contactMessage"),"Sending...",true);
   try{
-    const d=await api("/api/contact",{
+    await api("/api/contact",{
       method:"POST",
-      body:{
-        name:$("contactName").value.trim(),
-        phone:$("contactPhone").value.trim(),
-        email:$("contactEmail").value.trim(),
-        subject:$("contactSubject").value.trim(),
-        message:$("contactText").value.trim()
-      }
+      body:{name:$("contactName").value.trim(),phone:$("contactPhone").value.trim(),email:$("contactEmail").value.trim(),subject:$("contactSubject").value.trim(),message:$("contactText").value.trim()}
     });
     $("contactForm").reset();
-    setMsg($("contactMessage"),d.message||"Message sent successfully!",true);
-  }catch(err){
-    setMsg($("contactMessage"),err.message);
-  }finally{
-    $("contactSubmitBtn").disabled=false;
-  }
+    setMsg($("contactMessage"),"আপনার message সফলভাবে পাঠানো হয়েছে!",true);
+  }catch(err){setMsg($("contactMessage"),err.message)}
+  finally{btn.disabled=false}
 });
 
-/* Initialize */
+/* Init */
 
-loadSettings();
-loadServices();
-loadProducts();
-loadCustomer();
-updateCart();
-
+updateCartCount();
+renderCart();
+Promise.all([loadProducts(),loadServices(),loadSettings(),checkCustomer()]).then(renderCart);
 </script>
 </body>
 </html>

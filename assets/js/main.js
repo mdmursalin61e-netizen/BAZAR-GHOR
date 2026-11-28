@@ -1,1 +1,1 @@
-console.log("ELITE SPHERE GROUP website loaded.");
+console.log("[BAZAR GHOR] Website loaded.");

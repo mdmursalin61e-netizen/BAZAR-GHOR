@@ -1,4 +1,3 @@
-
 function createSupplierAuth({ sql, requireAdmin, jwtSecret }) {
     const express = require("express");
     const bcrypt = require("bcryptjs");
@@ -9,6 +8,8 @@ function createSupplierAuth({ sql, requireAdmin, jwtSecret }) {
 
     const SUPPLIER_COOKIE = "bazar_supplier_token";
     const COOKIE_MAX_AGE = 8 * 60 * 60;
+    const BCRYPT_ROUNDS = 12;
+    const DUMMY_PASSWORD_HASH = bcrypt.hashSync("supplier-dummy-timing-guard", 10);
 
     const supplierLoginLimiter = rateLimit({
         windowMs: 15 * 60 * 1000,
@@ -153,7 +154,8 @@ function createSupplierAuth({ sql, requireAdmin, jwtSecret }) {
                 whatsapp: account.whatsapp,
                 district: account.district,
                 address: account.address,
-                status: account.supplier_status
+                status: account.supplier_status,
+                role: "supplier"
             };
 
             return next();
@@ -213,25 +215,24 @@ function createSupplierAuth({ sql, requireAdmin, jwtSecret }) {
                     LIMIT 1
                 `;
 
-                if (
-                    !records.length ||
-                    !records[0].is_active ||
-                    records[0].supplier_status !== "active"
-                ) {
-                    return res.status(401).json({
-                        success: false,
-                        message: "Invalid username or password."
-                    });
-                }
-
-                const account = records[0];
+                const candidate = records[0] || null;
+                const hashToCheck =
+                    candidate && candidate.password_hash
+                        ? candidate.password_hash
+                        : DUMMY_PASSWORD_HASH;
 
                 const passwordMatches = await bcrypt.compare(
                     password,
-                    account.password_hash
+                    hashToCheck
                 );
 
-                if (!passwordMatches) {
+                if (
+                    !candidate ||
+                    !candidate.password_hash ||
+                    !candidate.is_active ||
+                    candidate.supplier_status !== "active" ||
+                    !passwordMatches
+                ) {
                     return res.status(401).json({
                         success: false,
                         message: "Invalid username or password."
@@ -242,7 +243,7 @@ function createSupplierAuth({ sql, requireAdmin, jwtSecret }) {
                     { role: "supplier" },
                     jwtSecret,
                     {
-                        subject: String(account.id),
+                        subject: String(candidate.id),
                         expiresIn: "8h",
                         algorithm: "HS256"
                     }
@@ -255,10 +256,10 @@ function createSupplierAuth({ sql, requireAdmin, jwtSecret }) {
                     success: true,
                     message: "Supplier login successful.",
                     supplier: {
-                        id: account.supplier_id,
-                        supplier_name: account.supplier_name,
-                        business_name: account.business_name,
-                        username: account.username
+                        id: candidate.supplier_id,
+                        supplier_name: candidate.supplier_name,
+                        business_name: candidate.business_name,
+                        username: candidate.username
                     }
                 });
 
@@ -365,7 +366,7 @@ function createSupplierAuth({ sql, requireAdmin, jwtSecret }) {
                     });
                 }
 
-                const passwordHash = await bcrypt.hash(password, 12);
+                const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
                 const result = await sql`
                     INSERT INTO supplier_users (
@@ -483,7 +484,7 @@ function createSupplierAuth({ sql, requireAdmin, jwtSecret }) {
                     });
                 }
 
-                const passwordHash = await bcrypt.hash(newPassword, 12);
+                const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
 
                 const result = await sql`
                     UPDATE supplier_users

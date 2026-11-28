@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard | ELITE SPHERE GROUP</title>
+    <title>Admin Dashboard | BAZAR GHOR</title>
     <link rel="stylesheet" href="../assets/css/style.css">
 
     <style>
@@ -73,6 +72,9 @@
         .admin-info {
             font-size: 13px;
             color: #65708b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .content { padding: 30px; }
@@ -93,6 +95,13 @@
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 18px;
+            margin-bottom: 24px;
+        }
+
+        .cards-secondary {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
             margin-bottom: 28px;
         }
 
@@ -110,6 +119,34 @@
         }
 
         .card h2 { font-size: 27px; }
+
+        .card-sub {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #55607d;
+        }
+
+        .quick-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .quick-btn {
+            display: inline-block;
+            padding: 8px 14px;
+            border-radius: 8px;
+            background: #eef4ff;
+            color: #1b3c78;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .quick-btn:hover {
+            background: #dbe8ff;
+        }
 
         .section {
             background: white;
@@ -160,6 +197,7 @@
 
         @media (max-width: 900px) {
             .cards { grid-template-columns: repeat(2, 1fr); }
+            .cards-secondary { grid-template-columns: 1fr; }
         }
 
         @media (max-width: 600px) {
@@ -178,8 +216,8 @@
 
     <aside class="sidebar">
         <div class="brand">
-            ELITE SPHERE<br>
-            <span>GROUP BANGLADESH</span>
+            BAZAR GHOR<br>
+            <span>ADMIN PANEL</span>
         </div>
 
         <div class="menu-title">Main Menu</div>
@@ -220,7 +258,7 @@
 
             <div class="welcome">
                 <h1>Welcome Back, Admin!</h1>
-                <p>Here is your business overview.</p>
+                <p>BAZAR GHOR business overview, order approvals, gallery &amp; delivery management.</p>
             </div>
 
             <div class="cards">
@@ -247,6 +285,28 @@
 
             </div>
 
+            <div class="cards-secondary">
+                <div class="card">
+                    <p>Order Approvals &amp; Delivery Queue</p>
+                    <h2 id="pendingApprovalsCount">—</h2>
+                    <div class="card-sub" id="activeDeliveriesSummary">Active deliveries: —</div>
+                    <div class="quick-links">
+                        <a class="quick-btn" href="/pages/orders.html">Manage Orders &amp; Delivery</a>
+                        <a class="quick-btn" href="/pages/products.html">Gallery &amp; Links (Max 4 / 25)</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <p>Supplier &amp; Tracking Operations</p>
+                    <h2 id="supplierProductsCount">—</h2>
+                    <div class="card-sub">Supplier progress, GPS/Courier sync &amp; customer tracking</div>
+                    <div class="quick-links">
+                        <a class="quick-btn" href="/pages/supplier-products.html">Supplier Approvals</a>
+                        <a class="quick-btn" href="/pages/settings.html">Courier &amp; Store Settings</a>
+                    </div>
+                </div>
+            </div>
+
             <section class="section">
                 <h3>Dashboard Status</h3>
                 <p id="dashboardStatus">Checking admin session...</p>
@@ -258,12 +318,40 @@
 </div>
 
 <script>
+    async function loadOperationalSummary() {
+        try {
+            const [ordersRes, spRes] = await Promise.all([
+                fetch("/api/admin/orders", { credentials: "include", cache: "no-store" }),
+                fetch("/api/admin/supplier-products", { credentials: "include", cache: "no-store" })
+            ]);
+
+            if (ordersRes.ok) {
+                const ordersData = await ordersRes.json();
+                const orders = Array.isArray(ordersData.orders) ? ordersData.orders : [];
+                const pendingApproval = orders.filter(o => (o.approval_status || "pending") === "pending").length;
+                const activeDelivery = orders.filter(o => !["delivered", "cancelled"].includes(String(o.delivery_status || "").toLowerCase())).length;
+
+                document.getElementById("pendingApprovalsCount").textContent = pendingApproval;
+                document.getElementById("activeDeliveriesSummary").textContent =
+                    `Active deliveries: ${activeDelivery} of ${orders.length} total orders`;
+            }
+
+            if (spRes.ok) {
+                const spData = await spRes.json();
+                const spList = Array.isArray(spData.supplier_products) ? spData.supplier_products : [];
+                document.getElementById("supplierProductsCount").textContent = spList.length;
+            }
+        } catch {
+            // Keep secondary counters clean if optional endpoints are unavailable
+        }
+    }
+
     async function loadDashboard() {
         const status = document.getElementById("dashboardStatus");
 
         try {
             const adminResponse = await fetch("/api/admin/me", {
-                credentials: "same-origin",
+                credentials: "include",
                 cache: "no-store"
             });
 
@@ -278,7 +366,7 @@
                 adminData.admin.name || adminData.admin.email;
 
             const statsResponse = await fetch("/api/admin/dashboard-stats", {
-                credentials: "same-origin",
+                credentials: "include",
                 cache: "no-store"
             });
 
@@ -307,6 +395,8 @@
 
             status.className = "success";
 
+            loadOperationalSummary();
+
         } catch (error) {
             console.error("Dashboard error:", error);
             status.textContent = "Error: " + error.message;
@@ -318,7 +408,7 @@
         try {
             const response = await fetch("/api/admin/logout", {
                 method: "POST",
-                credentials: "same-origin"
+                credentials: "include"
             });
 
             if (!response.ok) {

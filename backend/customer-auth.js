@@ -1,15 +1,22 @@
-
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const rateLimit = require("express-rate-limit");
 
 module.exports = function createCustomerAuth({ sql, jwtSecret }) {
+    if (!sql) {
+        throw new Error("[BAZAR GHOR] createCustomerAuth requires a sql client.");
+    }
+
+    if (!jwtSecret || typeof jwtSecret !== "string" || jwtSecret.length < 16) {
+        throw new Error("[BAZAR GHOR] createCustomerAuth requires a strong jwtSecret.");
+    }
+
     const router = express.Router();
 
     const COOKIE_NAME = "bazar_customer_token";
     const COOKIE_MAX_AGE = 8 * 60 * 60;
-    const DUMMY_HASH = bcrypt.hashSync("dummy-customer-password", 10);
+    const DUMMY_HASH = bcrypt.hashSync("dummy-bazar-ghor-customer-password", 10);
     const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     const authLimiter = rateLimit({
@@ -24,7 +31,7 @@ module.exports = function createCustomerAuth({ sql, jwtSecret }) {
     });
 
     function normalizePhone(value) {
-        return value.replace(/[^0-9]/g, "");
+        return String(value || "").replace(/[^0-9]/g, "");
     }
 
     function getToken(req) {
@@ -47,7 +54,7 @@ module.exports = function createCustomerAuth({ sql, jwtSecret }) {
 
     function setCookie(res, token) {
         let cookie =
-            `${COOKIE_NAME}=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${COOKIE_MAX_AGE}`;
+            `${COOKIE_NAME}=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${COOKIE_MAX_AGE}`;
 
         if (process.env.NODE_ENV === "production") {
             cookie += "; Secure";
@@ -58,7 +65,7 @@ module.exports = function createCustomerAuth({ sql, jwtSecret }) {
 
     function clearCookie(res) {
         let cookie =
-            `${COOKIE_NAME}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`;
+            `${COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
 
         if (process.env.NODE_ENV === "production") {
             cookie += "; Secure";
@@ -69,7 +76,7 @@ module.exports = function createCustomerAuth({ sql, jwtSecret }) {
 
     function issueToken(customer) {
         return jwt.sign(
-            { type: "customer" },
+            { type: "customer", platform: "bazar-ghor" },
             jwtSecret,
             {
                 subject: String(customer.id),
@@ -136,8 +143,10 @@ module.exports = function createCustomerAuth({ sql, jwtSecret }) {
             return next();
 
         } catch (error) {
-            if (error.name === "JsonWebTokenError" ||
-                error.name === "TokenExpiredError") {
+            if (
+                error.name === "JsonWebTokenError" ||
+                error.name === "TokenExpiredError"
+            ) {
                 clearCookie(res);
 
                 return res.status(401).json({
@@ -146,7 +155,7 @@ module.exports = function createCustomerAuth({ sql, jwtSecret }) {
                 });
             }
 
-            console.error("Customer authentication error:", error);
+            console.error("[BAZAR GHOR] Customer authentication error:", error);
 
             return res.status(503).json({
                 success: false,
@@ -174,44 +183,34 @@ module.exports = function createCustomerAuth({ sql, jwtSecret }) {
                 !/^\d+$/.test(String(decoded.sub))
             ) {
                 clearCookie(res);
-
-                return res.status(401).json({
-                    success: false,
-                    message: "Invalid customer session. Please login again."
-                });
+                req.customer = null;
+                return next();
             }
 
             const customer = await findActiveCustomer(decoded.sub);
 
             if (!customer) {
                 clearCookie(res);
-
-                return res.status(401).json({
-                    success: false,
-                    message: "Customer account is unavailable."
-                });
+                req.customer = null;
+                return next();
             }
 
             req.customer = customer;
             return next();
 
         } catch (error) {
-            if (error.name === "JsonWebTokenError" ||
-                error.name === "TokenExpiredError") {
+            if (
+                error.name === "JsonWebTokenError" ||
+                error.name === "TokenExpiredError"
+            ) {
                 clearCookie(res);
-
-                return res.status(401).json({
-                    success: false,
-                    message: "Session expired. Please login again."
-                });
+                req.customer = null;
+                return next();
             }
 
-            console.error("Optional customer authentication error:", error);
-
-            return res.status(503).json({
-                success: false,
-                message: "Authentication service is unavailable."
-            });
+            console.error("[BAZAR GHOR] Optional customer authentication error:", error);
+            req.customer = null;
+            return next();
         }
     }
 
@@ -242,18 +241,14 @@ module.exports = function createCustomerAuth({ sql, jwtSecret }) {
                 });
             }
 
-            if (normalizedPhone.length < 8 ||
-                normalizedPhone.length > 15) {
+            if (normalizedPhone.length < 8 || normalizedPhone.length > 15) {
                 return res.status(400).json({
                     success: false,
                     message: "Please enter a valid phone number."
                 });
             }
 
-            if (
-                email &&
-                (email.length > 255 || !EMAIL_REGEX.test(email))
-            ) {
+            if (email && (email.length > 255 || !EMAIL_REGEX.test(email))) {
                 return res.status(400).json({
                     success: false,
                     message: "Please enter a valid email address."
@@ -282,7 +277,7 @@ module.exports = function createCustomerAuth({ sql, jwtSecret }) {
             if (existingPhone.length) {
                 return res.status(409).json({
                     success: false,
-                    message: "This phone number is already associated with a customer. Please contact support."
+                    message: "This phone number is already associated with a BAZAR GHOR customer account."
                 });
             }
 
@@ -297,7 +292,7 @@ module.exports = function createCustomerAuth({ sql, jwtSecret }) {
                 if (existingEmail.length) {
                     return res.status(409).json({
                         success: false,
-                        message: "This email is already associated with a customer."
+                        message: "This email is already associated with a BAZAR GHOR customer account."
                     });
                 }
             }
@@ -318,7 +313,7 @@ module.exports = function createCustomerAuth({ sql, jwtSecret }) {
                 VALUES (
                     ${name},
                     ${email || null},
-                    ${phone},
+                    ${normalizedPhone},
                     ${passwordHash},
                     'active',
                     FALSE,
@@ -339,7 +334,7 @@ module.exports = function createCustomerAuth({ sql, jwtSecret }) {
             });
 
         } catch (error) {
-            console.error("Customer registration error:", error);
+            console.error("[BAZAR GHOR] Customer registration error:", error);
 
             if (error.code === "23505") {
                 return res.status(409).json({
@@ -372,10 +367,7 @@ module.exports = function createCustomerAuth({ sql, jwtSecret }) {
                 !password ||
                 password.length > 72
             ) {
-                await bcrypt.compare(
-                    "invalid-password",
-                    DUMMY_HASH
-                );
+                await bcrypt.compare("invalid-password", DUMMY_HASH);
 
                 return res.status(400).json({
                     success: false,
@@ -433,7 +425,7 @@ module.exports = function createCustomerAuth({ sql, jwtSecret }) {
             });
 
         } catch (error) {
-            console.error("Customer login error:", error);
+            console.error("[BAZAR GHOR] Customer login error:", error);
 
             return res.status(500).json({
                 success: false,

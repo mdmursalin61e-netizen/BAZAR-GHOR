@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,6 +17,20 @@
         }
 
         .container { max-width: 1250px; margin: auto; }
+
+        .top-brand {
+            background: #173b2b;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+        }
+
+        .top-brand small {
+            color: #b7e4c7;
+            display: block;
+            margin-top: 4px;
+        }
 
         .header {
             display: flex;
@@ -78,6 +91,7 @@
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 15px;
+            background: white;
         }
 
         input:focus, textarea:focus, select:focus {
@@ -161,6 +175,11 @@
 
 <body>
 <div class="container">
+
+    <div class="top-brand">
+        <strong>BAZAR GHOR</strong>
+        <small>Supplier Directory &amp; Login Account Management</small>
+    </div>
 
     <div class="header">
         <h1>Supplier Management</h1>
@@ -374,7 +393,7 @@
 
     async function apiRequest(url, options = {}) {
         const response = await fetch(url, {
-            credentials: "same-origin",
+            credentials: "include",
             cache: "no-store",
             ...options,
             headers: {
@@ -493,7 +512,6 @@
         }
     }
 
-    // LOAD ALL SUPPLIER LOGIN ACCOUNTS
     async function loadSupplierAccounts() {
         accountLoading.hidden = false;
         accountLoading.textContent = "Loading login accounts...";
@@ -586,7 +604,6 @@
         }
     }
 
-    // RESET PASSWORD
     async function resetAccountPassword(account) {
         const newPassword = prompt(
             "Enter a new password for username: " + account.username +
@@ -628,7 +645,6 @@
         }
     }
 
-    // ACTIVATE / DEACTIVATE ACCOUNT
     async function toggleAccountStatus(account) {
         const isActive = account.is_active === true ||
             account.is_active === "true";
@@ -665,7 +681,6 @@
         }
     }
 
-    // CREATE SUPPLIER LOGIN ACCOUNT
     accountForm.addEventListener("submit", async function(event) {
         event.preventDefault();
 
@@ -711,7 +726,6 @@
         }
     });
 
-    // ADD / UPDATE SUPPLIER
     form.addEventListener("submit", async function(event) {
         event.preventDefault();
 

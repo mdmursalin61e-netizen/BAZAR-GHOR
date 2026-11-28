@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 
 const bcrypt = require("bcryptjs");
@@ -6,9 +5,9 @@ const { sql } = require("./db");
 
 async function createAdmin() {
     try {
-        const name = process.env.ADMIN_NAME;
-        const email = process.env.ADMIN_EMAIL;
-        const password = process.env.ADMIN_PASSWORD;
+        const name = String(process.env.ADMIN_NAME || "").trim();
+        const email = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+        const password = String(process.env.ADMIN_PASSWORD || "");
 
         if (!name || !email || !password) {
             throw new Error(
@@ -23,11 +22,11 @@ async function createAdmin() {
         const passwordHash = await bcrypt.hash(password, 12);
 
         const existing = await sql`
-            SELECT id FROM admins WHERE email = ${email}
+            SELECT id FROM admins WHERE LOWER(email) = ${email}
         `;
 
         if (existing.length > 0) {
-            console.log("Admin account already exists. No changes made.");
+            console.log(`[BAZAR GHOR] Admin account (${email}) already exists. No changes made.`);
             return;
         }
 
@@ -36,9 +35,9 @@ async function createAdmin() {
             VALUES (${name}, ${email}, ${passwordHash})
         `;
 
-        console.log("Admin account created successfully.");
+        console.log(`[BAZAR GHOR] Admin account (${email}) created successfully.`);
     } catch (error) {
-        console.error("Admin creation failed:", error.message);
+        console.error("[BAZAR GHOR] Admin creation failed:", error.message);
         process.exitCode = 1;
     }
 }
